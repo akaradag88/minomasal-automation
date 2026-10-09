@@ -17,6 +17,9 @@ ROOT = Path("minomasal_data").resolve()
 ROOT.mkdir(parents=True, exist_ok=True)
 API_KEY = os.environ.get("POLLINATIONS_API_KEY", "")
 YAYIN_AKTIF = os.environ.get("MINOMASAL_YOUTUBE_UPLOAD", "false").lower() == "true"
+YOUTUBE_GORUNURLUK = os.environ.get("MINOMASAL_YOUTUBE_PRIVACY", "private").lower()
+if YOUTUBE_GORUNURLUK not in ("private", "public", "unlisted"):
+    raise ValueError("MINOMASAL_YOUTUBE_PRIVACY private, public veya unlisted olmali.")
 KONULAR = ['Paylaşmayı Öğrenen Sincap', 'Yalan Söyleyen Küçük Tilki', 'Karanlıktan Korkan Tavşan', 'Dişlerini Fırçalamayan Timsah', 'Her Şeye Kızan Minik Aslan', 'Oyuncaklarını Toplamayan Panda', 'Sabırsız Küçük Kaplumbağa', 'Arkadaşını Dinlemeyen Maymun', 'Ellerini Yıkamayı Unutan Ayıcık', 'Kaybetmeyi Sevmeyen Kaplan', 'Sırasını Bekleyemeyen Minik Panda', 'Kaybolan Küçük Penguen', 'Başkalarının Eşyalarını İzinsiz Alan Maymun', 'Yağmurdan Korkan Minik Kedi', 'Her Şeyi Tek Başına Yapmak İsteyen Kunduz', 'Yeni Okuluna Gitmek İstemeyen Tavşan', 'Bulduğu Oyuncağı Sahibine Veren Kirpi', 'Arkadaşına Kötü Söz Söyleyen Papağan', 'Her Şeyi Ekrandan İzlemek İsteyen Ayıcık', 'Küçük Karıncanın Büyük Hayali', 'Ormanı Kirleten Rakun', 'Yemeğini Beğenmeyen Koala', 'Uçmaya Korkan Minik Kuş', 'Özür Dilemeyi Öğrenen Fil', 'Teşekkür Etmeyen Küçük Geyik', 'Uyumak İstemeyen Baykuş', 'Sebze Yemeyen Tavşan', 'Sözünü Tutmayan Kunduz', 'Farklı Görünen Zürafa', 'Yapamam Diyen Küçük Fare']
 
 import asyncio, hashlib, json, math, os, re, subprocess, time, wave
@@ -248,8 +251,8 @@ async def produce(topic, supplied_story=None):
     print('Video hazır:',final); return final
 
 
-def upload_private_youtube(video, title, topic):
-    """Upload to YouTube as private, returning the confirmed video ID."""
+def upload_youtube(video, title, topic):
+    """Upload to YouTube with configured visibility; return video ID."""
     from google.oauth2.credentials import Credentials
     from google.auth.transport.requests import Request
     from googleapiclient.discovery import build
@@ -275,7 +278,7 @@ def upload_private_youtube(video, title, topic):
             "description": f"{topic} üzerine çocuklar için öğretici bir MinoMasal hikâyesi.\n#MinoMasal #ÇocukMasalları",
             "categoryId": "1",
         },
-        "status": {"privacyStatus": "private", "selfDeclaredMadeForKids": True},
+        "status": {"privacyStatus": YOUTUBE_GORUNURLUK, "selfDeclaredMadeForKids": True},
     }
     media = MediaFileUpload(str(video), mimetype="video/mp4", chunksize=8 * 1024 * 1024, resumable=True)
     request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
@@ -310,7 +313,7 @@ async def main():
         print("Bekleyen hikâye yok.")
         return
     num, topic = pending
-    print(f"{'Gizli YouTube yüklemesi' if YAYIN_AKTIF else 'Önizleme'}: {num}. {topic}")
+    print(f"{'YouTube yüklemesi' if YAYIN_AKTIF else 'Önizleme'}: {num}. {topic}")
     if not API_KEY:
         raise RuntimeError("POLLINATIONS_API_KEY GitHub Secret eksik.")
     video = await produce(topic)
@@ -322,11 +325,11 @@ async def main():
     if YAYIN_AKTIF:
         # YouTube isteği başarılı olsa da GitHub'a durum dosyası commit edilmeden
         # iş akışı kesilirse yeniden yükleme riski vardır; workflow'da concurrency kullanın.
-        video_id = upload_private_youtube(video, title, topic)
+        video_id = upload_youtube(video, title, topic)
         state[str(num)] = {
             **state.get(str(num), {}), "topic": topic, "title": title,
             "complete": True, "youtube_uploaded": True,
-            "youtube_video_id": video_id, "privacy_status": "private",
+            "youtube_video_id": video_id, "privacy_status": YOUTUBE_GORUNURLUK,
         }
         save_json(state_file, state)
         preview_state[str(num)] = {
@@ -335,7 +338,7 @@ async def main():
             "youtube_video_id": video_id,
         }
         save_json(preview_file, preview_state)
-        print("YOUTUBE GİZLİ YÜKLEME BAŞARILI. Video ID:", video_id)
+        print("YOUTUBE YÜKLEME BAŞARILI. Görünürlük:", YOUTUBE_GORUNURLUK, "Video ID:", video_id)
     else:
         shutil.copy2(video, ROOT / "minomasal_test_video.mp4")
         (ROOT / "test_ozeti.json").write_text(json.dumps({
