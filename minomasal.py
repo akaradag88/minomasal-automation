@@ -10,8 +10,8 @@ HIKAYE_MODELI = "openai"
 GORSEL_MODELI = "flux"
 SEED = 1234
 GORSel_KLASORU = ""
-MUZIK_YOLU = ""
-MUZIK_SEVIYESI = 0.28
+MUZIK_KLASORU = Path("music")
+MUZIK_SEVIYESI = 0.22
 SFX_KLASORU = ""
 ROOT = Path("minomasal_data").resolve()
 ROOT.mkdir(parents=True, exist_ok=True)
@@ -145,29 +145,62 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     if brand: events.append(f'Dialogue: 1,0:00:00.00,0:00:02.00,Title,,0,0,0,,{clean_ass(brand)}')
     path.write_text(header+'\n'.join(events),encoding='utf-8')
 
-def original_music(path,dur):
-    # 112 BPM, C majör, parlak zil melodisi, hafif bas ve vurmalı ritim.
-    sr=24000; t=np.arange(int((dur+1)*sr))/sr; signal=np.zeros(len(t)); beat=60/112
-    rng=np.random.default_rng(41)
-    notes=[523.25,659.25,783.99,659.25,698.46,880,783.99,659.25,
-           587.33,698.46,783.99,880,783.99,659.25,587.33,523.25]
-    for i,start in enumerate(np.arange(0,dur,beat/2)):
-        sel=(t>=start)&(t<start+0.5); u=t[sel]-start; f=notes[i%len(notes)]
-        envelope=np.minimum(u/0.008,1)*np.exp(-7*u)
-        signal[sel]+=0.16*(np.sin(2*np.pi*f*u)+0.23*np.sin(4*np.pi*f*u))*envelope
-    bass=[130.81,174.61,196,130.81]
-    for i,start in enumerate(np.arange(0,dur,beat)):
-        sel=(t>=start)&(t<start+0.3); u=t[sel]-start
-        signal[sel]+=0.10*np.sin(2*np.pi*bass[(i//4)%4]*u)*np.minimum(u/.015,1)*np.exp(-10*u)
-        signal[sel]+=0.07*np.sin(2*np.pi*(70*u-40*u*u))*np.minimum(u/.005,1)*np.exp(-25*u)
-        if i%2:
-            signal[sel]+=0.022*rng.standard_normal(len(u))*np.minimum(u/.004,1)*np.exp(-40*u)
-    signal*=np.minimum(t/.5,1)*np.clip((dur-t)/1.2,0,1)
-    with wave.open(str(path),'w') as w:
-        w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr); w.writeframes((np.clip(signal,-1,1)*32767).astype('<i2').tobytes())
+MUZIK_DOSYALARI = {
+    "intro": "intro.mp3",
+    "happy": "happy.mp3",
+    "mystery": "mystery.mp3",
+    "emotional": "emotional.mp3",
+    "ending": "ending.mp3",
+}
+
+
+def music_for_scene(scene, index, count):
+    """Hikâye konumuna ve sahne anlatımına göre müzik kategorisi seç."""
+    if index == 0:
+        return "intro"
+    if index == count - 1:
+        return "ending"
+    text = (scene.get("narration", "") + " " + scene.get("visual", "")).lower()
+    emotional = ("üzül", "ağla", "pişman", "yalnız", "kırıl", "özür", "kork", "sad", "cry", "sorry", "afraid")
+    mysterious = ("gizli", "saklan", "aramaya", "kaybol", "merak", "acaba", "sessizce", "sneak", "mystery", "search")
+    if any(word in text for word in emotional):
+        return "emotional"
+    if any(word in text for word in mysterious):
+        return "mystery"
+    return "happy"
+
+
+def make_scene_music(story, lengths, folder):
+    """Gerçek MP3'lerden, sahne sürelerine uyan ve yumuşak geçişli müzik hazırla."""
+    paths = {kind: MUZIK_KLASORU / name for kind, name in MUZIK_DOSYALARI.items()}
+    missing = [str(p) for p in paths.values() if not p.is_file()]
+    if missing:
+        raise FileNotFoundError("Müzik dosyaları eksik: " + ", ".join(missing))
+    segments = []
+    for i, (scene, length) in enumerate(zip(story["scenes"], lengths)):
+        kind = music_for_scene(scene, i, len(lengths))
+        target = folder / f"muzik_{i:02}.wav"
+        fade = min(0.45, length / 4)
+        filter_audio = (
+            f"[0:a]aresample=48000,aformat=sample_fmts=s16:channel_layouts=stereo,"
+            f"atrim=duration={length:.4f},asetpts=PTS-STARTPTS,"
+            f"afade=t=in:st=0:d={fade:.3f},"
+            f"afade=t=out:st={max(0,length-fade):.4f}:d={fade:.3f}[a]"
+        )
+        run(["ffmpeg", "-y", "-loglevel", "error", "-stream_loop", "-1", "-i", paths[kind],
+             "-filter_complex", filter_audio, "-map", "[a]", "-c:a", "pcm_s16le", target])
+        segments.append(target)
+        print(f"Müzik {i+1}/{len(lengths)}: {kind}")
+    listing = folder / "muzik_concat.txt"
+    listing.write_text("\n".join("file '" + p.name + "'" for p in segments), encoding="utf-8")
+    output = folder / "sinematik_muzik.wav"
+    run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0",
+         "-i", listing, "-c", "copy", output])
+    return output
+
 
 def render(story,images,audios,folder):
-    parts=[]; all_cues=[]; offset=0
+    parts=[]; part_lengths=[]; all_cues=[]; offset=0
     for i,(im,(audio,dur,words),s) in enumerate(zip(images,audios,story['scenes'])):
         cues=subtitle_groups(words,s['narration'],dur)
         all_cues.extend((a+offset,b+offset,t) for a,b,t in cues)
@@ -186,14 +219,13 @@ def render(story,images,audios,folder):
         # cwd yalnız işlem için değiştirilir; tam dosya yolları kullanılır.
         p=subprocess.run([str(x) for x in args],cwd=folder,capture_output=True,text=True)
         if p.returncode: raise RuntimeError(p.stderr[-2200:])
-        parts.append(out); offset+=duration(out); print(f'Montaj {i+1}/{len(images)} hazır')
+        parts.append(out); part_lengths.append(duration(out)); offset+=part_lengths[-1]; print(f'Montaj {i+1}/{len(images)} hazır')
     (folder/'altyazi.srt').write_text('\n\n'.join(f'{i+1}\n{srt_time(a)} --> {srt_time(b)}\n{t}' for i,(a,b,t) in enumerate(all_cues)),encoding='utf-8')
     listing=folder/'concat.txt'; listing.write_text('\n'.join("file '"+p.name+"'" for p in parts))
     raw=folder/'sessiz_muzik.mp4'
     run(['ffmpeg','-y','-loglevel','error','-f','concat','-safe','0','-i',listing,'-c','copy',raw])
-    total=duration(raw); music=Path(MUZIK_YOLU) if MUZIK_YOLU else folder/'ozgun_melodi.wav'
-    if not MUZIK_YOLU: original_music(music,total)
-    if not music.is_file(): raise FileNotFoundError('Müzik dosyası bulunamadı.')
+    total=duration(raw)
+    music=make_scene_music(story,part_lengths,folder)
     final=folder/'masal_short.mp4'
     # Konuşma sırasında müzik düşürülür; kısa müzik dosyası döngüye alınır.
     fc=f'[0:a]asplit=2[v][side];[1:a]volume={MUZIK_SEVIYESI},afade=t=out:st={max(0,total-2)}:d=2[m];[m][side]sidechaincompress=threshold=0.025:ratio=8:attack=20:release=300[duck];[v][duck]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.95[a]'
@@ -202,7 +234,7 @@ def render(story,images,audios,folder):
 
 async def produce(topic, supplied_story=None):
     story=validate(supplied_story) if supplied_story else create_story(topic,API_KEY,HIKAYE_MODELI)
-    identity={'story':story,'voice':SES,'rate':SES_HIZI,'image_model':GORSEL_MODELI,'seed':SEED,'local':GORSel_KLASORU,'music':MUZIK_YOLU,'music_level':MUZIK_SEVIYESI,'sfx':SFX_KLASORU,'fps':FPS,'channel':KANAL_ADI,'engine':3}
+    identity={'story':story,'voice':SES,'rate':SES_HIZI,'image_model':GORSEL_MODELI,'seed':SEED,'local':GORSel_KLASORU,'music_files':{k:hashlib.sha256((MUZIK_KLASORU / v).read_bytes()).hexdigest()[:12] if (MUZIK_KLASORU / v).is_file() else 'missing' for k,v in MUZIK_DOSYALARI.items()},'music_level':MUZIK_SEVIYESI,'sfx':SFX_KLASORU,'fps':FPS,'channel':KANAL_ADI,'engine':4}
     fingerprint=hashlib.sha256(json.dumps(identity,ensure_ascii=False,sort_keys=True).encode()).hexdigest()[:12]
     folder=(ROOT/fingerprint).resolve(); folder.mkdir(parents=True,exist_ok=True)
     save_json(folder/'hikaye.json',story)
