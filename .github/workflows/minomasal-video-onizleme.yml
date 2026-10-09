@@ -1,6 +1,9 @@
 name: MinoMasal Video Onizleme
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 15 * * *'
+      timezone: 'Europe/Istanbul'
 jobs:
   preview:
     runs-on: ubuntu-latest
