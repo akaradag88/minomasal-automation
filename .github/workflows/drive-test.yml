@@ -1,0 +1,71 @@
+
+name: MinoMasal Drive Baglanti Testi
+
+on:
+  workflow_dispatch:
+
+jobs:
+  drive-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Python kurulumu
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Kutuphaneleri kur
+        run: pip install google-api-python-client google-auth
+
+      - name: Google Drive klasorunu kontrol et
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          python - <<'PY'
+          import os
+          import json
+          import sys
+          from google.oauth2 import service_account
+          from googleapiclient.discovery import build
+
+          try:
+              raw = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
+              if not raw:
+                  raise RuntimeError("Drive Secret bulunamadi")
+
+              info = json.loads(raw)
+
+              credentials = service_account.Credentials.from_service_account_info(
+                  info,
+                  scopes=["https://www.googleapis.com/auth/drive.readonly"]
+              )
+
+              drive = build(
+                  "drive",
+                  "v3",
+                  credentials=credentials,
+                  cache_discovery=False
+              )
+
+              result = drive.files().list(
+                  q="name = 'CocukVideoFactoryV2' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+                  fields="nextPageToken, files(id,name,mimeType)",
+                  page_size=100
+              ).execute()
+
+              folders = result.get("files", [])
+
+              if not folders:
+                  raise RuntimeError("CocukVideoFactoryV2 klasorune erisilemiyor")
+
+              print("Google Drive baglantisi basarili!")
+              print("CocukVideoFactoryV2 klasorune erisim dogrulandi.")
+              print("Bulunan klasor sayisi:", len(folders))
+              print("Dosyalar degistirilmedi veya silinmedi.")
+
+          except Exception as exc:
+              print("Drive baglanti testi basarisiz.")
+              print("Hata turu:", type(exc).__name__)
+              print("Hata aciklamasi:", str(exc)[:300])
+              sys.exit(1)
+          PY
