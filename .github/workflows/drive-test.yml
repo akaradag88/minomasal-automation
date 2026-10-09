@@ -50,7 +50,7 @@ jobs:
               result = drive.files().list(
                   q="name = 'CocukVideoFactoryV2' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
                   fields="nextPageToken, files(id,name,mimeType)",
-                  page_size=100
+                  pageSize=100
               ).execute()
 
               folders = result.get("files", [])
