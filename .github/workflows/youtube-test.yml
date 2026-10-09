@@ -26,6 +26,7 @@ jobs:
           python - <<'PY'
           import os
           import sys
+          import re
           from google.oauth2.credentials import Credentials
           from google.auth.transport.requests import Request
 
@@ -63,5 +64,16 @@ jobs:
           except Exception as exc:
               print("❌ OAuth baglanti testi basarisiz.")
               print("Hata turu:", type(exc).__name__)
+              # Yalnizca bilinen OAuth hata kodunu goster; token ve sunucu yanitini yazdirma.
+              details = " ".join(str(x) for x in getattr(exc, "args", ()))
+              known_codes = (
+                  "invalid_grant", "invalid_client", "unauthorized_client",
+                  "invalid_scope", "access_denied", "temporarily_unavailable",
+                  "invalid_request", "deleted_client", "org_internal",
+              )
+              found = next((code for code in known_codes
+                            if re.search(r"(?<![a-z_])" + re.escape(code) + r"(?![a-z_])", details.lower())), None)
+              print("Google OAuth hata kodu:", found or "Belirlenemedi")
+              print("Guvenlik nedeniyle hata yanitinin tam metni gizlendi.")
               sys.exit(1)
           PY
