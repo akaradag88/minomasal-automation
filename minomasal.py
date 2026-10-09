@@ -20,25 +20,7 @@ YAYIN_AKTIF = False
 KONULAR = ['Paylaşmayı Öğrenen Sincap', 'Yalan Söyleyen Küçük Tilki', 'Karanlıktan Korkan Tavşan', 'Dişlerini Fırçalamayan Timsah', 'Her Şeye Kızan Minik Aslan', 'Oyuncaklarını Toplamayan Panda', 'Sabırsız Küçük Kaplumbağa', 'Arkadaşını Dinlemeyen Maymun', 'Ellerini Yıkamayı Unutan Ayıcık', 'Kaybetmeyi Sevmeyen Kaplan', 'Sırasını Bekleyemeyen Minik Panda', 'Kaybolan Küçük Penguen', 'Başkalarının Eşyalarını İzinsiz Alan Maymun', 'Yağmurdan Korkan Minik Kedi', 'Her Şeyi Tek Başına Yapmak İsteyen Kunduz', 'Yeni Okuluna Gitmek İstemeyen Tavşan', 'Bulduğu Oyuncağı Sahibine Veren Kirpi', 'Arkadaşına Kötü Söz Söyleyen Papağan', 'Her Şeyi Ekrandan İzlemek İsteyen Ayıcık', 'Küçük Karıncanın Büyük Hayali', 'Ormanı Kirleten Rakun', 'Yemeğini Beğenmeyen Koala', 'Uçmaya Korkan Minik Kuş', 'Özür Dilemeyi Öğrenen Fil', 'Teşekkür Etmeyen Küçük Geyik', 'Uyumak İstemeyen Baykuş', 'Sebze Yemeyen Tavşan', 'Sözünü Tutmayan Kunduz', 'Farklı Görünen Zürafa', 'Yapamam Diyen Küçük Fare']
 
 
-from google.colab import userdata
-from google.oauth2.credentials import Credentials
-from google.auth.transport.requests import Request
 
-creds = Credentials(
-    token=None,
-    refresh_token=userdata.get("YOUTUBE_REFRESH_TOKEN"),
-    token_uri="https://oauth2.googleapis.com/token",
-    client_id=userdata.get("YOUTUBE_CLIENT_ID"),
-    client_secret=userdata.get("YOUTUBE_CLIENT_SECRET"),
-    scopes=["https://www.googleapis.com/auth/youtube.upload"]
-)
-
-try:
-    creds.refresh(Request())
-    print("✅ YouTube OAuth bağlantısı başarılı!")
-    print("✅ Refresh token çalışıyor.")
-    print("🔒 Video yüklenmedi.")
-except Exception as e:
     print("❌ Bağlantı hatası:", type(e).__name__)
 
 
