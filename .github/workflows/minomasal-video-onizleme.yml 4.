@@ -1,0 +1,31 @@
+name: MinoMasal Video Onizleme
+on:
+  workflow_dispatch:
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          pip install -r requirements-minomasal.txt
+      - name: Render one preview (no upload)
+        env:
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+        run: python minomasal.py
+      - name: Downloadable preview
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: minomasal-preview
+          path: |
+            minomasal_data/minomasal_test_video.mp4
+            minomasal_data/test_ozeti.json
+          if-no-files-found: warn
+          retention-days: 7
