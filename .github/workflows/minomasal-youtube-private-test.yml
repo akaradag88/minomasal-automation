@@ -1,0 +1,51 @@
+name: MinoMasal YouTube Private Upload Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: minomasal-preview-state
+  cancel-in-progress: false
+
+jobs:
+  private-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install -r requirements-minomasal.txt
+          python -m pip install google-api-python-client google-auth google-auth-httplib2
+      - name: Create video and upload privately to YouTube
+        env:
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          MINOMASAL_YOUTUBE_UPLOAD: 'true'
+        run: python minomasal.py
+      - name: Commit YouTube upload record
+        if: success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add minomasal_yayin_durumu.json minomasal_onizleme_durumu.json
+          if git diff --cached --quiet; then
+            echo 'No new upload record.'
+            exit 0
+          fi
+          git commit -m 'Record MinoMasal private YouTube upload [skip ci]'
+          git push origin HEAD:${{ github.event.repository.default_branch }}
