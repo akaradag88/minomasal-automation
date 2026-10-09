@@ -21,7 +21,7 @@ KONULAR = ['Paylaşmayı Öğrenen Sincap', 'Yalan Söyleyen Küçük Tilki', 'K
 
 
 
-    print("❌ Bağlantı hatası:", type(e).__name__)
+
 
 
 import asyncio, hashlib, json, math, os, re, subprocess, time, wave
