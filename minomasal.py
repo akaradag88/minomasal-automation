@@ -16,7 +16,7 @@ SFX_KLASORU = ""
 ROOT = Path("minomasal_data").resolve()
 ROOT.mkdir(parents=True, exist_ok=True)
 API_KEY = os.environ.get("POLLINATIONS_API_KEY", "")
-YAYIN_AKTIF = False
+YAYIN_AKTIF = os.environ.get("MINOMASAL_YOUTUBE_UPLOAD", "false").lower() == "true"
 KONULAR = ['Paylaşmayı Öğrenen Sincap', 'Yalan Söyleyen Küçük Tilki', 'Karanlıktan Korkan Tavşan', 'Dişlerini Fırçalamayan Timsah', 'Her Şeye Kızan Minik Aslan', 'Oyuncaklarını Toplamayan Panda', 'Sabırsız Küçük Kaplumbağa', 'Arkadaşını Dinlemeyen Maymun', 'Ellerini Yıkamayı Unutan Ayıcık', 'Kaybetmeyi Sevmeyen Kaplan', 'Sırasını Bekleyemeyen Minik Panda', 'Kaybolan Küçük Penguen', 'Başkalarının Eşyalarını İzinsiz Alan Maymun', 'Yağmurdan Korkan Minik Kedi', 'Her Şeyi Tek Başına Yapmak İsteyen Kunduz', 'Yeni Okuluna Gitmek İstemeyen Tavşan', 'Bulduğu Oyuncağı Sahibine Veren Kirpi', 'Arkadaşına Kötü Söz Söyleyen Papağan', 'Her Şeyi Ekrandan İzlemek İsteyen Ayıcık', 'Küçük Karıncanın Büyük Hayali', 'Ormanı Kirleten Rakun', 'Yemeğini Beğenmeyen Koala', 'Uçmaya Korkan Minik Kuş', 'Özür Dilemeyi Öğrenen Fil', 'Teşekkür Etmeyen Küçük Geyik', 'Uyumak İstemeyen Baykuş', 'Sebze Yemeyen Tavşan', 'Sözünü Tutmayan Kunduz', 'Farklı Görünen Zürafa', 'Yapamam Diyen Küçük Fare']
 
 import asyncio, hashlib, json, math, os, re, subprocess, time, wave
@@ -248,40 +248,107 @@ async def produce(topic, supplied_story=None):
     print('Video hazır:',final); return final
 
 
+def upload_private_youtube(video, title, topic):
+    """Upload to YouTube as private, returning the confirmed video ID."""
+    from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
+    from googleapiclient.discovery import build
+    from googleapiclient.http import MediaFileUpload
+
+    keys = ("YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "YOUTUBE_REFRESH_TOKEN")
+    missing = [key for key in keys if not os.environ.get(key)]
+    if missing:
+        raise RuntimeError("YouTube GitHub Secrets eksik: " + ", ".join(missing))
+    credentials = Credentials(
+        token=None,
+        refresh_token=os.environ["YOUTUBE_REFRESH_TOKEN"],
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=os.environ["YOUTUBE_CLIENT_ID"],
+        client_secret=os.environ["YOUTUBE_CLIENT_SECRET"],
+        scopes=["https://www.googleapis.com/auth/youtube.upload"],
+    )
+    credentials.refresh(Request())
+    youtube = build("youtube", "v3", credentials=credentials, cache_discovery=False)
+    body = {
+        "snippet": {
+            "title": title[:100],
+            "description": f"{topic} üzerine çocuklar için öğretici bir MinoMasal hikâyesi.\n#MinoMasal #ÇocukMasalları",
+            "categoryId": "1",
+        },
+        "status": {"privacyStatus": "private", "selfDeclaredMadeForKids": True},
+    }
+    media = MediaFileUpload(str(video), mimetype="video/mp4", chunksize=8 * 1024 * 1024, resumable=True)
+    request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
+    result = None
+    while result is None:
+        _, result = request.next_chunk()
+    video_id = result.get("id") if isinstance(result, dict) else None
+    if not video_id:
+        raise RuntimeError("YouTube API yanıtında video ID bulunamadı; yeniden yüklemeden önce kanalı kontrol edin.")
+    return video_id
+
+
 async def main():
-    if YAYIN_AKTIF:
-        raise RuntimeError("Bu test sürümünde yayınlama desteklenmiyor.")
-    if not API_KEY:
-        raise RuntimeError("POLLINATIONS_API_KEY GitHub Secret eksik.")
     state_file = Path("minomasal_yayin_durumu.json")
     if not state_file.is_file():
-        raise RuntimeError("Yayın geçmişi JSON dosyası repoda bulunamadı; tekrar üretim riskinden durduruldu.")
+        raise RuntimeError("Yayın geçmişi JSON dosyası bulunamadı; tekrar yükleme riskinden durduruldu.")
     state = json.loads(state_file.read_text(encoding="utf-8"))
-    # Önizleme geçmişi yayın geçmişinden ayrıdır. Daha önce üretilen önizlemeyi atla.
     preview_file = Path("minomasal_onizleme_durumu.json")
     preview_state = json.loads(preview_file.read_text(encoding="utf-8")) if preview_file.exists() else {}
-    pending = next(((i, t) for i, t in enumerate(KONULAR, 1)
-                    if not state.get(str(i), {}).get("complete")
-                    and not preview_state.get(str(i), {}).get("preview_complete")), None)
+
+    if YAYIN_AKTIF:
+        # Yayın modunda önizleme tamamlandı bilgisi, yayımlandı anlamına GELMEZ.
+        pending = next(((i, t) for i, t in enumerate(KONULAR, 1)
+                        if not state.get(str(i), {}).get("complete")
+                        and not state.get(str(i), {}).get("youtube_uploaded")
+                        and not preview_state.get(str(i), {}).get("youtube_uploaded")), None)
+    else:
+        pending = next(((i, t) for i, t in enumerate(KONULAR, 1)
+                        if not state.get(str(i), {}).get("complete")
+                        and not preview_state.get(str(i), {}).get("preview_complete")), None)
     if pending is None:
         print("Bekleyen hikâye yok.")
         return
     num, topic = pending
-    print(f"Test videosu: {num}. {topic}")
+    print(f"{'Gizli YouTube yüklemesi' if YAYIN_AKTIF else 'Önizleme'}: {num}. {topic}")
+    if not API_KEY:
+        raise RuntimeError("POLLINATIONS_API_KEY GitHub Secret eksik.")
     video = await produce(topic)
     story = json.loads((video.parent / "hikaye.json").read_text(encoding="utf-8"))
     title = str(story.get("title") or topic).strip() + " | MinoMasal"
-    shutil.copy2(video, ROOT / "minomasal_test_video.mp4")
-    (ROOT / "test_ozeti.json").write_text(json.dumps({"number":num,"topic":topic,"title":title,"video":"minomasal_test_video.mp4","youtube_uploaded":False,"voice":SES,"rate":SES_HIZI},ensure_ascii=False,indent=2),encoding="utf-8")
-    # Kalıcı kayıt yalnız video doğrulandıktan sonra hazırlanır.
-    if duration(ROOT / "minomasal_test_video.mp4") <= 1:
-        raise RuntimeError("Önizleme videosu geçersiz; ilerleme kaydedilmedi.")
-    preview_state[str(num)] = {
-        "topic": topic, "title": title, "preview_complete": True,
-        "youtube_uploaded": False, "artifact_name": "minomasal-preview",
-    }
-    save_json(preview_file, preview_state)
-    print("ÖNİZLEME TAMAMLANDI; YouTube'a yüklenmedi. Dosya:", ROOT / "minomasal_test_video.mp4")
+    if duration(video) <= 1:
+        raise RuntimeError("Video geçersiz; ilerleme kaydedilmedi.")
+
+    if YAYIN_AKTIF:
+        # YouTube isteği başarılı olsa da GitHub'a durum dosyası commit edilmeden
+        # iş akışı kesilirse yeniden yükleme riski vardır; workflow'da concurrency kullanın.
+        video_id = upload_private_youtube(video, title, topic)
+        state[str(num)] = {
+            **state.get(str(num), {}), "topic": topic, "title": title,
+            "complete": True, "youtube_uploaded": True,
+            "youtube_video_id": video_id, "privacy_status": "private",
+        }
+        save_json(state_file, state)
+        preview_state[str(num)] = {
+            **preview_state.get(str(num), {}), "topic": topic, "title": title,
+            "preview_complete": True, "youtube_uploaded": True,
+            "youtube_video_id": video_id,
+        }
+        save_json(preview_file, preview_state)
+        print("YOUTUBE GİZLİ YÜKLEME BAŞARILI. Video ID:", video_id)
+    else:
+        shutil.copy2(video, ROOT / "minomasal_test_video.mp4")
+        (ROOT / "test_ozeti.json").write_text(json.dumps({
+            "number": num, "topic": topic, "title": title,
+            "video": "minomasal_test_video.mp4", "youtube_uploaded": False,
+            "voice": SES, "rate": SES_HIZI,
+        }, ensure_ascii=False, indent=2), encoding="utf-8")
+        preview_state[str(num)] = {
+            "topic": topic, "title": title, "preview_complete": True,
+            "youtube_uploaded": False, "artifact_name": "minomasal-preview",
+        }
+        save_json(preview_file, preview_state)
+        print("ÖNİZLEME TAMAMLANDI; YouTube'a yüklenmedi. Dosya:", ROOT / "minomasal_test_video.mp4")
 
 if __name__ == "__main__":
     asyncio.run(main())
