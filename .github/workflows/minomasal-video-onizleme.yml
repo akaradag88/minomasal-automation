@@ -2,9 +2,6 @@ name: MinoMasal Video Onizleme
 
 on:
   workflow_dispatch:
-  schedule:
-    # Her gun 15:00 UTC = Turkiye 18:00
-    - cron: '0 15 * * *'
 
 permissions:
   contents: write
