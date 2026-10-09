@@ -257,7 +257,12 @@ async def main():
     if not state_file.is_file():
         raise RuntimeError("Yayın geçmişi JSON dosyası repoda bulunamadı; tekrar üretim riskinden durduruldu.")
     state = json.loads(state_file.read_text(encoding="utf-8"))
-    pending = next(((i, t) for i, t in enumerate(KONULAR, 1) if not state.get(str(i), {}).get("complete")), None)
+    # Önizleme geçmişi yayın geçmişinden ayrıdır. Daha önce üretilen önizlemeyi atla.
+    preview_file = Path("minomasal_onizleme_durumu.json")
+    preview_state = json.loads(preview_file.read_text(encoding="utf-8")) if preview_file.exists() else {}
+    pending = next(((i, t) for i, t in enumerate(KONULAR, 1)
+                    if not state.get(str(i), {}).get("complete")
+                    and not preview_state.get(str(i), {}).get("preview_complete")), None)
     if pending is None:
         print("Bekleyen hikâye yok.")
         return
@@ -268,6 +273,14 @@ async def main():
     title = str(story.get("title") or topic).strip() + " | MinoMasal"
     shutil.copy2(video, ROOT / "minomasal_test_video.mp4")
     (ROOT / "test_ozeti.json").write_text(json.dumps({"number":num,"topic":topic,"title":title,"video":"minomasal_test_video.mp4","youtube_uploaded":False,"voice":SES,"rate":SES_HIZI},ensure_ascii=False,indent=2),encoding="utf-8")
+    # Kalıcı kayıt yalnız video doğrulandıktan sonra hazırlanır.
+    if duration(ROOT / "minomasal_test_video.mp4") <= 1:
+        raise RuntimeError("Önizleme videosu geçersiz; ilerleme kaydedilmedi.")
+    preview_state[str(num)] = {
+        "topic": topic, "title": title, "preview_complete": True,
+        "youtube_uploaded": False, "artifact_name": "minomasal-preview",
+    }
+    save_json(preview_file, preview_state)
     print("ÖNİZLEME TAMAMLANDI; YouTube'a yüklenmedi. Dosya:", ROOT / "minomasal_test_video.mp4")
 
 if __name__ == "__main__":
