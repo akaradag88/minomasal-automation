@@ -2,9 +2,8 @@ name: MinoMasal YouTube Public Gunluk
 
 on:
   workflow_dispatch:
-  # Public test basarili olduktan sonra asagidaki iki satirin basindaki # isaretlerini kaldirin.
-  # schedule:
-  #   - cron: '0 15 * * *' # 18:00 Turkiye saati
+  schedule:
+    - cron: '0 15 * * *'
 
 permissions:
   contents: write
