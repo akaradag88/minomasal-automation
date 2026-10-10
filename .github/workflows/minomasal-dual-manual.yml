@@ -1,0 +1,69 @@
+name: MinoMasal Dual Publish Manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      staging_run_id:
+        description: 'Successful MinoMasal Manual Staging GitHub Actions run ID'
+        required: true
+        type: string
+      story_number:
+        description: 'Story number in staging artifact (e.g. 16)'
+        required: true
+        default: '16'
+        type: string
+      publish_enabled:
+        description: 'Set true ONLY for approved public upload to BOTH platforms'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: minomasal-preview-state
+  cancel-in-progress: false
+
+jobs:
+  dual-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install -r requirements-minomasal.txt
+          python -m pip install google-api-python-client google-auth google-auth-httplib2
+      - name: Download staged video (do not regenerate)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.staging_run_id }}
+        run: |
+          mkdir -p staging
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name minomasal-staging-video --dir staging
+          test -s staging/masal_short.mp4
+          test -s staging/metadata.json
+      - name: Configure Git author
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      - name: Validate or publish (manual approval required)
+        env:
+          PUBLISH_ENABLED: ${{ inputs.publish_enabled }}
+          MINOMASAL_YOUTUBE_PRIVACY: public
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          MINOMASAL_HOSTING_TOKEN: ${{ secrets.MINOMASAL_HOSTING_TOKEN }}
+        run: python minomasal_dual_publish.py --stage staging --number '${{ inputs.story_number }}'
