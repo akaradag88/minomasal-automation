@@ -1,0 +1,114 @@
+name: MinoMasal Instagram Processing Test (No Publish)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: minomasal-instagram-test
+  cancel-in-progress: false
+
+jobs:
+  instagram-processing-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SOURCE_RUN_ID: '37938859523'
+      SOURCE_ARTIFACT: minomasal-preview
+      HOST_REPO: akaradag88/minomasal-video-hosting
+      IG_API_VERSION: v26.0
+    steps:
+      - name: Download existing preview artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p preview
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "$SOURCE_ARTIFACT" --dir preview
+          find preview -type f -maxdepth 5 -print
+          VIDEO_PATH="$(find preview -type f -name 'minomasal_test_video.mp4' -print -quit)"
+          if [ -z "$VIDEO_PATH" ]; then
+            echo 'Video missing from downloaded artifact' >&2
+            exit 1
+          fi
+          cp "$VIDEO_PATH" minomasal-kedi-instagram-test.mp4
+          test -s minomasal-kedi-instagram-test.mp4
+          echo "Video size: $(wc -c < minomasal-kedi-instagram-test.mp4) bytes"
+
+      - name: Publish test MP4 as a GitHub Release asset
+        env:
+          GH_TOKEN: ${{ secrets.MINOMASAL_HOSTING_TOKEN }}
+          GH_REPO: ${{ env.HOST_REPO }}
+        run: |
+          test -n "$GH_TOKEN" || { echo 'MINOMASAL_HOSTING_TOKEN missing' >&2; exit 1; }
+          TAG="ig-processing-test-${GITHUB_RUN_ID}"
+          gh release create "$TAG" minomasal-kedi-instagram-test.mp4 \
+            --repo "$GH_REPO" \
+            --title "MinoMasal Instagram processing test $GITHUB_RUN_ID" \
+            --notes "Temporary MP4 for Instagram API processing test. No Instagram publication." \
+            --prerelease
+          URL="https://github.com/${GH_REPO}/releases/download/${TAG}/minomasal-kedi-instagram-test.mp4"
+          echo "VIDEO_URL=$URL" >> "$GITHUB_ENV"
+          echo "Test MP4 URL: $URL"
+
+      - name: Create Instagram Reels container and wait for processing (DO NOT PUBLISH)
+        env:
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+        run: |
+          python - <<'PY'
+          import os, time, json, urllib.parse, urllib.request, urllib.error
+
+          token = os.environ['INSTAGRAM_ACCESS_TOKEN']
+          ig_id = os.environ['INSTAGRAM_USER_ID']
+          video_url = os.environ['VIDEO_URL']
+          api = 'https://graph.facebook.com/' + os.environ['IG_API_VERSION']
+
+          def call(method, path, params):
+              data = urllib.parse.urlencode(params).encode('utf-8')
+              url = f'{api}/{path}'
+              if method == 'GET':
+                  url += '?' + data.decode('utf-8')
+                  data = None
+              req = urllib.request.Request(url, data=data, method=method)
+              try:
+                  with urllib.request.urlopen(req, timeout=45) as resp:
+                      return json.load(resp)
+              except urllib.error.HTTPError as exc:
+                  # Avoid printing the access token (which may appear in URLs).
+                  try:
+                      details = json.load(exc)
+                      err = details.get('error', {})
+                      raise RuntimeError(f"Instagram API HTTP {exc.code}: code={err.get('code')} subcode={err.get('error_subcode')} message={err.get('message')}") from None
+                  except (ValueError, KeyError):
+                      raise RuntimeError(f'Instagram API HTTP {exc.code}') from None
+
+          created = call('POST', f'{ig_id}/media', {
+              'media_type': 'REELS',
+              'video_url': video_url,
+              'caption': 'Minik Kedi Yağmura Karşı | MinoMasal',
+              'access_token': token,
+          })
+          container_id = created.get('id')
+          if not container_id:
+              raise RuntimeError('Instagram did not return a media container ID')
+          print('Instagram container ID:', container_id)
+
+          for attempt in range(20):
+              result = call('GET', container_id, {
+                  'fields': 'id,status_code,status',
+                  'access_token': token,
+              })
+              status = result.get('status_code', 'UNKNOWN')
+              print(f'Processing check {attempt+1}: {status}; {result.get("status", "")}')
+              if status == 'FINISHED':
+                  print('SUCCESS: Instagram processed the video. NO media_publish request was made.')
+                  break
+              if status in ('ERROR', 'EXPIRED'):
+                  raise RuntimeError(f'Instagram processing failed: {status}; {result.get("status", "")}')
+              time.sleep(30)
+          else:
+              raise RuntimeError('Instagram processing did not finish within 10 minutes')
+          PY
