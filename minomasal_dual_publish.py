@@ -30,7 +30,7 @@ def save(ledger, message):
     tmp.write_text(json.dumps(ledger, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     tmp.replace(LEDGER)
     cmd('git', 'add', str(LEDGER))
-    if subprocess.run(['git', 'diff', '--cached', '--quiet']).returncode:
+    if subprocess.run(['git', 'diff', '--cached', '--quiet']).returncode == 0:
         raise RuntimeError('Expected ledger change was not staged')
     cmd('git', 'commit', '-m', message + ' [skip ci]')
     cmd('git', 'push', 'origin', 'HEAD:main')
