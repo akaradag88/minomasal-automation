@@ -1,0 +1,40 @@
+name: MinoMasal Manual Staging (No Publish)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: minomasal-preview-state
+  cancel-in-progress: false
+
+jobs:
+  produce-staging-video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install video dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install -r requirements-minomasal.txt
+      - name: Generate staging video only (NO SOCIAL UPLOAD)
+        env:
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+          MINOMASAL_YOUTUBE_UPLOAD: 'false'
+        run: python minomasal_stage.py
+      - name: Save preview for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: minomasal-staging-video
+          path: minomasal_staging/
+          retention-days: 7
+          if-no-files-found: error
