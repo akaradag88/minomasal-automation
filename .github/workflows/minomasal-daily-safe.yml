@@ -1,0 +1,29 @@
+name: MinoMasal Daily Safe Preflight (No Publish)
+
+on:
+  workflow_dispatch:
+  # Future daily publishing time: 18:00 Europe/Istanbul = 15:00 UTC.
+  # Keep schedule DISABLED until all publishing tests and duplicate guards pass.
+  # schedule:
+  #   - cron: '0 15 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: minomasal-preview-state
+  cancel-in-progress: false
+
+jobs:
+  safe-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout private automation repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate state and next story without any upload
+        run: python minomasal_daily.py --mode preflight
