@@ -1,0 +1,56 @@
+name: MinoMasal Daily YouTube Instagram (18 TR)
+
+on:
+  schedule:
+    - cron: '0 15 * * *'  # 18:00 Europe/Istanbul (UTC+3 year-round)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: minomasal-preview-state
+  cancel-in-progress: false
+
+jobs:
+  produce-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout latest ledger
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install -r requirements-minomasal.txt
+          python -m pip install google-api-python-client google-auth google-auth-httplib2
+      - name: Generate next video from ledger
+        id: stage
+        env:
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+          MINOMASAL_YOUTUBE_UPLOAD: 'false'
+        run: python minomasal_daily_live.py
+      - name: Configure Git identity
+        if: steps.stage.outputs.number != ''
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      - name: Publish same video to YouTube and Instagram
+        if: steps.stage.outputs.number != ''
+        env:
+          PUBLISH_ENABLED: 'true'
+          MINOMASAL_YOUTUBE_PRIVACY: public
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          MINOMASAL_HOSTING_TOKEN: ${{ secrets.MINOMASAL_HOSTING_TOKEN }}
+        run: python minomasal_dual_publish.py --stage staging --number '${{ steps.stage.outputs.number }}'
