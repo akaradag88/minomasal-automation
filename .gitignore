@@ -1,0 +1,19 @@
+# Generated MinoMasal videos and staging files
+staging/
+minomasal_data/
+
+# Python temporary files
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Temporary files
+*.tmp
+*.log
