@@ -42,11 +42,22 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-      - name: Sync latest GitHub state before publishing
+      
+           - name: Sync latest GitHub state before publishing
         if: steps.stage.outputs.number != ''
         run: |
           git fetch origin main
-          git reset --hard origin/main    
+          git diff --quiet || {
+            echo "Tracked files have local changes; refusing to discard them."
+            exit 1
+          }
+          git diff --cached --quiet || {
+            echo "Staged changes exist; refusing to discard them."
+            exit 1
+          }
+          git reset --hard origin/main
+          git status --short    
+     
       - name: Publish same video to YouTube and Instagram
         if: steps.stage.outputs.number != ''
         env:
