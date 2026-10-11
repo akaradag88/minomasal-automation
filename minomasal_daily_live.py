@@ -1,70 +1,77 @@
-"""MinoMasal daily staging coordinator. Publish is performed by the separately audited publisher.
 
-Fails closed on partial/ambiguous recent publications. Never skips a story with an
-incomplete platform record, and never treats unknown historical entries as unpublished.
-"""
-import asyncio
-import json
-import shutil
-from pathlib import Path
+name: MinoMasal Daily YouTube Instagram (18 TR)
 
-from minomasal import KONULAR, duration, produce
-from minomasal_ledger import read, validate
+on:
+  schedule:
+    - cron: '0 15 * * *'
+  workflow_dispatch:
 
-LEDGER = Path('minomasal_platform_durumu.json')
-STAGING = Path('staging')
+permissions:
+  contents: write
 
+concurrency:
+  group: minomasal-preview-state
+  cancel-in-progress: false
 
-def choose(ledger):
-    validate(ledger)
-    stories = ledger['stories']
-    # Existing stories 1-15 are historical. Automated publishing starts at #17,
-    # after the manually verified dual-platform publication of #16.
-    sixteen = stories.get('16')
-    if not sixteen or any(sixteen[p]['status'] != 'published' for p in ('youtube', 'instagram')):
-        raise RuntimeError('Story 16 not recorded as published on both platforms. Stop and reconcile.')
-    for number in range(17, len(KONULAR) + 1):
-        record = stories.get(str(number))
-        if record is None:
-            return number
-        if record['topic'] != KONULAR[number - 1]:
-            raise RuntimeError(f'Story {number}: topic mismatch; manual reconciliation required.')
-        statuses = [record[p]['status'] for p in ('youtube', 'instagram')]
-        if statuses == ['published', 'published']:
-            continue
-        # A partial upload, missing acknowledgement, or failed attempt is not
-        # automatically retryable. This avoids duplicate public uploads.
-        raise RuntimeError(f'Story {number} incomplete: {statuses}. Manual reconciliation required.')
-    print('All 30 predefined stories have been published; nothing to do.')
-    return None
+jobs:
+  produce-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout latest ledger
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-async def main():
-    ledger = read(LEDGER)
-    number = choose(ledger)
-    if number is None:
-        return
-    topic = KONULAR[number - 1]
-    video = await produce(topic)
-    if not video.is_file() or duration(video) <= 1:
-        raise RuntimeError('Produced video is missing or invalid.')
-    story = json.loads((video.parent / 'hikaye.json').read_text(encoding='utf-8'))
-    STAGING.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(video, STAGING / 'masal_short.mp4')
-    metadata = {
-        'number': number,
-        'topic': topic,
-        'title': str(story.get('title') or topic).strip() + ' | MinoMasal',
-        'video': 'masal_short.mp4',
-        'mode': 'daily_staging',
-    }
-    (STAGING / 'metadata.json').write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-    print(f'STAGED story #{number}: {topic}; no upload yet')
-    # Expose only validated numeric story number to subsequent workflow step.
-    import os
-    with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
-        out.write(f'number={number}\n')
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install -r requirements-minomasal.txt
+          python -m pip install google-api-python-client google-auth google-auth-httplib2
 
+      - name: Generate next video from ledger
+        id: stage
+        env:
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+          MINOMASAL_YOUTUBE_UPLOAD: 'false'
+        run: python minomasal_daily_live.py
 
-if __name__ == '__main__':
-    asyncio.run(main())
+      - name: Configure Git identity
+        if: steps.stage.outputs.number != ''
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Sync latest GitHub state before publishing
+        if: steps.stage.outputs.number != ''
+        run: |
+          git fetch origin main
+          git diff --quiet || {
+            echo "Tracked files have local changes; refusing to discard them."
+            exit 1
+          }
+          git diff --cached --quiet || {
+            echo "Staged changes exist; refusing to discard them."
+            exit 1
+          }
+          git reset --hard origin/main
+          git status --short
+
+      - name: Publish same video to YouTube and Instagram
+        if: steps.stage.outputs.number != ''
+        env:
+          PUBLISH_ENABLED: 'true'
+          MINOMASAL_YOUTUBE_PRIVACY: public
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          MINOMASAL_HOSTING_TOKEN: ${{ secrets.MINOMASAL_HOSTING_TOKEN }}
+        run: python minomasal_dual_publish.py --stage staging --number '${{ steps.stage.outputs.number }}'
