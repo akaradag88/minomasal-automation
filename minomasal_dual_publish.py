@@ -27,13 +27,28 @@ def cmd(*args):
 
 def save(ledger, message):
     tmp = LEDGER.with_suffix('.json.tmp')
-    tmp.write_text(json.dumps(ledger, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    tmp.write_text(
+        json.dumps(ledger, ensure_ascii=False, indent=2) + '\n',
+        encoding='utf-8'
+    )
     tmp.replace(LEDGER)
+
     cmd('git', 'add', str(LEDGER))
-    if subprocess.run(['git', 'diff', '--cached', '--quiet']).returncode == 0:
+
+    if subprocess.run(
+        ['git', 'diff', '--cached', '--quiet']
+    ).returncode == 0:
         raise RuntimeError('Expected ledger change was not staged')
+
     cmd('git', 'commit', '-m', message + ' [skip ci]')
-    cmd('git', 'push', 'origin', 'HEAD:main')
+
+    try:
+        cmd('git', 'push', 'origin', 'HEAD:main')
+    except subprocess.CalledProcessError:
+        raise RuntimeError(
+            'GitHub kayıtları değişmiş. Güvenlik nedeniyle yayın durduruldu. '
+            'Kayıtları kontrol etmeden yeniden çalıştırmayın.'
+        )
 
 
 def graph(method, path, params):
