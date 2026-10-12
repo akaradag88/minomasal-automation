@@ -1,77 +1,110 @@
 
-name: MinoMasal Daily YouTube Instagram (18 TR)
+"""MinoMasal daily staging coordinator.
 
-on:
-  schedule:
-    - cron: '0 15 * * *'
-  workflow_dispatch:
+Selects the next unpublished story and produces its video.
+Publishing is handled separately by minomasal_dual_publish.py.
+"""
 
-permissions:
-  contents: write
+import asyncio
+import json
+import os
+import shutil
+from pathlib import Path
 
-concurrency:
-  group: minomasal-preview-state
-  cancel-in-progress: false
+from minomasal import KONULAR, duration, produce
+from minomasal_ledger import read, validate
 
-jobs:
-  produce-and-publish:
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    steps:
-      - name: Checkout latest ledger
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: true
+LEDGER = Path("minomasal_platform_durumu.json")
+STAGING = Path("staging")
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
-          python -m pip install -r requirements-minomasal.txt
-          python -m pip install google-api-python-client google-auth google-auth-httplib2
+def choose(ledger):
+    validate(ledger)
+    stories = ledger["stories"]
 
-      - name: Generate next video from ledger
-        id: stage
-        env:
-          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
-          MINOMASAL_YOUTUBE_UPLOAD: 'false'
-        run: python minomasal_daily_live.py
+    sixteen = stories.get("16")
+    if not sixteen or any(
+        sixteen[p]["status"] != "published"
+        for p in ("youtube", "instagram")
+    ):
+        raise RuntimeError(
+            "Story 16 is not published on both platforms."
+        )
 
-      - name: Configure Git identity
-        if: steps.stage.outputs.number != ''
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+    for number in range(17, len(KONULAR) + 1):
+        record = stories.get(str(number))
 
-      - name: Sync latest GitHub state before publishing
-        if: steps.stage.outputs.number != ''
-        run: |
-          git fetch origin main
-          git diff --quiet || {
-            echo "Tracked files have local changes; refusing to discard them."
-            exit 1
-          }
-          git diff --cached --quiet || {
-            echo "Staged changes exist; refusing to discard them."
-            exit 1
-          }
-          git reset --hard origin/main
-          git status --short
+        if record is None:
+            return number
 
-      - name: Publish same video to YouTube and Instagram
-        if: steps.stage.outputs.number != ''
-        env:
-          PUBLISH_ENABLED: 'true'
-          MINOMASAL_YOUTUBE_PRIVACY: public
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
-          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
-          MINOMASAL_HOSTING_TOKEN: ${{ secrets.MINOMASAL_HOSTING_TOKEN }}
-        run: python minomasal_dual_publish.py --stage staging --number '${{ steps.stage.outputs.number }}'
+        if record["topic"] != KONULAR[number - 1]:
+            raise RuntimeError(
+                f"Story {number}: topic mismatch."
+            )
+
+        statuses = [
+            record[p]["status"]
+            for p in ("youtube", "instagram")
+        ]
+
+        if statuses == ["published", "published"]:
+            continue
+
+        raise RuntimeError(
+            f"Story {number} incomplete: {statuses}. "
+            "Manual reconciliation required."
+        )
+
+    print("All predefined stories have been published.")
+    return None
+
+
+async def main():
+    ledger = read(LEDGER)
+    number = choose(ledger)
+
+    if number is None:
+        return
+
+    topic = KONULAR[number - 1]
+    video = await produce(topic)
+
+    if not video.is_file() or duration(video) <= 1:
+        raise RuntimeError("Produced video is missing or invalid.")
+
+    story = json.loads(
+        (video.parent / "hikaye.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    STAGING.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(video, STAGING / "masal_short.mp4")
+
+    metadata = {
+        "number": number,
+        "topic": topic,
+        "title": str(story.get("title") or topic).strip()
+        + " | MinoMasal",
+        "video": "masal_short.mp4",
+        "mode": "daily_staging",
+    }
+
+    (STAGING / "metadata.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2)
+        + "\n",
+        encoding="utf-8",
+    )
+
+    print(f"STAGED story #{number}: {topic}; no upload yet")
+
+    with open(
+        os.environ["GITHUB_OUTPUT"],
+        "a",
+        encoding="utf-8",
+    ) as out:
+        out.write(f"number={number}\n")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
