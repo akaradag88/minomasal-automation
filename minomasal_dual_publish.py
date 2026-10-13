@@ -135,7 +135,8 @@ def main():
     ig['status'] = 'ambiguous'
     save(ledger, f'Mark Instagram publish attempt for story {n}')
     auth = {'access_token': os.environ['INSTAGRAM_ACCESS_TOKEN']}
-    result = graph('POST', f'{os.environ["INSTAGRAM_USER_ID"]}/media', {**auth, 'media_type': 'REELS', 'video_url': url, 'thumb_offset': 2000, 'caption': meta['title'] + '\n#MinoMasal #ÇocukHikayeleri'})    container = result['id']
+    result = graph('POST', f'{os.environ["INSTAGRAM_USER_ID"]}/media', {**auth, 'media_type': 'REELS', 'video_url': url, 'thumb_offset': 2000, 'caption': meta['title'] + '\n#MinoMasal #ÇocukHikayeleri'})
+    container = result['id']
     ig['container_id'] = container
     save(ledger, f'Record Instagram container {n}')
     for _ in range(25):
