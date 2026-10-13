@@ -11,7 +11,7 @@ GORSEL_MODELI = "flux"
 SEED = 1234
 GORSel_KLASORU = ""
 MUZIK_KLASORU = Path("music")
-MUZIK_SEVIYESI = 0.22
+MUZIK_SEVIYESI = 0.12
 SFX_KLASORU = ""
 ROOT = Path("minomasal_data").resolve()
 ROOT.mkdir(parents=True, exist_ok=True)
