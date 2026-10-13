@@ -92,79 +92,125 @@ def make_images(story, folder, key, model, local=''):
     return out
 
 
+
 async def voices(story, folder):
     import os
     import wave
     import asyncio
+    import subprocess
     from google import genai
     from google.genai import types
 
-    def generate_voice(text, audio):
-        client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    folder.mkdir(parents=True, exist_ok=True)
+    scenes = story["scenes"]
+    narrations = [s["narration"].strip() for s in scenes]
 
-        response = client.models.generate_content(
-            model="gemini-3.8-flash-tts",
-            contents="## Transcript:\n" + text,
-            config=types.GenerateContentConfig(
-                temperature=1,
-                response_modalities=["AUDIO"],
-                speech_config=types.SpeechConfig(
-                    voice_config=types.VoiceConfig(
-                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                            voice_name="Sami"
-                        )
-                    )
+    full_wav = folder / "sami_tam_masal.wav"
+
+    if not full_wav.exists():
+        style = (
+            "Türkçe bir çocuk masalı anlatıcısı gibi konuş. "
+            "Sıcak, samimi, neşeli ve enerjik ol. "
+            "Olayları canlı vurgularla anlat. "
+            "Heyecanlı anlarda sesini canlandır. "
+            "Kelimeleri eksiksiz ve anlaşılır oku."
+        )
+        transcript = " ".join(narrations)
+
+        def generate():
+            client = genai.Client(
+                api_key=os.environ["GEMINI_API_KEY"]
+            )
+            response = client.models.generate_content(
+                model="gemini-3.8-flash-tts",
+                contents=(
+                    "# Style instructions\n"
+                    + style
+                    + "\n\n# Transcript\n"
+                    + transcript
                 ),
-            ),
-        )
+                config=types.GenerateContentConfig(
+                    temperature=1,
+                    response_modalities=["AUDIO"],
+                    speech_config=types.SpeechConfig(
+                        voice_config=types.VoiceConfig(
+                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                voice_name="Sami"
+                            )
+                        )
+                    ),
+                ),
+            )
 
-        parts = response.candidates[0].content.parts
-        audio_data = next(
-            (p.inline_data for p in parts
-             if p.inline_data and p.inline_data.data),
-            None
-        )
-        if audio_data is None:
-            raise RuntimeError("Gemini Sami ses üretemedi.")
+            if not response.candidates:
+                raise RuntimeError("Gemini ses yanıtı boş.")
 
-        wav_path = audio.with_suffix(".wav")
-        with wave.open(str(wav_path), "wb") as wav:
-            wav.setnchannels(1)
-            wav.setsampwidth(2)
-            wav.setframerate(24000)
-            wav.writeframes(audio_data.data)
+            parts = response.candidates[0].content.parts
+            audio_data = next(
+                (
+                    p.inline_data
+                    for p in parts
+                    if p.inline_data and p.inline_data.data
+                ),
+                None,
+            )
+            if audio_data is None:
+                raise RuntimeError("Sami ses üretemedi.")
 
-        import subprocess
-        subprocess.run(
-            ["ffmpeg", "-y", "-loglevel", "error",
-             "-i", str(wav_path), str(audio)],
-            check=True
-        )
-        wav_path.unlink()
+            with wave.open(str(full_wav), "wb") as wav:
+                wav.setnchannels(1)
+                wav.setsampwidth(2)
+                wav.setframerate(24000)
+                wav.writeframes(audio_data.data)
+
+        await asyncio.to_thread(generate)
+
+    total = duration(full_wav)
+
+    # Kesin zaman damgaları bulunmadığından yaklaşık bölme.
+    weights = [max(1, len(t.split())) for t in narrations]
+    weight_sum = sum(weights)
+    boundaries = [0.0]
+    cumulative = 0
+
+    for weight in weights[:-1]:
+        cumulative += weight
+        boundaries.append(total * cumulative / weight_sum)
+
+    boundaries.append(total)
 
     out = []
-    for i, scene in enumerate(story["scenes"]):
+    for i, narration in enumerate(narrations):
         audio = folder / f"ses_{i+1:02}.mp3"
         meta = folder / f"ses_{i+1:02}.json"
 
-        if not (audio.exists() and meta.exists()):
-            await asyncio.to_thread(
-                generate_voice, scene["narration"], audio
+        if not audio.exists():
+            start = boundaries[i]
+            end = boundaries[i + 1]
+
+            subprocess.run(
+                [
+                    "ffmpeg", "-y", "-loglevel", "error",
+                    "-i", str(full_wav),
+                    "-ss", f"{start:.4f}",
+                    "-t", f"{end-start:.4f}",
+                    "-codec:a", "libmp3lame",
+                    str(audio),
+                ],
+                check=True,
             )
+
+        if not meta.exists():
             save_json(meta, [])
 
         out.append((
             audio,
             duration(audio),
-            json.loads(meta.read_text())
+            json.loads(meta.read_text(encoding="utf-8")),
         ))
-        print(f'Ses {i+1}/{len(story["scenes"])} hazır')
-
-        if i < len(story["scenes"]) - 1:
-            await asyncio.sleep(25)
+        print(f"Ses {i+1}/{len(scenes)} hazır")
 
     return out
-
 
 def ass_time(t):
     cs=round(max(0,t)*100); h,cs=divmod(cs,360000); m,cs=divmod(cs,6000); s,cs=divmod(cs,100)
