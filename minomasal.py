@@ -158,7 +158,10 @@ async def voices(story, folder):
             duration(audio),
             json.loads(meta.read_text())
         ))
-        print(f'Ses {i+1}/{len(story["scenes"])} hazır')
+                print(f'Ses {i+1}/{len(story["scenes"])} hazır')
+
+        if i < len(story["scenes"]) - 1:
+            await asyncio.sleep(25)
 
     return out
 
