@@ -91,23 +91,77 @@ def make_images(story, folder, key, model, local=''):
         out.append(path); print(f'Görsel {i+1}/{len(story["scenes"])} hazır')
     return out
 
+
 async def voices(story, folder):
-    out=[]
-    for i,s in enumerate(story['scenes']):
-        audio=folder/f'ses_{i+1:02}.mp3'; meta=folder/f'ses_{i+1:02}.json'
+    import os
+    import wave
+    import asyncio
+    from google import genai
+    from google.genai import types
+
+    def generate_voice(text, audio):
+        client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+
+        response = client.models.generate_content(
+            model="gemini-3.8-flash-tts",
+            contents="## Transcript:\n" + text,
+            config=types.GenerateContentConfig(
+                temperature=1,
+                response_modalities=["AUDIO"],
+                speech_config=types.SpeechConfig(
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name="Sami"
+                        )
+                    )
+                ),
+            ),
+        )
+
+        parts = response.candidates[0].content.parts
+        audio_data = next(
+            (p.inline_data for p in parts
+             if p.inline_data and p.inline_data.data),
+            None
+        )
+        if audio_data is None:
+            raise RuntimeError("Gemini Sami ses üretemedi.")
+
+        wav_path = audio.with_suffix(".wav")
+        with wave.open(str(wav_path), "wb") as wav:
+            wav.setnchannels(1)
+            wav.setsampwidth(2)
+            wav.setframerate(24000)
+            wav.writeframes(audio_data.data)
+
+        import subprocess
+        subprocess.run(
+            ["ffmpeg", "-y", "-loglevel", "error",
+             "-i", str(wav_path), str(audio)],
+            check=True
+        )
+        wav_path.unlink()
+
+    out = []
+    for i, scene in enumerate(story["scenes"]):
+        audio = folder / f"ses_{i+1:02}.mp3"
+        meta = folder / f"ses_{i+1:02}.json"
+
         if not (audio.exists() and meta.exists()):
-            words=[]; tmp=Path(str(audio)+'.tmp')
-            async def synth():
-                com=edge_tts.Communicate(s['narration'],SES,rate=SES_HIZI,boundary='WordBoundary')
-                with tmp.open('wb') as f:
-                    async for c in com.stream():
-                        if c['type']=='audio': f.write(c['data'])
-                        elif c['type']=='WordBoundary': words.append({'start':c['offset']/1e7,'end':(c['offset']+c['duration'])/1e7,'text':c['text']})
-            await asyncio.wait_for(synth(),timeout=150)
-            tmp.replace(audio); save_json(meta,words)
-        out.append((audio,duration(audio),json.loads(meta.read_text())))
+            await asyncio.to_thread(
+                generate_voice, scene["narration"], audio
+            )
+            save_json(meta, [])
+
+        out.append((
+            audio,
+            duration(audio),
+            json.loads(meta.read_text())
+        ))
         print(f'Ses {i+1}/{len(story["scenes"])} hazır')
+
     return out
+
 
 def ass_time(t):
     cs=round(max(0,t)*100); h,cs=divmod(cs,360000); m,cs=divmod(cs,6000); s,cs=divmod(cs,100)
