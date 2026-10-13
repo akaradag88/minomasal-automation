@@ -1,0 +1,45 @@
+
+name: MinoMasal Instagram Recovery 17
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recover-video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install -r requirements-minomasal.txt
+
+      - name: Generate story 17
+        env:
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MINOMASAL_YOUTUBE_UPLOAD: 'false'
+        run: python minomasal_instagram_recovery.py
+
+      - name: Save video as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: minomasal-story-17-recovery
+          path: |
+            minomasal_data/**/masal_short.mp4
+            minomasal_data/**/hikaye.json
+          if-no-files-found: error
+          retention-days: 7
