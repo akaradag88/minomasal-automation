@@ -227,7 +227,6 @@
       },
       "video_asset": null
     },
-
     "16": {
       "topic": "Yeni Okuluna Gitmek İstemeyen Tavşan",
       "title": "Yeni Okuluna Gitmeyen Tavşan | MinoMasal",
@@ -255,12 +254,14 @@
         "privacy": "public"
       },
       "instagram": {
-        "status": "pending",
-        "container_id": null,
-        "media_id": null
+        "status": "published",
+        "container_id": "18132622990631544",
+        "media_id": "18198933376376436"
       },
-      "video_asset": null
-   
+      "video_asset": {
+        "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-17/minomasal-17.mp4",
+        "release_tag": "minomasal-story-17"
+      }
     }
   }
 }
