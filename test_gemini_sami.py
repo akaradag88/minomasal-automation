@@ -7,7 +7,7 @@ client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
 response = client.models.generate_content(
     model="gemini-3.8-flash-tts",
-    contents="Merhaba çocuklar! Bugün küçük bir kirpinin ormanda yaşadığı heyecan verici bir macerayı anlatacağım. Hazırsanız masalımız başlıyor!",
+    contents="## Transcript:\nBir sabah küçük sincap Fındık, ormanda kocaman bir ceviz buldu. Çok sevindi ve cevizi yuvasına götürmeye karar verdi. Ancak ceviz çok ağırdı. Tam vazgeçecekken arkadaşı tavşan yardım etmeye geldi. Birlikte cevizi büyük meşe ağacının altına taşıdılar. Fındık cevizi arkadaşlarıyla paylaştı. O gün yardımlaşmanın ve paylaşmanın ne kadar güzel olduğunu öğrendi. Peki sen arkadaşlarınla ne paylaşmak isterdin?",
     config=types.GenerateContentConfig(
         response_modalities=["AUDIO"],
         speech_config=types.SpeechConfig(
