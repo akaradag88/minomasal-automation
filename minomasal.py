@@ -279,7 +279,22 @@ def music_for_scene(scene, index, count):
 
 def make_scene_music(story, lengths, folder):
     """Bütün video boyunca tek ve kesintisiz fon müziği."""
-    music_path = MUZIK_KLASORU / "happy.mp3"
+    
+    text = (
+        story.get("title", "") + " " +
+        story.get("moral", "") + " " +
+        " ".join(s["narration"] for s in story["scenes"])
+    ).lower()
+
+    if any(w in text for w in ["kork", "üzül", "ağla", "özür", "pişman"]):
+        music_name = "emotional.mp3"
+    elif any(w in text for w in ["kaybol", "gizem", "merak", "araştır", "keşfet"]):
+        music_name = "mystery.mp3"
+    else:
+        music_name = "happy.mp3"
+
+    music_path = MUZIK_KLASORU / music_name
+
 
     if not music_path.is_file():
         raise FileNotFoundError(f"Fon müziği bulunamadı: {music_path}")
