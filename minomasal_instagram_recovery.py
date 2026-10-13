@@ -1,32 +1,40 @@
 
-"""MinoMasal 17. video Instagram kurtarma hazırlığı.
-
-Bu dosya yalnızca kayıtları kontrol eder.
-Video üretmez ve hiçbir platformda yayın yapmaz.
+"""17. MinoMasal videosunu yeniden üretir.
+YouTube veya Instagram'a yükleme yapmaz.
 """
 
+import asyncio
 import json
 from pathlib import Path
+
+from minomasal import produce, duration
 
 LEDGER = Path("minomasal_platform_durumu.json")
 NUMBER = "17"
 
-def main():
+
+async def main():
     ledger = json.loads(LEDGER.read_text(encoding="utf-8"))
     record = ledger["stories"][NUMBER]
-
-    print("Hikâye:", record["topic"])
-    print("YouTube:", record["youtube"]["status"])
-    print("YouTube ID:", record["youtube"]["video_id"])
-    print("Instagram:", record["instagram"]["status"])
 
     if record["youtube"]["status"] != "published":
         raise RuntimeError("YouTube kaydı doğrulanamadı.")
 
     if record["instagram"]["status"] != "pending":
-        raise RuntimeError("Instagram kaydı beklenen durumda değil.")
+        raise RuntimeError("Instagram durumu pending değil.")
 
-    print("KONTROL BAŞARILI: Instagram kurtarma hazırlığı uygun.")
+    topic = record["topic"]
+
+    print("Yeniden üretiliyor:", topic)
+
+    video = await produce(topic)
+
+    if not video.is_file() or duration(video) <= 1:
+        raise RuntimeError("Video üretimi başarısız.")
+
+    print("VIDEO HAZIR:", video)
+    print("Yayın yapılmadı.")
+
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
