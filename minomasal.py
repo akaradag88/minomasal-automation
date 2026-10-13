@@ -3,8 +3,8 @@
 import os, json, asyncio, shutil
 from pathlib import Path
 KANAL_ADI = "MinoMasal"
-SES = "tr-TR-AhmetNeural"
-SES_HIZI = "-3%"
+SES = "Sami"
+SES_HIZI = "Promote"
 FPS = 24
 HIKAYE_MODELI = "openai"
 GORSEL_MODELI = "flux"
