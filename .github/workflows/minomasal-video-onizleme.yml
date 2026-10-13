@@ -29,6 +29,8 @@ jobs:
       - name: Render one preview (no upload)
         env:
           POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MINOMASAL_YOUTUBE_UPLOAD: 'false'
         run: python minomasal.py
       - name: Downloadable preview
         if: always()
