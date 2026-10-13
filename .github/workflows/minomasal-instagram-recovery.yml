@@ -5,41 +5,45 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: minomasal-preview-state
+  cancel-in-progress: false
 
 jobs:
-  recover-video:
+  instagram-recovery:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Configure Git
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
-          python -m pip install -r requirements-minomasal.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Generate story 17
+      - name: Publish story 17 to Instagram
         env:
-          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          MINOMASAL_YOUTUBE_UPLOAD: 'false'
+          PUBLISH_ENABLED: 'true'
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
         run: python minomasal_instagram_recovery.py
 
-      - name: Save video as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: minomasal-story-17-recovery
-          path: |
-            minomasal_data/**/masal_short.mp4
-            minomasal_data/**/hikaye.json
-          if-no-files-found: error
-          retention-days: 7
+      - name: Save Instagram publication status
+        if: always()
+        run: |
+          if ! git diff --quiet -- minomasal_platform_durumu.json; then
+            git add minomasal_platform_durumu.json
+            git commit -m "Record Instagram recovery status for story 17"
+            git push origin HEAD:main
+          fi
