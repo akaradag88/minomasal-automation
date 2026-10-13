@@ -227,6 +227,7 @@
       },
       "video_asset": null
     },
+
     "16": {
       "topic": "Yeni Okuluna Gitmek İstemeyen Tavşan",
       "title": "Yeni Okuluna Gitmeyen Tavşan | MinoMasal",
@@ -244,6 +245,23 @@
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-16/minomasal-16.mp4",
         "release_tag": "minomasal-story-16"
       }
+    },
+    "17": {
+      "topic": "Bulduğu Oyuncağı Sahibine Veren Kirpi",
+      "title": "Kirpi Oyuncağı Geri Veriyor | MinoMasal",
+      "youtube": {
+        "status": "published",
+        "video_id": "zKZ47uaBVbg",
+        "privacy": "public"
+      },
+      "instagram": {
+        "status": "pending",
+        "container_id": null,
+        "media_id": null
+      },
+      "video_asset": null
+    }
+
     }
   }
 }
