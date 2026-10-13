@@ -262,6 +262,21 @@
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-17/minomasal-17.mp4",
         "release_tag": "minomasal-story-17"
       }
+    },
+    "18": {
+      "topic": "Arkadaşına Kötü Söz Söyleyen Papağan",
+      "title": "Kötü Sözlü Papağan | MinoMasal",
+      "youtube": {
+        "status": "pending",
+        "video_id": null,
+        "privacy": null
+      },
+      "instagram": {
+        "status": "pending",
+        "container_id": null,
+        "media_id": null
+      },
+      "video_asset": null
     }
   }
 }
