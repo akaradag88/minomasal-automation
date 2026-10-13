@@ -1,0 +1,37 @@
+
+name: Test Gemini Sami Voice
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Gemini SDK
+        run: python -m pip install google-genai
+
+      - name: Generate Sami test audio
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python test_gemini_sami.py
+
+      - name: Save test audio
+        uses: actions/upload-artifact@v4
+        with:
+          name: minomasal-sami-test
+          path: minomasal_sami_test.wav
+          if-no-files-found: error
