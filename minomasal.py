@@ -276,34 +276,29 @@ def music_for_scene(scene, index, count):
     return "happy"
 
 
-def make_scene_music(story, lengths, folder):
-    """Gerçek MP3'lerden, sahne sürelerine uyan ve yumuşak geçişli müzik hazırla."""
-    paths = {kind: MUZIK_KLASORU / name for kind, name in MUZIK_DOSYALARI.items()}
-    missing = [str(p) for p in paths.values() if not p.is_file()]
-    if missing:
-        raise FileNotFoundError("Müzik dosyaları eksik: " + ", ".join(missing))
-    segments = []
-    for i, (scene, length) in enumerate(zip(story["scenes"], lengths)):
-        kind = music_for_scene(scene, i, len(lengths))
-        target = folder / f"muzik_{i:02}.wav"
-        fade = min(0.45, length / 4)
-        filter_audio = (
-            f"[0:a]aresample=48000,aformat=sample_fmts=s16:channel_layouts=stereo,"
-            f"atrim=duration={length:.4f},asetpts=PTS-STARTPTS,"
-            f"afade=t=in:st=0:d={fade:.3f},"
-            f"afade=t=out:st={max(0,length-fade):.4f}:d={fade:.3f}[a]"
-        )
-        run(["ffmpeg", "-y", "-loglevel", "error", "-stream_loop", "-1", "-i", paths[kind],
-             "-filter_complex", filter_audio, "-map", "[a]", "-c:a", "pcm_s16le", target])
-        segments.append(target)
-        print(f"Müzik {i+1}/{len(lengths)}: {kind}")
-    listing = folder / "muzik_concat.txt"
-    listing.write_text("\n".join("file '" + p.name + "'" for p in segments), encoding="utf-8")
-    output = folder / "sinematik_muzik.wav"
-    run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0",
-         "-i", listing, "-c", "copy", output])
-    return output
 
+def make_scene_music(story, lengths, folder):
+    """Bütün video boyunca tek ve kesintisiz fon müziği."""
+    music_path = MUZIK_KLASORU / "happy.mp3"
+
+    if not music_path.is_file():
+        raise FileNotFoundError(f"Fon müziği bulunamadı: {music_path}")
+
+    total = sum(lengths)
+    output = folder / "sinematik_muzik.wav"
+
+    run([
+        "ffmpeg", "-y", "-loglevel", "error",
+        "-stream_loop", "-1",
+        "-i", music_path,
+        "-t", str(total),
+        "-af", "aresample=48000,aformat=sample_fmts=s16:channel_layouts=stereo",
+        "-c:a", "pcm_s16le",
+        output
+    ])
+
+    print("Tek fon müziği hazır:", music_path)
+    return output
 
 def render(story,images,audios,folder):
     parts=[]; part_lengths=[]; all_cues=[]; offset=0
