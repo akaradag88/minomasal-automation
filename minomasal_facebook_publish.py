@@ -246,10 +246,13 @@ def require_facebook_publish_authorization():
 
     print("Facebook yayın yetkilendirmesi doğrulandı.")
 
+
 def facebook_reels_upload_video(upload_url, video_url, page_token):
     """Transfer an existing MP4 to Facebook without publishing."""
+    import json
     import urllib.request
     from urllib.parse import urlparse
+
 
     if urlparse(upload_url).scheme != "https":
         raise RuntimeError("Geçersiz Facebook yükleme adresi.")
