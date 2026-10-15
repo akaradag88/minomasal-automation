@@ -63,6 +63,36 @@ jobs:
             echo "Real publication is not implemented yet."
           fi
 
+      - name: Validate Facebook publication request (No Publish)
+        env:
+          STORY_NUMBER: ${{ inputs.story_number }}
+          CONFIRM_PUBLISH: ${{ inputs.confirm_publish }}
+        run: |
+          python - <<'PY'
+          import os
+          import json
+          from pathlib import Path
+
+          number = os.environ["STORY_NUMBER"]
+          confirmation = os.environ["CONFIRM_PUBLISH"]
+
+          if number != "19":
+              raise RuntimeError("İlk Facebook testi yalnızca 19. video için.")
+
+          if confirmation not in ("YES", "NO"):
+              raise RuntimeError("Geçersiz yayın onayı.")
+
+          ledger = json.loads(
+              Path("minomasal_facebook_durumu.json").read_text(encoding="utf-8")
+          )
+
+          if str(number) in ledger.get("stories", {}):
+              raise RuntimeError("Facebook yayın kaydı mevcut; tekrar deneme yasak.")
+
+          print("Facebook yayın öncesi güvenlik kontrolü başarılı.")
+          print("Henüz Facebook'a video gönderilmedi.")
+          PY
+
 
       - name: Test Facebook ledger GitHub access (No Publish)
         run: |
