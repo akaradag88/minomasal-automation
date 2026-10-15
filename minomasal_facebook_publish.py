@@ -291,3 +291,28 @@ def validate_facebook_video_transfer(result):
 
     print("Facebook video aktarımı başarılı.")
     return True
+
+def record_facebook_publication(story_number, video_id):
+    """Record a confirmed Facebook publication."""
+    import json
+    from pathlib import Path
+
+    if not video_id:
+        raise RuntimeError("Facebook video kimliği eksik.")
+
+    path = Path(FACEBOOK_LEDGER)
+    ledger = json.loads(path.read_text(encoding="utf-8"))
+
+    record = ledger.get("stories", {}).get(str(story_number))
+
+    if not record or record.get("status") != "ambiguous":
+        raise RuntimeError(
+            "Facebook yayın denemesi kaydı bulunamadı."
+        )
+
+    record["status"] = "published"
+    record["video_id"] = str(video_id)
+
+    save_facebook_ledger(ledger)
+
+    print(f"Facebook video {story_number} yayın kaydı tamamlandı.")
