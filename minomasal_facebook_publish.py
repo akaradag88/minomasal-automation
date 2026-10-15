@@ -519,3 +519,26 @@ def prepare_facebook_upload(story_number):
         "video_id": session["video_id"],
         "upload_url": session["upload_url"],
     }
+
+def record_facebook_upload_details(story_number, video_id, video_url):
+    """Save upload details without publishing."""
+    import json
+    from pathlib import Path
+
+    path = Path(FACEBOOK_LEDGER)
+    ledger = json.loads(path.read_text(encoding="utf-8"))
+    record = ledger.get("stories", {}).get(str(story_number))
+
+    if not record or record.get("status") != "ambiguous":
+        raise RuntimeError("Facebook yayın kaydı bulunamadı.")
+
+    if str(record.get("video_id")) != str(video_id):
+        raise RuntimeError("Facebook video kimliği uyuşmuyor.")
+
+    if record.get("video_url"):
+        raise RuntimeError("Video bağlantısı zaten kayıtlı.")
+
+    record["video_url"] = video_url
+    save_facebook_ledger(ledger)
+
+    print("Facebook yükleme bilgileri kaydedildi.")
