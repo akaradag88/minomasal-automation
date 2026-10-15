@@ -20,7 +20,85 @@ YAYIN_AKTIF = os.environ.get("MINOMASAL_YOUTUBE_UPLOAD", "false").lower() == "tr
 YOUTUBE_GORUNURLUK = os.environ.get("MINOMASAL_YOUTUBE_PRIVACY", "private").lower()
 if YOUTUBE_GORUNURLUK not in ("private", "public", "unlisted"):
     raise ValueError("MINOMASAL_YOUTUBE_PRIVACY private, public veya unlisted olmali.")
-KONULAR = ['Paylaşmayı Öğrenen Sincap', 'Yalan Söyleyen Küçük Tilki', 'Karanlıktan Korkan Tavşan', 'Dişlerini Fırçalamayan Timsah', 'Her Şeye Kızan Minik Aslan', 'Oyuncaklarını Toplamayan Panda', 'Sabırsız Küçük Kaplumbağa', 'Arkadaşını Dinlemeyen Maymun', 'Ellerini Yıkamayı Unutan Ayıcık', 'Kaybetmeyi Sevmeyen Kaplan', 'Sırasını Bekleyemeyen Minik Panda', 'Kaybolan Küçük Penguen', 'Başkalarının Eşyalarını İzinsiz Alan Maymun', 'Yağmurdan Korkan Minik Kedi', 'Her Şeyi Tek Başına Yapmak İsteyen Kunduz', 'Yeni Okuluna Gitmek İstemeyen Tavşan', 'Bulduğu Oyuncağı Sahibine Veren Kirpi', 'Arkadaşına Kötü Söz Söyleyen Papağan', 'Her Şeyi Ekrandan İzlemek İsteyen Ayıcık', 'Küçük Karıncanın Büyük Hayali', 'Ormanı Kirleten Rakun', 'Yemeğini Beğenmeyen Koala', 'Uçmaya Korkan Minik Kuş', 'Özür Dilemeyi Öğrenen Fil', 'Teşekkür Etmeyen Küçük Geyik', 'Uyumak İstemeyen Baykuş', 'Sebze Yemeyen Tavşan', 'Sözünü Tutmayan Kunduz', 'Farklı Görünen Zürafa', 'Yapamam Diyen Küçük Fare']
+KONULAR = ['Paylaşmayı Öğrenen Sincap', 'Yalan Söyleyen Küçük Tilki', 'Karanlıktan Korkan Tavşan', 'Dişlerini Fırçalamayan Timsah', 'Her Şeye Kızan Minik Aslan', 'Oyuncaklarını Toplamayan Panda', 'Sabırsız Küçük Kaplumbağa', 'Arkadaşını Dinlemeyen Maymun', 'Ellerini Yıkamayı Unutan Ayıcık', 'Kaybetmeyi Sevmeyen Kaplan', 'Sırasını Bekleyemeyen Minik Panda', 'Kaybolan Küçük Penguen', 'Başkalarının Eşyalarını İzinsiz Alan Maymun', 'Yağmurdan Korkan Minik Kedi', 'Her Şeyi Tek Başına Yapmak İsteyen Kunduz', 'Yeni Okuluna Gitmek İstemeyen Tavşan', 'Bulduğu Oyuncağı Sahibine Veren Kirpi', 'Arkadaşına Kötü Söz Söyleyen Papağan', 'Her Şeyi Ekrandan İzlemek İsteyen Ayıcık', 'Küçük Karıncanın Büyük Hayali', 'Ormanı Kirleten Rakun', 'Yemeğini Beğenmeyen Koala', 'Uçmaya Korkan Minik Kuş', 'Özür Dilemeyi Öğrenen Fil', 'Teşekkür Etmeyen Küçük Geyik', 'Uyumak İstemeyen Baykuş', 'Sebze Yemeyen Tavşan', 'Sözünü Tutmayan Kunduz', 'Farklı Görünen Zürafa', 'Yapamam Diyen Küçük Fare', 
+    # 31–45: Hayvanların eğitici maceraları
+    'Arkadaşını Kıskanan Küçük Kedi',
+    'Cesur Olmayı Öğrenen Kirpi',
+    'Oyuncağını Paylaşmayan Ayıcık',
+    'Hata Yapmaktan Korkan Sincap',
+    'Arkadaşına Yardım Eden Minik Fil',
+    'Sürekli Acele Eden Tavşan',
+    'Söz Dinlemeyen Küçük Penguen',
+    'Kendini Beğenmeyen Zürafa',
+    'Arkadaşını Affeden Minik Aslan',
+    'Her Şeye Hayır Diyen Panda',
+    'Yuva Yapmayı Öğrenen Serçe',
+    'Sorumluluk Alan Küçük Tilki',
+    'Yalnız Oynamak İsteyen Koala',
+    'Başkalarıyla Alay Eden Maymun',
+    'Korkusunu Yenen Küçük Kaplumbağa',
+
+    # 46–60: İş makineleri ve araçlar
+    'Yardımsever Küçük Ekskavatör',
+    'Kaybolan Oyuncak Kamyon',
+    'İlk Görevine Çıkan İtfaiye Aracı',
+    'Sabırsız Küçük Yarış Arabası',
+    'Çamura Saplanan Traktör',
+    'Arkadaşlarını Kurtaran Çekici',
+    'Küçük Beton Mikserinin Büyük Görevi',
+    'Yolunu Kaybeden Minik Otobüs',
+    'Paylaşmayı Öğrenen Oyuncak Tren',
+    'Küçük Vinç ve Yüksek Kule',
+    'Temizlik Yapan Çöp Kamyonu',
+    'Karanlıktan Korkan Küçük Araba',
+    'Yardımsever Ambulansın Macerası',
+    'İlk Yolculuğuna Çıkan Elektrikli Otomobil',
+    'Köprü Yapan İş Makineleri',
+
+    # 61–80: Arkadaşlık, duygular ve günlük yaşam
+    'Yeni Arkadaş Edinen Minik Dinozor',
+    'Öfkesini Kontrol Eden Küçük Ejderha',
+    'Kaybolan Balonunu Arayan Çocuk',
+    'Sıra Beklemeyi Öğrenen Küçük Robot',
+    'Herkesi Mutlu Etmeye Çalışan Minik Bulut',
+    'İlk Kez Okula Giden Küçük Dinozor',
+    'Kardeşini Kıskanan Minik Ayıcık',
+    'Kendi Başına Giyinmeyi Öğrenen Tavşan',
+    'Oyuncağını Kaybeden Küçük Çocuk',
+    'Arkadaşından Özür Dileyen Minik Robot',
+    'Korktuğunu Söyleyen Küçük Aslan',
+    'Yardım İstemeyi Öğrenen Minik Fil',
+    'Herkesin Farklı Olduğunu Öğrenen Dinozor',
+    'Sabretmeyi Öğrenen Küçük Roket',
+    'Arkadaşını Teselli Eden Minik Panda',
+    'Başarısız Olunca Vazgeçmeyen Küçük Araba',
+    'Doğruyu Söyleyen Cesur Tavşan',
+    'İlk Kez Bisiklete Binen Küçük Ayı',
+    'Teşekkür Etmeyi Öğrenen Minik Robot',
+    'Arkadaşlarıyla Barışan Küçük Tilki',
+
+    # 81–100: Keşif, doğa ve macera
+    'Uzayı Keşfeden Küçük Roket',
+    'Denizin Altındaki Meraklı Denizaltı',
+    'Ormanı Koruyan Minik Dinozor',
+    'Kaybolan Yıldızı Arayan Küçük Astronot',
+    'Geri Dönüşümü Öğrenen Küçük Robot',
+    'İlk Kar Yağışını Gören Minik Tavşan',
+    'Renklerini Kaybeden Gökkuşağı',
+    'Çiçekleri Koruyan Küçük Arı',
+    'Yağmur Damlasının Büyük Yolculuğu',
+    'Güneşi Arayan Küçük Bulut',
+    'Denizleri Temizleyen Minik Kaplumbağa',
+    'Ay Yolculuğuna Çıkan Küçük Robot',
+    'Ormanda Yolunu Bulan Minik Kirpi',
+    'Kutup Yıldızını Arayan Penguen',
+    'Rüzgârla Yarışan Küçük Uçak',
+    'Dünyayı Gezen Meraklı Balon',
+    'Tohum Eken Küçük Traktör',
+    'Yıldızları Saymayı Öğrenen Minik Baykuş',
+    'Gizli Bahçeyi Keşfeden Küçük Sincap',
+    'Doğayı Kurtaran Küçük Kahramanlar'
+]
 
 import asyncio, hashlib, json, math, os, re, subprocess, time, wave
 from pathlib import Path
