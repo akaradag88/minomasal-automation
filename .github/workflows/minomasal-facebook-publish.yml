@@ -29,6 +29,26 @@ jobs:
         run: python -m py_compile minomasal_facebook_publish.py
 
       - name: Confirm publishing is disabled
+      - name: Test Facebook ledger GitHub access (No Publish)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("minomasal_facebook_durumu.json")
+          ledger = json.loads(path.read_text(encoding="utf-8"))
+
+          assert ledger["schema_version"] == 1
+          assert isinstance(ledger["stories"], dict)
+
+          print("Facebook kayıt dosyası geçerli.")
+          PY
+
+          git ls-remote --exit-code origin refs/heads/main > /dev/null
+          echo "GitHub depo bağlantısı başarılı."
+
         run: echo "Facebook publishing is not enabled yet."
 
       - name: Configure Git identity
