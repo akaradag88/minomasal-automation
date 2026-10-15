@@ -548,3 +548,15 @@ def record_facebook_upload_details(story_number, video_id, video_url):
     save_facebook_ledger(ledger)
 
     print("Facebook yükleme bilgileri kaydedildi.")
+
+def publish_first_facebook_reel(story_number):
+    """Prepare the first Facebook Reel; publishing requires further steps."""
+    if story_number != 19:
+        raise RuntimeError("İlk yayın yalnızca 19. video için.")
+
+    session = prepare_facebook_upload(story_number)
+
+    print("Facebook yükleme oturumu oluşturuldu.")
+    print("Video ID:", session["video_id"])
+
+    return session
