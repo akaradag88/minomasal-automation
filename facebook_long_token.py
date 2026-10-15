@@ -43,7 +43,7 @@ headers = {
 def github_api(method, endpoint, payload=None):
     data = json.dumps(payload).encode() if payload is not None else None
     request = urllib.request.Request(
-        f"https://api.github.com/repos/{repo}/actions/secrets/{endpoint}",
+        f"https://api.github.com/repos/{repo}/actions/secrets/{'public-key' if endpoint == 'public-key' else endpoint}",
         data=data,
         headers=headers,
         method=method,
