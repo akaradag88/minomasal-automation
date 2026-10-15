@@ -245,3 +245,33 @@ def require_facebook_publish_authorization():
         )
 
     print("Facebook yayın yetkilendirmesi doğrulandı.")
+
+def facebook_reels_upload_video(upload_url, video_url, page_token):
+    """Transfer an existing MP4 to Facebook without publishing."""
+    import urllib.request
+    from urllib.parse import urlparse
+
+    if urlparse(upload_url).scheme != "https":
+        raise RuntimeError("Geçersiz Facebook yükleme adresi.")
+
+    if urlparse(upload_url).hostname not in (
+        "rupload.facebook.com",
+        "rupload.facebook.net",
+    ):
+        raise RuntimeError("Beklenmeyen Facebook yükleme sunucusu.")
+
+    if not video_url.startswith("https://github.com/"):
+        raise RuntimeError("Video GitHub bağlantısı geçersiz.")
+
+    request = urllib.request.Request(
+        upload_url,
+        data=b"",
+        headers={
+            "Authorization": f"OAuth {page_token}",
+            "file_url": video_url,
+        },
+        method="POST",
+    )
+
+    with urllib.request.urlopen(request, timeout=120) as response:
+        return json.load(response)
