@@ -49,8 +49,20 @@ jobs:
       - name: Check Facebook Python syntax
         run: python -m py_compile minomasal_facebook_publish.py
 
-      - name: Confirm publishing is disabled
-        run: echo "Facebook publishing is not enabled yet."
+
+      - name: Verify Facebook publication remains disabled
+        env:
+          STORY_NUMBER: ${{ inputs.story_number }}
+          CONFIRM_PUBLISH: ${{ inputs.confirm_publish }}
+        run: |
+          echo "Selected story: $STORY_NUMBER"
+          echo "Publication confirmation: $CONFIRM_PUBLISH"
+          echo "Facebook publishing remains disabled."
+
+          if [ "$CONFIRM_PUBLISH" = "YES" ]; then
+            echo "Real publication is not implemented yet."
+          fi
+
 
       - name: Test Facebook ledger GitHub access (No Publish)
         run: |
