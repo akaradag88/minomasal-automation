@@ -316,3 +316,30 @@ def record_facebook_publication(story_number, video_id):
     save_facebook_ledger(ledger)
 
     print(f"Facebook video {story_number} yayın kaydı tamamlandı.")
+
+def facebook_reels_finish(video_id, page_token, title):
+    """Request Facebook Reel publication after upload."""
+    import json
+    import urllib.parse
+    import urllib.request
+
+    if not video_id:
+        raise RuntimeError("Facebook video ID eksik.")
+
+    url = f"https://graph.facebook.com/v26.0/{video_id}/video_reels"
+
+    payload = urllib.parse.urlencode({
+        "upload_phase": "finish",
+        "video_state": "PUBLISHED",
+        "description": title,
+        "access_token": page_token,
+    }).encode("utf-8")
+
+    request = urllib.request.Request(
+        url,
+        data=payload,
+        method="POST",
+    )
+
+    with urllib.request.urlopen(request, timeout=60) as response:
+        return json.load(response)
