@@ -361,3 +361,29 @@ def validate_facebook_publish_response(result, expected_video_id):
 
     print("Facebook yayın isteği API tarafından kabul edildi.")
     return True
+
+def facebook_reels_check_status(video_id, page_token):
+    """Read Facebook video processing and publishing status."""
+    import json
+    import urllib.parse
+    import urllib.request
+
+    if not str(video_id).isdigit():
+        raise RuntimeError("Geçersiz Facebook video ID.")
+
+    params = urllib.parse.urlencode({
+        "fields": "id,status",
+        "access_token": page_token,
+    })
+
+    url = f"https://graph.facebook.com/v26.0/{video_id}?{params}"
+
+    request = urllib.request.Request(url, method="GET")
+
+    with urllib.request.urlopen(request, timeout=60) as response:
+        result = json.load(response)
+
+    if str(result.get("id")) != str(video_id):
+        raise RuntimeError("Facebook video kimliği uyuşmuyor.")
+
+    return result
