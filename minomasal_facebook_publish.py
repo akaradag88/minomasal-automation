@@ -70,3 +70,28 @@ if __name__ == "__main__" and os.environ.get("FACEBOOK_TEST_VIDEO") == "true":
     print(f"Video {story_number} bağlantısı bulundu.")
     print("GitHub Releases MP4 bağlantısı hazır.")
 
+
+def facebook_reels_start_upload():
+    """Start a Facebook Reels upload session without publishing."""
+    import json
+    import urllib.parse
+    import urllib.request
+
+    page_id = os.environ["FACEBOOK_PAGE_ID"]
+    token = os.environ["FACEBOOK_PAGE_ACCESS_TOKEN"]
+
+    url = f"https://graph.facebook.com/v26.0/{page_id}/video_reels"
+
+    payload = urllib.parse.urlencode({
+        "upload_phase": "start",
+        "access_token": token,
+    }).encode("utf-8")
+
+    request = urllib.request.Request(
+        url,
+        data=payload,
+        method="POST",
+    )
+
+    with urllib.request.urlopen(request, timeout=60) as response:
+        return json.load(response)
