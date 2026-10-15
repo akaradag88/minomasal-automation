@@ -15,24 +15,8 @@ jobs:
   facebook:
     runs-on: ubuntu-latest
 
-    steps:
     
-      - name: Test Facebook ledger write permissions (No Publish)
-        working-directory: ${{ github.workspace }}
-        run: |
-          pwd
-          ls -la
-          git rev-parse --show-toplevel
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          test "$(git config --get user.name)" = "github-actions[bot]"
-
-          git push --dry-run origin HEAD:main
-
-          echo "GitHub yazma yetkisi ön kontrolü başarılı."
-
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -71,3 +55,10 @@ jobs:
 
           git ls-remote --exit-code origin refs/heads/main > /dev/null
           echo "GitHub depo bağlantısı başarılı."
+
+      - name: Test Facebook ledger write permissions (No Publish)
+        run: |
+          git rev-parse --show-toplevel
+          test "$(git config --get user.name)" = "github-actions[bot]"
+          git push --dry-run origin HEAD:main
+          echo "GitHub yazma yetkisi ön kontrolü başarılı."
