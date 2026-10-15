@@ -43,3 +43,6 @@ jobs:
           FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
           FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
         run: python minomasal_facebook_publish.py
+        
+      - name: Check Facebook Python syntax (No Publish)
+        run: python -m py_compile minomasal_facebook_publish.py
