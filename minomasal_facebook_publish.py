@@ -141,11 +141,11 @@ def check_facebook_publish_status(story_number):
     return True
 
     
-if __name__ == "__main__" and os.environ.get("FACEBOOK_TEST_LEDGER") == "true":
-    story_number = int(os.environ.get("FACEBOOK_STORY_NUMBER", "19"))
-    check_facebook_publish_status(story_number)
-    print("Facebook yayın kaydı güvenlik testi başarılı.")
+    if __name__ == "__main__" and os.environ.get("FACEBOOK_TEST_LEDGER") == "true":
+        story_number = int(os.environ.get("FACEBOOK_STORY_NUMBER", "19"))
+        check_facebook_publish_status(story_number)
+        print("Facebook yayın kaydı güvenlik testi başarılı.")
 
 
-    with urllib.request.urlopen(request, timeout=60) as response:
+        with urllib.request.urlopen(request, timeout=60) as response:
         return json.load(response)
