@@ -498,3 +498,24 @@ def start_safe_facebook_publication(story_number):
 
     print(f"Facebook video {story_number}: güvenli yayın kaydı oluşturuldu.")
     return video_url
+
+def prepare_facebook_upload(story_number):
+    """Reserve the story and start a Facebook upload session."""
+    video_url = start_safe_facebook_publication(story_number)
+
+    # An upload session is an external API operation.
+    # The story is already marked ambiguous before this call.
+    session = facebook_reels_start_upload()
+    session = validate_facebook_upload_session(session)
+
+    record_facebook_upload_session(
+        story_number,
+        session["video_id"]
+    )
+
+    print("Facebook yükleme oturumu hazır.")
+    return {
+        "video_url": video_url,
+        "video_id": session["video_id"],
+        "upload_url": session["upload_url"],
+    }
