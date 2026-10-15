@@ -29,3 +29,11 @@ try:
 except urllib.error.HTTPError as error:
     print("Facebook API hatası:", error.code)
     raise SystemExit(1)
+
+
+# Facebook Reels publication safety settings
+FACEBOOK_LEDGER = "minomasal_facebook_durumu.json"
+
+# Publishing is disabled by default.
+# A separate, explicitly authorized workflow will be required.
+FACEBOOK_PUBLISH_ENABLED = False
