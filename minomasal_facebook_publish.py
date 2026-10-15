@@ -343,3 +343,21 @@ def facebook_reels_finish(video_id, page_token, title):
 
     with urllib.request.urlopen(request, timeout=60) as response:
         return json.load(response)
+
+def validate_facebook_publish_response(result, expected_video_id):
+    """Validate Facebook Reels finish API response."""
+    if not isinstance(result, dict):
+        raise RuntimeError("Facebook yayın yanıtı geçersiz.")
+
+    if result.get("success") is not True:
+        raise RuntimeError(
+            "Facebook yayın isteğinin başarılı olduğu doğrulanamadı."
+        )
+
+    returned_id = result.get("video_id")
+
+    if returned_id and str(returned_id) != str(expected_video_id):
+        raise RuntimeError("Facebook video kimliği uyuşmuyor.")
+
+    print("Facebook yayın isteği API tarafından kabul edildi.")
+    return True
