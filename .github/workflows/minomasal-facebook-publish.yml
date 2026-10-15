@@ -2,7 +2,20 @@
 name: MinoMasal Facebook Publish
 
 on:
+  
   workflow_dispatch:
+    inputs:
+      story_number:
+        description: "Facebook'a gönderilecek hikâye numarası"
+        required: true
+        default: "19"
+        type: string
+      confirm_publish:
+        description: "Gerçek Facebook yayını için YES yazın"
+        required: true
+        default: "NO"
+        type: string
+
 
 permissions:
   contents: write
