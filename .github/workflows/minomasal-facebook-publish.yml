@@ -27,6 +27,30 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      - name: Test Facebook ledger commit and push (No Publish)
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("minomasal_facebook_durumu.json")
+          ledger = json.loads(path.read_text(encoding="utf-8"))
+
+          if ledger.get("stories") != {}:
+              raise RuntimeError("Facebook kayıtları boş değil; test durduruldu.")
+
+          ledger["write_test"] = "success"
+          path.write_text(
+              json.dumps(ledger, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8"
+          )
+          PY
+
+          git add minomasal_facebook_durumu.json
+          git commit -m "Test Facebook ledger write [skip ci]"
+          git push origin HEAD:main
+          echo "Facebook kayıt dosyası GitHub'a yazıldı."
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
