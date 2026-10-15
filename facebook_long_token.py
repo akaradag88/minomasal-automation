@@ -99,3 +99,27 @@ def get_long_lived_page_token(user_token, page_id):
         raise RuntimeError("Facebook Page Token alınamadı.")
 
     return page["access_token"]
+
+def save_page_token():
+    """Create and securely store the Facebook Page Token."""
+    user_token = result["access_token"]
+    page_id = os.environ["FACEBOOK_PAGE_ID"]
+
+    page_token = get_long_lived_page_token(user_token, page_id)
+
+    key_info = github_api("GET", "public-key")
+    public_key = public.PublicKey(
+        key_info["key"].encode(),
+        encoding.Base64Encoder()
+    )
+
+    encrypted = public.SealedBox(public_key).encrypt(
+        page_token.encode()
+    )
+
+    github_api("PUT", "FACEBOOK_PAGE_ACCESS_TOKEN", {
+        "encrypted_value": base64.b64encode(encrypted).decode(),
+        "key_id": key_info["key_id"],
+    })
+
+    print("MinoMasal Page Token güvenli şekilde kaydedildi.")
