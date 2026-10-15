@@ -123,3 +123,5 @@ def save_page_token():
     })
 
     print("MinoMasal Page Token güvenli şekilde kaydedildi.")
+
+save_page_token()
