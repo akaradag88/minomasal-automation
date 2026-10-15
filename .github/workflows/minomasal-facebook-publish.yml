@@ -14,11 +14,17 @@ concurrency:
 jobs:
   facebook:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           persist-credentials: true
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,9 +35,9 @@ jobs:
         run: python -m py_compile minomasal_facebook_publish.py
 
       - name: Confirm publishing is disabled
+        run: echo "Facebook publishing is not enabled yet."
+
       - name: Test Facebook ledger GitHub access (No Publish)
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           python - <<'PY'
           import json
@@ -48,10 +54,3 @@ jobs:
 
           git ls-remote --exit-code origin refs/heads/main > /dev/null
           echo "GitHub depo bağlantısı başarılı."
-
-        run: echo "Facebook publishing is not enabled yet."
-
-      - name: Configure Git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
