@@ -595,6 +595,30 @@ def complete_first_facebook_reel(story_number):
         session["video_id"]
     )
 
+    import time
+
+    for attempt in range(20):
+        status_result = facebook_reels_check_status(
+            session["video_id"],
+            page_token
+        )
+
+        status = status_result.get("status", {})
+        publishing = status.get("publishing_phase", {})
+
+        if publishing.get("status") == "complete":
+            break
+
+        if publishing.get("status") in ("error", "failed"):
+            raise RuntimeError("Facebook yayın işlemi başarısız.")
+
+        time.sleep(15)
+    else:
+        raise RuntimeError(
+            "Facebook yayın durumu doğrulanamadı. "
+            "Tekrar çalıştırmadan önce manuel kontrol gerekli."
+        )
+
     record_facebook_publication(
         story_number,
         session["video_id"]
