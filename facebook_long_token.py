@@ -24,3 +24,47 @@ if not result.get("access_token"):
 
 print("Uzun süreli User Token başarıyla oluşturuldu.")
 print("Geçerlilik süresi (saniye):", result.get("expires_in"))
+
+import base64
+import urllib.request
+
+from nacl import encoding, public
+
+repo = "akaradag88/minomasal-automation"
+github_token = os.environ["MINOMASAL_GITHUB_TOKEN"]
+secret_name = "FACEBOOK_LONG_USER_TOKEN"
+
+headers = {
+    "Authorization": f"Bearer {github_token}",
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+}
+
+def github_api(method, endpoint, payload=None):
+    data = json.dumps(payload).encode() if payload is not None else None
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{repo}/actions/secrets/{endpoint}",
+        data=data,
+        headers=headers,
+        method=method,
+    )
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return json.load(response) if method == "GET" else None
+
+key_info = github_api("GET", "public-key")
+
+public_key = public.PublicKey(
+    key_info["key"].encode(),
+    encoding.Base64Encoder()
+)
+
+encrypted = public.SealedBox(public_key).encrypt(
+    result["access_token"].encode()
+)
+
+github_api("PUT", secret_name, {
+    "encrypted_value": base64.b64encode(encrypted).decode(),
+    "key_id": key_info["key_id"],
+})
+
+print("Uzun süreli Facebook User Token GitHub Secrets'a kaydedildi.")
