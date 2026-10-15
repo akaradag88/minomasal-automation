@@ -442,3 +442,26 @@ def facebook_preflight(story_number):
 
     print(f"Hikâye {story_number} yayın öncesi kontrolü başarılı.")
     return video_url
+
+def record_facebook_upload_complete(story_number, video_id):
+    """Record completed upload without marking it published."""
+    import json
+    from pathlib import Path
+
+    path = Path(FACEBOOK_LEDGER)
+    ledger = json.loads(path.read_text(encoding="utf-8"))
+    record = ledger.get("stories", {}).get(str(story_number))
+
+    if not record or record.get("status") != "ambiguous":
+        raise RuntimeError("Facebook yayın denemesi kaydı geçersiz.")
+
+    if str(record.get("video_id")) != str(video_id):
+        raise RuntimeError("Facebook video kimliği uyuşmuyor.")
+
+    if record.get("upload_complete"):
+        raise RuntimeError("Video aktarımı zaten kayıtlı.")
+
+    record["upload_complete"] = True
+    save_facebook_ledger(ledger)
+
+    print(f"Facebook video {story_number}: aktarım kaydedildi.")
