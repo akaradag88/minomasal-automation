@@ -19,9 +19,14 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Exchange Facebook user token
+      
+      - name: Install encryption library
+        run: python -m pip install PyNaCl
+
+      - name: Exchange and securely store Facebook token
         env:
           FACEBOOK_APP_ID: ${{ secrets.FACEBOOK_APP_ID }}
           FACEBOOK_APP_SECRET: ${{ secrets.FACEBOOK_APP_SECRET }}
           FACEBOOK_SHORT_USER_TOKEN: ${{ secrets.FACEBOOK_SHORT_USER_TOKEN }}
+          MINOMASAL_GITHUB_TOKEN: ${{ secrets.MINOMASAL_GITHUB_TOKEN }}
         run: python facebook_long_token.py
