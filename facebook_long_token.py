@@ -51,6 +51,13 @@ def github_api(method, endpoint, payload=None):
     with urllib.request.urlopen(request, timeout=30) as response:
         return json.load(response) if method == "GET" else None
 
+try:
+    key_info = github_api("GET", "public-key")
+except urllib.error.HTTPError as error:
+    print("GitHub API HTTP kodu:", error.code)
+    print("GitHub API hata ayrıntısı:", error.read().decode("utf-8")[:500])
+    raise
+
 key_info = github_api("GET", "public-key")
 
 public_key = public.PublicKey(
