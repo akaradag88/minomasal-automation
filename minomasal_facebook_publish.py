@@ -114,6 +114,32 @@ def validate_facebook_upload_session(result):
         "upload_url": upload_url,
     }
 
+def check_facebook_publish_status(story_number):
+    """Prevent automatic retries of existing or uncertain posts."""
+    from pathlib import Path
+    import json
+
+    ledger_path = Path(FACEBOOK_LEDGER)
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+
+    if ledger.get("schema_version") != 1:
+        raise RuntimeError("Facebook kayıt dosyası sürümü geçersiz.")
+
+    stories = ledger.get("stories")
+    if not isinstance(stories, dict):
+        raise RuntimeError("Facebook yayın kayıtları geçersiz.")
+
+    record = stories.get(str(story_number))
+
+    if record is not None:
+        raise RuntimeError(
+            f"Video {story_number} için Facebook kaydı mevcut. "
+            "Tekrar yayınlamadan önce manuel kontrol gerekli."
+        )
+
+    print(f"Video {story_number}: Facebook kayıtlarında bulunamadı.")
+    return True
+
 
     with urllib.request.urlopen(request, timeout=60) as response:
         return json.load(response)
