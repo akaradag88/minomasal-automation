@@ -63,3 +63,10 @@ def facebook_video_url(story_number):
 
     return url
 
+
+if __name__ == "__main__" and os.environ.get("FACEBOOK_TEST_VIDEO") == "true":
+    story_number = int(os.environ.get("FACEBOOK_STORY_NUMBER", "19"))
+    video_url = facebook_video_url(story_number)
+    print(f"Video {story_number} bağlantısı bulundu.")
+    print("GitHub Releases MP4 bağlantısı hazır.")
+
