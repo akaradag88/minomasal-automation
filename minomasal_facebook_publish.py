@@ -147,5 +147,5 @@ def check_facebook_publish_status(story_number):
         print("Facebook yayın kaydı güvenlik testi başarılı.")
 
 
-        with urllib.request.urlopen(request, timeout=60) as response:
-        return json.load(response)
+    with urllib.request.urlopen(request, timeout=60) as response:
+    return json.load(response)
