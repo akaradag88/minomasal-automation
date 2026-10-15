@@ -278,3 +278,16 @@ def facebook_reels_upload_video(upload_url, video_url, page_token):
 
     with urllib.request.urlopen(request, timeout=120) as response:
         return json.load(response)
+
+def validate_facebook_video_transfer(result):
+    """Validate Facebook video transfer response."""
+    if not isinstance(result, dict):
+        raise RuntimeError("Facebook video aktarım yanıtı geçersiz.")
+
+    if result.get("success") is not True:
+        raise RuntimeError(
+            f"Facebook video aktarımı doğrulanamadı: {result}"
+        )
+
+    print("Facebook video aktarımı başarılı.")
+    return True
