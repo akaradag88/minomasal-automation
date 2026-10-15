@@ -513,6 +513,12 @@ def prepare_facebook_upload(story_number):
         session["video_id"]
     )
 
+    record_facebook_upload_details(
+        story_number,
+        session["video_id"],
+        video_url
+    )
+
     print("Facebook yükleme oturumu hazır.")
     return {
         "video_url": video_url,
