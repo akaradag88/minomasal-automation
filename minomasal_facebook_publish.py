@@ -465,3 +465,26 @@ def record_facebook_upload_complete(story_number, video_id):
     save_facebook_ledger(ledger)
 
     print(f"Facebook video {story_number}: aktarım kaydedildi.")
+
+def validate_facebook_processing_status(result):
+    """Check whether Facebook reports completed video processing."""
+    if not isinstance(result, dict):
+        raise RuntimeError("Facebook durum yanıtı geçersiz.")
+
+    status = result.get("status")
+    if not isinstance(status, dict):
+        raise RuntimeError("Facebook video durum bilgisi eksik.")
+
+    processing = status.get("processing_phase")
+    if not isinstance(processing, dict):
+        raise RuntimeError("Facebook işleme aşaması bilgisi eksik.")
+
+    state = processing.get("status")
+
+    if state != "complete":
+        raise RuntimeError(
+            f"Facebook video işleme henüz tamamlanmadı: {state}"
+        )
+
+    print("Facebook video işleme tamamlandı.")
+    return True
