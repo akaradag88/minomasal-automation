@@ -1,0 +1,32 @@
+
+name: MinoMasal Facebook Publish
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: minomasal-facebook-publish
+  cancel-in-progress: false
+
+jobs:
+  facebook:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check Facebook Python syntax
+        run: python -m py_compile minomasal_facebook_publish.py
+
+      - name: Confirm publishing is disabled
+        run: echo "Facebook publishing is not enabled yet."
