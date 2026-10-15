@@ -118,3 +118,17 @@ jobs:
           test "$(git config --get user.name)" = "github-actions[bot]"
           git push --dry-run origin HEAD:main
           echo "GitHub yazma yetkisi ön kontrolü başarılı."
+          
+      - name: Publish first Facebook Reel
+        if: ${{ inputs.story_number == '19' && inputs.confirm_publish == 'YES' }}
+        env:
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+          FACEBOOK_PUBLISH_ENABLED: "true"
+          FACEBOOK_CONFIRM_PUBLISH: "YES"
+        run: |
+          python - <<'PY'
+          from minomasal_facebook_publish import complete_first_facebook_reel
+          complete_first_facebook_reel(19)
+          PY
+
