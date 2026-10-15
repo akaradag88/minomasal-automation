@@ -583,6 +583,33 @@ def complete_first_facebook_reel(story_number):
         session["video_id"]
     )
 
+    import time
+
+    for attempt in range(20):
+        processing_result = facebook_reels_check_status(
+            session["video_id"],
+            page_token
+        )
+
+        processing = (
+            processing_result.get("status", {})
+            .get("processing_phase", {})
+            .get("status")
+        )
+
+        if processing == "complete":
+            break
+
+        if processing in ("error", "failed"):
+            raise RuntimeError("Facebook video işleme başarısız.")
+
+        time.sleep(15)
+    else:
+        raise RuntimeError(
+            "Facebook video işleme tamamlanmadı. "
+            "Yeniden çalıştırmadan önce yayın kaydını kontrol et."
+        )
+
     title = "Ayıcığın Ekran Merakı | MinoMasal"
 
     result = facebook_reels_finish(
