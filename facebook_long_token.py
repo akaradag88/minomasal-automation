@@ -75,3 +75,27 @@ github_api("PUT", secret_name, {
 })
 
 print("Uzun süreli Facebook User Token GitHub Secrets'a kaydedildi.")
+
+def get_long_lived_page_token(user_token, page_id):
+    """Get Page Token using the long-lived User Token."""
+    import json
+    import urllib.parse
+    import urllib.request
+
+    params = urllib.parse.urlencode({
+        "fields": "id,name,access_token",
+        "access_token": user_token,
+    })
+
+    url = f"https://graph.facebook.com/v26.0/{page_id}?{params}"
+
+    with urllib.request.urlopen(url, timeout=30) as response:
+        page = json.load(response)
+
+    if str(page.get("id")) != str(page_id):
+        raise RuntimeError("Facebook sayfa kimliği uyuşmuyor.")
+
+    if not page.get("access_token"):
+        raise RuntimeError("Facebook Page Token alınamadı.")
+
+    return page["access_token"]
