@@ -560,3 +560,44 @@ def publish_first_facebook_reel(story_number):
     print("Video ID:", session["video_id"])
 
     return session
+
+def complete_first_facebook_reel(story_number):
+    """Upload and publish the first Facebook Reel."""
+    if story_number != 19:
+        raise RuntimeError("İlk yayın yalnızca 19. video için.")
+
+    require_facebook_publish_authorization()
+
+    session = prepare_facebook_upload(story_number)
+    page_token = os.environ["FACEBOOK_PAGE_ACCESS_TOKEN"]
+
+    transfer = facebook_reels_upload_video(
+        session["upload_url"],
+        session["video_url"],
+        page_token
+    )
+    validate_facebook_video_transfer(transfer)
+
+    record_facebook_upload_complete(
+        story_number,
+        session["video_id"]
+    )
+
+    title = "Ayıcığın Ekran Merakı | MinoMasal"
+
+    result = facebook_reels_finish(
+        session["video_id"],
+        page_token,
+        title
+    )
+    validate_facebook_publish_response(
+        result,
+        session["video_id"]
+    )
+
+    record_facebook_publication(
+        story_number,
+        session["video_id"]
+    )
+
+    print("Facebook Reels yayın isteği başarıyla tamamlandı.")
