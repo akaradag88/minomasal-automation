@@ -488,3 +488,13 @@ def validate_facebook_processing_status(result):
 
     print("Facebook video işleme tamamlandı.")
     return True
+
+def start_safe_facebook_publication(story_number):
+    """Authorize and reserve a story before Facebook upload."""
+    video_url = facebook_preflight(story_number)
+
+    # Persist the attempt before making an external upload request.
+    reserve_facebook_publication(story_number)
+
+    print(f"Facebook video {story_number}: güvenli yayın kaydı oluşturuldu.")
+    return video_url
