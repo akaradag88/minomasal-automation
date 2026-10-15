@@ -228,3 +228,20 @@ def reserve_facebook_publication(story_number):
 
     print(f"Video {story_number} için yayın denemesi kaydedildi.")
     return True
+
+def require_facebook_publish_authorization():
+    """Block publication unless explicitly authorized."""
+    import os
+
+    if os.environ.get("FACEBOOK_PUBLISH_ENABLED") != "true":
+        raise RuntimeError(
+            "Facebook yayını kapalı. "
+            "FACEBOOK_PUBLISH_ENABLED=true gerekli."
+        )
+
+    if os.environ.get("FACEBOOK_CONFIRM_PUBLISH") != "YES":
+        raise RuntimeError(
+            "Facebook yayını için ikinci onay gerekli."
+        )
+
+    print("Facebook yayın yetkilendirmesi doğrulandı.")
