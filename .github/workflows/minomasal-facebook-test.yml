@@ -26,3 +26,11 @@ jobs:
           FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
           FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
         run: python minomasal_facebook_publish.py
+        
+      - name: Test existing video URL (No Publish)
+        env:
+          FACEBOOK_TEST_VIDEO: 'true'
+          FACEBOOK_STORY_NUMBER: '19'
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+        run: python minomasal_facebook_publish.py
