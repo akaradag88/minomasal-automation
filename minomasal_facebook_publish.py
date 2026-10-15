@@ -389,3 +389,26 @@ def facebook_reels_check_status(video_id, page_token):
         raise RuntimeError("Facebook video kimliği uyuşmuyor.")
 
     return result
+
+def record_facebook_upload_session(story_number, video_id):
+    """Persist the Facebook upload ID before transferring video."""
+    from pathlib import Path
+    import json
+
+    if not str(video_id).isdigit():
+        raise RuntimeError("Geçersiz Facebook video kimliği.")
+
+    path = Path(FACEBOOK_LEDGER)
+    ledger = json.loads(path.read_text(encoding="utf-8"))
+    record = ledger.get("stories", {}).get(str(story_number))
+
+    if not record or record.get("status") != "ambiguous":
+        raise RuntimeError("Önceden ayrılmış yayın kaydı bulunamadı.")
+
+    if record.get("video_id") is not None:
+        raise RuntimeError("Video kimliği zaten kayıtlı; işlem durduruldu.")
+
+    record["video_id"] = str(video_id)
+    save_facebook_ledger(ledger)
+
+    print("Facebook yükleme kimliği güvenli şekilde kaydedildi.")
