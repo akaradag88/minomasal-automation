@@ -151,9 +151,11 @@ def check_facebook_publish_status(story_number):
         print("Facebook yayın kaydı güvenlik testi başarılı.")
 
 
+
 def save_facebook_ledger(ledger):
-    """Atomically save Facebook publication state locally."""
+    """Save publication state and push it to GitHub."""
     import json
+    import subprocess
     from pathlib import Path
 
     path = Path(FACEBOOK_LEDGER)
@@ -165,4 +167,30 @@ def save_facebook_ledger(ledger):
     )
     temp.replace(path)
 
+    subprocess.run(
+        ["git", "add", str(path)],
+        check=True
+    )
 
+    changed = subprocess.run(
+        ["git", "diff", "--cached", "--quiet"]
+    ).returncode
+
+    if changed == 0:
+        raise RuntimeError("Facebook kayıtlarında değişiklik yok.")
+
+    subprocess.run(
+        ["git", "commit", "-m", "Update Facebook publication state [skip ci]"],
+        check=True
+    )
+
+    try:
+        subprocess.run(
+            ["git", "push", "origin", "HEAD:main"],
+            check=True
+        )
+    except subprocess.CalledProcessError:
+        raise RuntimeError(
+            "Facebook kayıtları GitHub'a kaydedilemedi. "
+            "Yayın durumunu kontrol etmeden tekrar deneme!"
+        )
