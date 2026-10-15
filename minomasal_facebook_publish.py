@@ -424,3 +424,21 @@ def record_facebook_upload_session(story_number, video_id):
     save_facebook_ledger(ledger)
 
     print("Facebook yükleme kimliği güvenli şekilde kaydedildi.")
+
+def facebook_preflight(story_number):
+    """Check publication requirements without publishing."""
+    from pathlib import Path
+
+    if not isinstance(story_number, int) or story_number < 1:
+        raise RuntimeError("Geçersiz hikâye numarası.")
+
+    if not Path(FACEBOOK_LEDGER).is_file():
+        raise RuntimeError("Facebook yayın kayıt dosyası bulunamadı.")
+
+    require_facebook_publish_authorization()
+    check_facebook_publish_status(story_number)
+
+    video_url = facebook_video_url(story_number)
+
+    print(f"Hikâye {story_number} yayın öncesi kontrolü başarılı.")
+    return video_url
