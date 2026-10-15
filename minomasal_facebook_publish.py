@@ -93,5 +93,27 @@ def facebook_reels_start_upload():
         method="POST",
     )
 
+
+    
+def validate_facebook_upload_session(result):
+    """Validate the Facebook Reels upload session response."""
+    if not isinstance(result, dict):
+        raise RuntimeError("Geçersiz Facebook API yanıtı.")
+
+    video_id = result.get("video_id")
+    upload_url = result.get("upload_url")
+
+    if not video_id or not upload_url:
+        raise RuntimeError(
+            "Facebook yükleme oturumunda video_id veya upload_url eksik."
+        )
+
+    print("Facebook yükleme oturumu yanıtı doğrulandı.")
+    return {
+        "video_id": str(video_id),
+        "upload_url": upload_url,
+    }
+
+
     with urllib.request.urlopen(request, timeout=60) as response:
         return json.load(response)
