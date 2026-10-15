@@ -265,8 +265,20 @@ def facebook_reels_upload_video(upload_url, video_url, page_token):
     ):
         raise RuntimeError("Beklenmeyen Facebook yükleme sunucusu.")
 
-    if not video_url.startswith("https://github.com/"):
-        raise RuntimeError("Video GitHub bağlantısı geçersiz.")
+    
+    parsed_video = urlparse(video_url)
+
+    if (
+        parsed_video.scheme != "https"
+        or parsed_video.hostname != "github.com"
+        or not parsed_video.path.startswith(
+            "/akaradag88/minomasal-video-hosting/releases/download/"
+        )
+    ):
+        raise RuntimeError(
+            "Video bağlantısı MinoMasal hosting deposuna ait değil."
+        )
+
 
     request = urllib.request.Request(
         upload_url,
