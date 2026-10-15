@@ -37,3 +37,29 @@ FACEBOOK_LEDGER = "minomasal_facebook_durumu.json"
 # Publishing is disabled by default.
 # A separate, explicitly authorized workflow will be required.
 FACEBOOK_PUBLISH_ENABLED = False
+
+
+def facebook_video_url(story_number):
+    """Return the hosted MP4 URL for an existing story."""
+    import json
+    from pathlib import Path
+
+    ledger_path = Path("minomasal_platform_durumu.json")
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+
+    story = ledger.get("stories", {}).get(str(story_number))
+    if not story:
+        raise RuntimeError(f"Hikaye {story_number} bulunamadı.")
+
+    if story.get("youtube", {}).get("status") != "published":
+        raise RuntimeError("YouTube yayını doğrulanamadı.")
+
+    if story.get("instagram", {}).get("status") != "published":
+        raise RuntimeError("Instagram yayını doğrulanamadı.")
+
+    url = (story.get("video_asset") or {}).get("url")
+    if not url or not url.startswith("https://"):
+        raise RuntimeError("Geçerli video bağlantısı bulunamadı.")
+
+    return url
+
