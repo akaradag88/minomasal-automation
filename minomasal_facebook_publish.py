@@ -194,3 +194,37 @@ def save_facebook_ledger(ledger):
             "Facebook kayıtları GitHub'a kaydedilemedi. "
             "Yayın durumunu kontrol etmeden tekrar deneme!"
         )
+
+def reserve_facebook_publication(story_number):
+    """Block retries before any Facebook upload attempt."""
+    import json
+    from pathlib import Path
+
+    path = Path(FACEBOOK_LEDGER)
+    ledger = json.loads(path.read_text(encoding="utf-8"))
+
+    if ledger.get("schema_version") != 1:
+        raise RuntimeError("Facebook kayıt sürümü geçersiz.")
+
+    stories = ledger.get("stories")
+    if not isinstance(stories, dict):
+        raise RuntimeError("Facebook kayıt yapısı geçersiz.")
+
+    key = str(story_number)
+
+    if key in stories:
+        raise RuntimeError(
+            f"Video {story_number} daha önce işleme alınmış. "
+            "Manuel kontrol olmadan tekrar denenemez."
+        )
+
+    stories[key] = {
+        "status": "ambiguous",
+        "video_id": None,
+        "post_id": None
+    }
+
+    save_facebook_ledger(ledger)
+
+    print(f"Video {story_number} için yayın denemesi kaydedildi.")
+    return True
