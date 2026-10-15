@@ -30,3 +30,8 @@ jobs:
 
       - name: Confirm publishing is disabled
         run: echo "Facebook publishing is not enabled yet."
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
