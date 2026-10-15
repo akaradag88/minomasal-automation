@@ -151,4 +151,18 @@ def check_facebook_publish_status(story_number):
         print("Facebook yayın kaydı güvenlik testi başarılı.")
 
 
+def save_facebook_ledger(ledger):
+    """Atomically save Facebook publication state locally."""
+    import json
+    from pathlib import Path
+
+    path = Path(FACEBOOK_LEDGER)
+    temp = path.with_suffix(".json.tmp")
+
+    temp.write_text(
+        json.dumps(ledger, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8"
+    )
+    temp.replace(path)
+
 
