@@ -92,6 +92,10 @@ def facebook_reels_start_upload():
         data=payload,
         method="POST",
     )
+    
+    with urllib.request.urlopen(request, timeout=60) as response:
+        return json.load(response)
+
 
 
     
