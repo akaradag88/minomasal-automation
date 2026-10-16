@@ -96,3 +96,34 @@ def upload_facebook_cover_asset(number, video_path):
         f"https://github.com/{repo}/releases/download/"
         f"{tag}/{filename}"
     )
+
+def prepare_facebook_cover_asset(number, source_url):
+    """Download original MP4, add cover frame, host Facebook copy."""
+    import urllib.request
+    from tempfile import TemporaryDirectory
+
+    if number < 22:
+        raise RuntimeError("Yalnızca 22 ve sonraki videolar için.")
+
+    expected = (
+        "https://github.com/akaradag88/"
+        "minomasal-video-hosting/releases/download/"
+        f"minomasal-story-{number}/minomasal-{number}.mp4"
+    )
+
+    if source_url != expected:
+        raise RuntimeError("Beklenmeyen kaynak video bağlantısı.")
+
+    with TemporaryDirectory() as temp:
+        folder = Path(temp)
+        original = folder / "original.mp4"
+        facebook = folder / "facebook.mp4"
+
+        urllib.request.urlretrieve(source_url, original)
+
+        create_facebook_cover_video(original, facebook)
+
+        if not facebook.is_file() or facebook.stat().st_size == 0:
+            raise RuntimeError("Facebook MP4 oluşturulamadı.")
+
+        return upload_facebook_cover_asset(number, facebook)
