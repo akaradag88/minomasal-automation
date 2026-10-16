@@ -47,6 +47,13 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Prepare Facebook cover tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version
+          gh --version
+
       - name: Check Python syntax
         run: |
           python -m py_compile minomasal_facebook_publish.py
@@ -128,5 +135,6 @@ jobs:
           FACEBOOK_PUBLISH_ENABLED: 'true'
           FACEBOOK_CONFIRM_PUBLISH: 'YES'
           STORY_NUMBER: ${{ steps.selection.outputs.number }}
+          MINOMASAL_HOSTING_TOKEN: ${{ secrets.MINOMASAL_HOSTING_TOKEN }}
         run: |
           python minomasal_facebook_daily.py --number "$STORY_NUMBER"
