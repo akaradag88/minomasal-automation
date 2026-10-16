@@ -62,6 +62,29 @@ def upload_facebook_cover_asset(number, video_path):
     token = os.environ["MINOMASAL_HOSTING_TOKEN"]
     env = {**os.environ, "GH_TOKEN": token}
     repo = "akaradag88/minomasal-video-hosting"
+    
+    # Mevcut dosyanin uzerine yazilmasini engelle.
+    result = subprocess.run(
+        [
+            "gh", "release", "view", tag,
+            "--repo", repo,
+            "--json", "assets",
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    import json
+    assets = json.loads(result.stdout).get("assets", [])
+
+    if any(asset.get("name") == filename for asset in assets):
+        raise RuntimeError(
+            f"Facebook video dosyasi zaten mevcut: {filename}. "
+            "Uzerine yazma veya yeniden yukleme yasak."
+        )
+
 
     subprocess.run([
         "gh", "release", "upload", tag,
