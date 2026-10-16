@@ -136,5 +136,17 @@ jobs:
 
           print("Facebook kapaklı MP4 hazır. Upload yapılmadı.")
           PY
+          
+      - name: Check Facebook hosting access (No Upload)
+        env:
+          GH_TOKEN: ${{ secrets.MINOMASAL_HOSTING_TOKEN }}
+        run: |
+          gh release view minomasal-story-21 \
+            --repo akaradag88/minomasal-video-hosting \
+            --json tagName,assets \
+            --jq '.tagName, (.assets[].name)'
+
+          echo "GitHub Releases erisimi basarili."
+
 
 
