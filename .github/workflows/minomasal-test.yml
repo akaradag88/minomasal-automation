@@ -116,3 +116,25 @@ jobs:
           path: cover_test/real/facebook.mp4
           retention-days: 1
 
+      
+      - name: Test Facebook cover asset preparation (No Upload)
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from minomasal_facebook_cover import create_facebook_cover_video
+
+          source = Path("cover_test/real/source.mp4")
+          output = Path("cover_test/real/facebook-prepared.mp4")
+
+          if not source.is_file():
+              raise RuntimeError("Test videosu bulunamadı.")
+
+          create_facebook_cover_video(source, output)
+
+          if not output.is_file() or output.stat().st_size == 0:
+              raise RuntimeError("Kapaklı Facebook videosu oluşturulamadı.")
+
+          print("Facebook kapaklı MP4 hazır. Upload yapılmadı.")
+          PY
+
+
