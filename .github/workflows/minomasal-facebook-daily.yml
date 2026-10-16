@@ -1,0 +1,81 @@
+
+name: MinoMasal Facebook Daily
+
+on:
+  workflow_dispatch:
+    inputs:
+      story_number:
+        description: "Facebook'ta yayinlanacak video numarasi"
+        required: true
+        default: "20"
+        type: string
+      confirm_publish:
+        description: "Gercek yayin icin YES yazin"
+        required: true
+        default: "NO"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: minomasal-facebook-publish
+  cancel-in-progress: false
+
+jobs:
+  publish-facebook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check Python syntax
+        run: |
+          python -m py_compile minomasal_facebook_publish.py
+          python -m py_compile minomasal_facebook_daily.py
+
+      - name: Confirm publication
+        env:
+          STORY_NUMBER: ${{ inputs.story_number }}
+          CONFIRM_PUBLISH: ${{ inputs.confirm_publish }}
+        run: |
+          if [[ ! "$STORY_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "Invalid story number"
+            exit 1
+          fi
+
+          if [ "$CONFIRM_PUBLISH" != "YES" ]; then
+            echo "Publication disabled. Enter YES to publish."
+            exit 1
+          fi
+
+      - name: Refresh publication records
+        run: |
+          git fetch origin main
+          git diff --quiet
+          git diff --cached --quiet
+          git reset --hard origin/main
+
+      - name: Publish Facebook Reel
+        env:
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+          FACEBOOK_PUBLISH_ENABLED: "true"
+          FACEBOOK_CONFIRM_PUBLISH: "YES"
+          STORY_NUMBER: ${{ inputs.story_number }}
+        run: |
+          python minomasal_facebook_daily.py --number "$STORY_NUMBER"
