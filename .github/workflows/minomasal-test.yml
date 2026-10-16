@@ -42,3 +42,30 @@ jobs:
           assert 'kapak_2sn.jpg' in source
           print("2. saniye kapak olusturma kodu mevcut.")
           PY
+
+          
+      - name: Test Facebook cover video (No Publish)
+        run: |
+          mkdir -p cover_test
+
+          ffmpeg -y -loglevel error \
+            -f lavfi -i "testsrc2=size=720x1280:rate=25:duration=5" \
+            -f lavfi -i "sine=frequency=440:sample_rate=48000:duration=5" \
+            -c:v libx264 -pix_fmt yuv420p \
+            -c:a aac -shortest cover_test/source.mp4
+
+          python - <<'PY'
+          from minomasal_facebook_cover import create_facebook_cover_video
+
+          create_facebook_cover_video(
+              "cover_test/source.mp4",
+              "cover_test/facebook.mp4"
+          )
+          PY
+
+          ffprobe -v error \
+            -show_entries stream=codec_type \
+            -of csv=p=0 cover_test/facebook.mp4
+
+          echo "Facebook kapakli video testi tamamlandi."
+
