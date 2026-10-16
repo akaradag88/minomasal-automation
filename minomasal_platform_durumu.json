@@ -316,6 +316,21 @@
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-20/minomasal-20.mp4",
         "release_tag": "minomasal-story-20"
       }
+    },
+    "21": {
+      "topic": "Ormanı Kirleten Rakun",
+      "title": "Ormanı Temiz Tutan Rakun | MinoMasal",
+      "youtube": {
+        "status": "pending",
+        "video_id": null,
+        "privacy": null
+      },
+      "instagram": {
+        "status": "pending",
+        "container_id": null,
+        "media_id": null
+      },
+      "video_asset": null
     }
   }
 }
