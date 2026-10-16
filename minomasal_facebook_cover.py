@@ -43,3 +43,33 @@ def create_facebook_cover_video(source_video, output_video):
     ], check=True)
 
     print("Facebook kapaklı video hazır:", output_video)
+
+def upload_facebook_cover_asset(number, video_path):
+    """Add a separate Facebook MP4 to an existing GitHub Release."""
+    import os
+    import subprocess
+
+    if number < 22:
+        raise RuntimeError("Yalnızca yeni videolar için kullanılabilir.")
+
+    video_path = Path(video_path)
+    if not video_path.is_file():
+        raise RuntimeError("Facebook video dosyası bulunamadı.")
+
+    tag = f"minomasal-story-{number}"
+    filename = f"minomasal-{number}-facebook.mp4"
+
+    token = os.environ["MINOMASAL_HOSTING_TOKEN"]
+    env = {**os.environ, "GH_TOKEN": token}
+    repo = "akaradag88/minomasal-video-hosting"
+
+    subprocess.run([
+        "gh", "release", "upload", tag,
+        f"{video_path}#{filename}",
+        "--repo", repo
+    ], env=env, check=True)
+
+    return (
+        f"https://github.com/{repo}/releases/download/"
+        f"{tag}/{filename}"
+    )
