@@ -704,6 +704,15 @@ def finish_existing_facebook_reel_19():
             f"Yayın durumu {publishing}; manuel kontrol gerekli."
         )
 
+    if record.get("finish_attempted"):
+        raise RuntimeError(
+            "Facebook yayın isteği daha önce denenmiş. "
+            "Yeniden göndermeden önce manuel kontrol gerekli."
+        )
+
+    record["finish_attempted"] = True
+    save_facebook_ledger(ledger)
+
     result = facebook_reels_finish(
         video_id,
         token,
