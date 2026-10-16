@@ -112,7 +112,12 @@ jobs:
           echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
 
 
-    
+      - name: Show selected Facebook story
+        if: ${{ steps.selection.outputs.number != '' }}
+        env:
+          STORY_NUMBER: ${{ steps.selection.outputs.number }}
+        run: |
+          echo "Selected Facebook story: $STORY_NUMBER"
 
      
       - name: Publish Facebook Reel
