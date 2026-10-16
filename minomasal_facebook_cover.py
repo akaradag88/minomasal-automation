@@ -56,6 +56,24 @@ def upload_facebook_cover_asset(number, video_path):
     if not video_path.is_file():
         raise RuntimeError("Facebook video dosyası bulunamadı.")
 
+    import subprocess
+
+    # Facebook'a özel video dosyasının geçerli olduğunu doğrula.
+    probe = subprocess.run(
+        [
+            "ffprobe", "-v", "error",
+            "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1",
+            str(video_path),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    if float(probe.stdout.strip()) < 3:
+        raise RuntimeError("Facebook videosu çok kısa veya geçersiz.")
+
     tag = f"minomasal-story-{number}"
     filename = f"minomasal-{number}-facebook.mp4"
 
