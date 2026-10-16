@@ -331,19 +331,22 @@ def record_facebook_publication(story_number, video_id):
 
     print(f"Facebook video {story_number} yayın kaydı tamamlandı.")
 
+
 def facebook_reels_finish(video_id, page_token, title):
-    """Request Facebook Reel publication after upload."""
+    """Finish and publish an existing Facebook Reel."""
     import json
     import urllib.parse
     import urllib.request
 
-    if not video_id:
-        raise RuntimeError("Facebook video ID eksik.")
+    if not str(video_id).isdigit():
+        raise RuntimeError("Geçersiz Facebook video ID.")
 
-    url = f"https://graph.facebook.com/v26.0/{video_id}/video_reels"
+    page_id = os.environ["FACEBOOK_PAGE_ID"]
+    url = f"https://graph.facebook.com/v26.0/{page_id}/video_reels"
 
     payload = urllib.parse.urlencode({
         "upload_phase": "finish",
+        "video_id": str(video_id),
         "video_state": "PUBLISHED",
         "description": title,
         "access_token": page_token,
@@ -357,6 +360,7 @@ def facebook_reels_finish(video_id, page_token, title):
 
     with urllib.request.urlopen(request, timeout=60) as response:
         return json.load(response)
+
 
 def validate_facebook_publish_response(result, expected_video_id):
     """Validate Facebook Reels finish API response."""
