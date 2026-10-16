@@ -91,3 +91,27 @@ jobs:
             cover_test/real/source.mp4
 
           echo "Mevcut MinoMasal videosu indirildi."
+
+          
+      - name: Create real Facebook cover test (No Publish)
+        run: |
+          python - <<'PY'
+          from minomasal_facebook_cover import create_facebook_cover_video
+
+          create_facebook_cover_video(
+              "cover_test/real/source.mp4",
+              "cover_test/real/facebook.mp4"
+          )
+          PY
+
+          ffprobe -v error \
+            -show_entries stream=codec_type \
+            -of csv=p=0 cover_test/real/facebook.mp4
+
+      - name: Save real Facebook cover test
+        uses: actions/upload-artifact@v4
+        with:
+          name: minomasal-facebook-real-cover-test
+          path: cover_test/real/facebook.mp4
+          retention-days: 1
+
