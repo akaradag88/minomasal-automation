@@ -22,7 +22,8 @@
       "video_id": "28513305905028208",
       "post_id": null,
       "video_url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-21/minomasal-21.mp4",
-      "upload_complete": true
+      "upload_complete": true,
+      "finish_attempted": true
     }
   }
 }
