@@ -121,7 +121,7 @@ jobs:
 
      
       - name: Publish Facebook Reel
-        if: ${{ steps.selection.outputs.number != '' }}
+        if: ${{ steps.selection.outputs.number != '' && !(github.event_name == 'workflow_dispatch' && inputs.confirm_publish == 'TEST') }}
         env:
           FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
           FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
