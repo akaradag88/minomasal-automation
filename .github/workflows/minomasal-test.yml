@@ -23,8 +23,12 @@ jobs:
       - name: Python sozdizimini kontrol et
         run: python -m py_compile minomasal.py
 
-      - name: FFmpeg kurulumunu kontrol et
-        run: ffmpeg -version
+      - name: FFmpeg kur ve kontrol et
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version
+
 
       - name: Kapak kodunu kontrol et
         run: |
