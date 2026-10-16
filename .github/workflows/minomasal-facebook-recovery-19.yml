@@ -1,8 +1,16 @@
 
 name: MinoMasal Facebook Recovery 19
 
+
 on:
   workflow_dispatch:
+    inputs:
+      confirm_finish:
+        description: "Mevcut Facebook videosunu yayımlamak için YES yazın"
+        required: true
+        default: "NO"
+        type: string
+
 
 permissions:
   contents: read
