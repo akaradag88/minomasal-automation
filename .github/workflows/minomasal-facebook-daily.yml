@@ -52,20 +52,59 @@ jobs:
           python -m py_compile minomasal_facebook_publish.py
           python -m py_compile minomasal_facebook_daily.py
 
-      - name: Confirm publication
+      
+      - name: Determine Facebook story and authorization
+        id: selection
         env:
-          STORY_NUMBER: ${{ inputs.story_number }}
-          CONFIRM_PUBLISH: ${{ inputs.confirm_publish }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_NUMBER: ${{ inputs.story_number }}
+          INPUT_CONFIRM: ${{ inputs.confirm_publish }}
         run: |
-          if [[ ! "$STORY_NUMBER" =~ ^[0-9]+$ ]]; then
-            echo "Invalid story number"
+          if [ "$EVENT_NAME" = "schedule" ]; then
+            NUMBER=$(python - <<'PY'
+          import json
+          from pathlib import Path
+
+          source = json.loads(Path("minomasal_platform_durumu.json").read_text(encoding="utf-8"))
+          facebook = json.loads(Path("minomasal_facebook_durumu.json").read_text(encoding="utf-8"))
+
+          published = [
+              int(n) for n, record in source["stories"].items()
+              if int(n) >= 21
+              and record["youtube"]["status"] == "published"
+              and record["instagram"]["status"] == "published"
+          ]
+
+          eligible = sorted(
+              n for n in published
+              if str(n) not in facebook["stories"]
+          )
+
+          print(eligible[0] if eligible else "")
+          PY
+            )
+
+            if [ -z "$NUMBER" ]; then
+              echo "No eligible Facebook story."
+              exit 0
+            fi
+
+          else
+            NUMBER="$INPUT_NUMBER"
+
+            if [ "$INPUT_CONFIRM" != "YES" ]; then
+              echo "Manual publication not authorized."
+              exit 1
+            fi
+          fi
+
+          if [[ ! "$NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "Invalid story number."
             exit 1
           fi
 
-          if [ "$CONFIRM_PUBLISH" != "YES" ]; then
-            echo "Publication disabled. Enter YES to publish."
-            exit 1
-          fi
+          echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
+
 
       - name: Refresh publication records
         run: |
