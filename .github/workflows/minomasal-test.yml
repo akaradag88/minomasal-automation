@@ -21,7 +21,10 @@ jobs:
           python-version: '3.11'
 
       - name: Python sozdizimini kontrol et
-        run: python -m py_compile minomasal.py
+        run: |
+          python -m py_compile minomasal.py
+          python -m py_compile minomasal_facebook_cover.py
+
 
       - name: FFmpeg kur ve kontrol et
         run: |
