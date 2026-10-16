@@ -627,3 +627,36 @@ def complete_first_facebook_reel(story_number):
     )
 
     print("Facebook Reels yayın isteği başarıyla tamamlandı.")
+
+def recover_facebook_reel_19():
+    """Check the existing Facebook upload without publishing."""
+    import json
+    from pathlib import Path
+
+    ledger = json.loads(
+        Path(FACEBOOK_LEDGER).read_text(encoding="utf-8")
+    )
+
+    record = ledger.get("stories", {}).get("19")
+
+    if not record:
+        raise RuntimeError("19. videonun Facebook kaydı bulunamadı.")
+
+    if record.get("status") != "ambiguous":
+        raise RuntimeError("Beklenmeyen Facebook yayın durumu.")
+
+    if record.get("video_id") != "946885048496106":
+        raise RuntimeError("Facebook video kimliği uyuşmuyor.")
+
+    if record.get("upload_complete") is not True:
+        raise RuntimeError("Video aktarımı tamamlanmamış.")
+
+    result = facebook_reels_check_status(
+        record["video_id"],
+        os.environ["FACEBOOK_PAGE_ACCESS_TOKEN"]
+    )
+
+    print("Mevcut Facebook video durumu:")
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    return result
