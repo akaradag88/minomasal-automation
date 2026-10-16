@@ -424,6 +424,22 @@ def render(story,images,audios,folder):
     # Konuşma sırasında müzik düşürülür; kısa müzik dosyası döngüye alınır.
     fc=f'[0:a]asplit=2[v][side];[1:a]volume={MUZIK_SEVIYESI},afade=t=out:st={max(0,total-2)}:d=2[m];[m][side]sidechaincompress=threshold=0.025:ratio=8:attack=20:release=300[duck];[v][duck]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.95[a]'
     run(['ffmpeg','-y','-loglevel','error','-i',raw,'-stream_loop','-1','-i',music,'-filter_complex',fc,'-map','0:v','-map','[a]','-t',total,'-c:v','copy','-c:a','aac','-movflags','+faststart',final])
+    
+    # Kapak görseli: videonun 2. saniyesi
+    thumbnail = folder / "kapak_2sn.jpg"
+
+    run([
+        "ffmpeg", "-y", "-loglevel", "error",
+        "-ss", "2",
+        "-i", str(final),
+        "-frames:v", "1",
+        "-q:v", "2",
+        str(thumbnail),
+    ])
+
+    if not thumbnail.is_file() or thumbnail.stat().st_size == 0:
+        raise RuntimeError("Kapak görseli oluşturulamadı.")
+
     return final
 
 async def produce(topic, supplied_story=None):
