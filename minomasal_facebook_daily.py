@@ -7,6 +7,7 @@ Never regenerates or republishes an existing Facebook story.
 
 import argparse
 import json
+from minomasal_facebook_cover import prepare_facebook_cover_asset
 import os
 import time
 from pathlib import Path
@@ -53,11 +54,18 @@ def publish(number):
     if not story:
         raise RuntimeError("Hikâye henüz üretilmemiş.")
 
+    
     url = facebook_video_url(number)
     title = story["title"]
 
+    # Facebook için ayrı kapaklı MP4 hazırla.
+    # Yayın kaydı oluşturmadan önce bu işlem tamamlanmalı.
+    if number >= 22:
+        url = prepare_facebook_cover_asset(number, url)
+
     # Record the attempt before contacting Facebook.
     reserve_facebook_publication(number)
+
 
     session = validate_facebook_upload_session(
         facebook_reels_start_upload()
