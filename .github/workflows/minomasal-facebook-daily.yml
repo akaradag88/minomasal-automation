@@ -1,19 +1,23 @@
 
 name: MinoMasal Facebook Daily
 
+
 on:
+  schedule:
+    - cron: '30 17 * * *'
   workflow_dispatch:
     inputs:
       story_number:
         description: "Facebook'ta yayinlanacak video numarasi"
         required: true
-        default: "20"
+        default: "21"
         type: string
       confirm_publish:
         description: "Gercek yayin icin YES yazin"
         required: true
         default: "NO"
         type: string
+
 
 permissions:
   contents: write
