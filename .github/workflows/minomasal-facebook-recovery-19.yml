@@ -1,0 +1,34 @@
+
+name: MinoMasal Facebook Recovery 19
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recovery:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check Python syntax
+        run: python -m py_compile minomasal_facebook_publish.py
+
+      - name: Check existing Facebook video (No Publish)
+        env:
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+        run: |
+          python - <<'PY'
+          from minomasal_facebook_publish import recover_facebook_reel_19
+          recover_facebook_reel_19()
+          PY
