@@ -664,3 +664,54 @@ def recover_facebook_reel_19():
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
     return result
+
+def finish_existing_facebook_reel_19():
+    """Publish the existing upload without creating another video."""
+    from pathlib import Path
+
+    require_facebook_publish_authorization()
+
+    ledger = json.loads(
+        Path(FACEBOOK_LEDGER).read_text(encoding="utf-8")
+    )
+    record = ledger["stories"].get("19")
+
+    if not record:
+        raise RuntimeError("19. video kaydı bulunamadı.")
+
+    if record.get("status") != "ambiguous":
+        raise RuntimeError("Beklenmeyen yayın durumu.")
+
+    video_id = "946885048496106"
+
+    if str(record.get("video_id")) != video_id:
+        raise RuntimeError("Video kimliği uyuşmuyor.")
+
+    if record.get("upload_complete") is not True:
+        raise RuntimeError("Video aktarımı doğrulanamadı.")
+
+    token = os.environ["FACEBOOK_PAGE_ACCESS_TOKEN"]
+
+    current = facebook_reels_check_status(video_id, token)
+    publishing = (
+        current.get("status", {})
+        .get("publishing_phase", {})
+        .get("status")
+    )
+
+    if publishing != "not_started":
+        raise RuntimeError(
+            f"Yayın durumu {publishing}; manuel kontrol gerekli."
+        )
+
+    result = facebook_reels_finish(
+        video_id,
+        token,
+        "Ayıcığın Ekran Merakı | MinoMasal"
+    )
+
+    validate_facebook_publish_response(result, video_id)
+
+    print("Mevcut Facebook videosu için yayın isteği kabul edildi.")
+    print("Video ID:", video_id)
+    print("Yayın görünürlüğü ayrıca doğrulanmalı.")
