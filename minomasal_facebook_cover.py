@@ -86,11 +86,20 @@ def upload_facebook_cover_asset(number, video_path):
         )
 
 
-    subprocess.run([
-        "gh", "release", "upload", tag,
-        f"{video_path}#{filename}",
-        "--repo", repo
-    ], env=env, check=True)
+    
+    import shutil
+    from tempfile import TemporaryDirectory
+
+    with TemporaryDirectory() as temp:
+        upload_path = Path(temp) / filename
+        shutil.copy2(video_path, upload_path)
+
+        subprocess.run([
+            "gh", "release", "upload", tag,
+            str(upload_path),
+            "--repo", repo
+        ], env=env, check=True)
+
 
     return (
         f"https://github.com/{repo}/releases/download/"
