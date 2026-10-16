@@ -69,3 +69,10 @@ jobs:
 
           echo "Facebook kapakli video testi tamamlandi."
 
+
+      - name: Save Facebook cover test video
+        uses: actions/upload-artifact@v4
+        with:
+          name: minomasal-facebook-cover-test
+          path: cover_test/facebook.mp4
+          retention-days: 1
