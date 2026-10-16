@@ -76,3 +76,18 @@ jobs:
           name: minomasal-facebook-cover-test
           path: cover_test/facebook.mp4
           retention-days: 1
+
+      - name: Download existing MinoMasal video (No Publish)
+        run: |
+          mkdir -p cover_test/real
+
+          curl --fail --location --retry 2 \
+            --output cover_test/real/source.mp4 \
+            "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-21/minomasal-21.mp4"
+
+          ffprobe -v error \
+            -show_entries format=duration \
+            -of default=noprint_wrappers=1 \
+            cover_test/real/source.mp4
+
+          echo "Mevcut MinoMasal videosu indirildi."
