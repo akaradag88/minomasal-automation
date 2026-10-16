@@ -52,7 +52,13 @@ jobs:
           python -m py_compile minomasal_facebook_publish.py
           python -m py_compile minomasal_facebook_daily.py
 
-      
+      - name: Refresh publication records
+        run: |
+          git fetch origin main
+          git diff --quiet
+          git diff --cached --quiet
+          git reset --hard origin/main
+          
       - name: Determine Facebook story and authorization
         id: selection
         env:
@@ -106,12 +112,7 @@ jobs:
           echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
 
 
-      - name: Refresh publication records
-        run: |
-          git fetch origin main
-          git diff --quiet
-          git diff --cached --quiet
-          git reset --hard origin/main
+    
 
      
       - name: Publish Facebook Reel
