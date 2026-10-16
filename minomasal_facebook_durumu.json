@@ -8,6 +8,11 @@
       "video_url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-19/minomasal-19.mp4",
       "upload_complete": true,
       "finish_attempted": true
+    },
+    "20": {
+      "status": "ambiguous",
+      "video_id": null,
+      "post_id": null
     }
   }
 }
