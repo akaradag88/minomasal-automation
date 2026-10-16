@@ -24,6 +24,7 @@ jobs:
         run: |
           python -m py_compile minomasal.py
           python -m py_compile minomasal_facebook_cover.py
+          python -m py_compile minomasal_facebook_daily.py
 
 
       - name: FFmpeg kur ve kontrol et
