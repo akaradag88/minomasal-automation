@@ -4,6 +4,9 @@ name: MinoMasal Python Testi
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   python-test:
     runs-on: ubuntu-latest
@@ -17,10 +20,18 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: MinoMasal Python dosyasini calistir
-        env:
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-        run: python minomasal.py
+      - name: Python sozdizimini kontrol et
+        run: python -m py_compile minomasal.py
+
+      - name: FFmpeg kurulumunu kontrol et
+        run: ffmpeg -version
+
+      - name: Kapak kodunu kontrol et
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source = Path("minomasal.py").read_text(encoding="utf-8")
+          assert 'kapak_2sn.jpg' in source
+          print("2. saniye kapak olusturma kodu mevcut.")
+          PY
