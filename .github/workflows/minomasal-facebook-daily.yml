@@ -98,7 +98,7 @@ jobs:
           else
             NUMBER="$INPUT_NUMBER"
 
-            if [ "$INPUT_CONFIRM" != "YES" ]; then
+            if [ "$INPUT_CONFIRM" != "YES" ] && [ "$INPUT_CONFIRM" != "TEST" ]; then
               echo "Manual publication not authorized."
               exit 1
             fi
