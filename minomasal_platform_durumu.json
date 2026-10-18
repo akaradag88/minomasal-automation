@@ -357,9 +357,9 @@
       "topic": "Uçmaya Korkan Minik Kuş",
       "title": "Uçmaya Korkan Minik Kuş | MinoMasal",
       "youtube": {
-        "status": "ambiguous",
-        "video_id": null,
-        "privacy": null
+        "status": "published",
+        "video_id": "gTDiHSwW3kg",
+        "privacy": "public"
       },
       "instagram": {
         "status": "pending",
