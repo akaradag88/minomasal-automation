@@ -352,6 +352,21 @@
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-22/minomasal-22.mp4",
         "release_tag": "minomasal-story-22"
       }
+    },
+    "23": {
+      "topic": "Uçmaya Korkan Minik Kuş",
+      "title": "Uçmaya Korkan Minik Kuş | MinoMasal",
+      "youtube": {
+        "status": "pending",
+        "video_id": null,
+        "privacy": null
+      },
+      "instagram": {
+        "status": "pending",
+        "container_id": null,
+        "media_id": null
+      },
+      "video_asset": null
     }
   }
 }
