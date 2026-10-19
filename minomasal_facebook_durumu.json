@@ -40,6 +40,11 @@
       "video_url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-23/minomasal-23-facebook.mp4",
       "upload_complete": true,
       "finish_attempted": true
+    },
+    "24": {
+      "status": "ambiguous",
+      "video_id": null,
+      "post_id": null
     }
   }
 }
