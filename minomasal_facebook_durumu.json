@@ -42,9 +42,9 @@
       "finish_attempted": true
     },
     "24": {
-      "status": "ambiguous",
+      "status": "published",
       "video_id": "1709015677503087",
-      "post_id": null,
+      "post_id": "1709015677503087",
       "video_url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-24/minomasal-24-facebook.mp4",
       "upload_complete": true,
       "finish_attempted": true
