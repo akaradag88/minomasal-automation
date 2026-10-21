@@ -406,6 +406,21 @@
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-25/minomasal-25.mp4",
         "release_tag": "minomasal-story-25"
       }
+    },
+    "26": {
+      "topic": "Uyumak İstemeyen Baykuş",
+      "title": "Uyumak İstemeyen Baykuş | MinoMasal",
+      "youtube": {
+        "status": "pending",
+        "video_id": null,
+        "privacy": null
+      },
+      "instagram": {
+        "status": "pending",
+        "container_id": null,
+        "media_id": null
+      },
+      "video_asset": null
     }
   }
 }
