@@ -424,6 +424,21 @@
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-26/minomasal-26.mp4",
         "release_tag": "minomasal-story-26"
       }
+    },
+    "27": {
+      "topic": "Sebze Yemeyen Tavşan",
+      "title": "Sebze Yemeyen Tavşan | MinoMasal",
+      "youtube": {
+        "status": "pending",
+        "video_id": null,
+        "privacy": null
+      },
+      "instagram": {
+        "status": "pending",
+        "container_id": null,
+        "media_id": null
+      },
+      "video_asset": null
     }
   }
 }
