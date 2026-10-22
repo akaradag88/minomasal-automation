@@ -434,7 +434,7 @@
         "privacy": "public"
       },
       "instagram": {
-        "status": "pending",
+        "status": "ambiguous",
         "container_id": null,
         "media_id": null
       },
