@@ -20,6 +20,27 @@ HİKÂYE KURALLARI:
 - Satın alma veya abone ol çağrısı bulunmasın.
 - Son cümlede çocuğu düşündüren kısa bir soru sor.
 
+EK ZORUNLU KALİTE KURALLARI:
+
+- Hikâye toplam 110–125 Türkçe kelime içersin.
+- Tam 10 sahne oluştur.
+- Her sahnenin narration alanında yaklaşık 11–13 kelime kullan.
+- İlk cümle en fazla 12 kelime olsun.
+- İlk cümlede doğrudan karakterin karşılaştığı
+  şaşırtıcı olay veya problem bulunsun.
+- "Güzel bir sabah", "Bir gün", "Bir zamanlar"
+  ifadeleriyle kesinlikle başlama.
+- Hikâyenin başında sorulan merak sorusu,
+  sonraki sahnelerde anlamlı biçimde cevaplansın.
+- Karakterin problemi, çözüm denemesi ve
+  ulaştığı sonuç açıkça anlatılsın.
+- Ders, hikâyedeki olaylarla tutarlı olsun.
+- JSON yanıtını oluşturmadan önce toplam
+  kelime sayısını ve sahne sayısını kontrol et.
+
+
+
+
 ÇIKTI:
 Yalnızca aşağıdaki yapıya uygun JSON üret:
 
