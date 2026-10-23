@@ -39,9 +39,24 @@ jobs:
           Karakter isimlerini ve görünüşlerini bütün sahnelerde koru. Görsel açıklamasında kadraj ve eylem belirt.
           """
 
-          new_prompt = Path(
-              "minomasal_prompt_deneme.txt"
-          ).read_text(encoding="utf-8")
+          
+          new_prompt = old_prompt + """
+
+          EK ACILIS KURALLARI:
+          - Hikaye toplam 110-125 kelime olsun.
+          - Tam 10 sahne olustur.
+          - Ilk cumle en fazla 12 kelime olsun.
+          - Ilk cumle dogrudan sasirtici bir olay,
+            problem veya merak sorusu icersin.
+          - "Bir gun", "Guzel bir sabah",
+            "Bir zamanlar" ile baslama.
+          - Ilk sahneden sonra olaylar dogal
+            ve sebep-sonuc iliskisiyle ilerlesin.
+          - Hikayeyi kisaltma; sadece girisi
+            daha guclu ve kisa yaz.
+          - JSON yapisini degistirme.
+          """
+
 
           def generate(prompt):
               payload = json.dumps({
