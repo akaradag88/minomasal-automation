@@ -84,31 +84,46 @@ jobs:
               
               story = generate(prompt)
 
+              
               if label == "YENI PROMPT":
-                  for attempt in range(2):
-                      count = sum(
-                          len(scene["narration"].split())
-                          for scene in story["scenes"]
+                  first = story["scenes"][0]["narration"].strip()
+
+                  match = re.match(r"^.*?[.!?](?=\s|$)", first)
+                  if not match:
+                      raise RuntimeError("İlk cümle belirlenemedi.")
+
+                  opening_prompt = (
+                      "Çocuk masalının yalnızca ilk cümlesini yeniden yaz. "
+                      "En fazla 12 Türkçe kelime kullan. "
+                      "Merak uyandırsın ve mevcut olay örgüsünü değiştirmesin. "
+                      "'Bir gün', 'Güzel bir sabah', 'Bir zamanlar' ile başlama. "
+                      "Yalnız JSON döndür: "
+                      '{"opening":"yeni ilk cümle"}\n'
+                      f"Hikâye konusu: {topic}\n"
+                      f"İlk sahne: {first}"
+                  )
+
+                  result = generate(opening_prompt)
+                  opening = result["opening"].strip()
+
+                  if len(opening.split()) > 12:
+                      raise RuntimeError("Yeni açılış 12 kelimeyi aşıyor.")
+
+                  remainder = first[match.end():].strip()
+                  story["scenes"][0]["narration"] = (
+                      opening + (" " + remainder if remainder else "")
+                  )
+
+                  count = sum(
+                      len(s["narration"].split())
+                      for s in story["scenes"]
+                  )
+
+                  if not 100 <= count <= 130:
+                      raise RuntimeError(
+                          f"Hikâye uzunluğu uygun değil: {count}"
                       )
 
-                      if 110 <= count <= 125 and len(story["scenes"]) == 10:
-                          break
-
-                      print(
-                          f"Yeniden deneme {attempt + 1}: "
-                          f"{count} kelime, hedef 110-125."
-                      )
-
-                      correction = (
-                          f"\nÖnceki hikaye {count} kelimeydi. "
-                          "Bu kurallara uymuyor. "
-                          "Tam 10 sahne ve toplam 110-125 kelime üret. "
-                          "Her sahnede yaklaşık 11-12 kelime kullan. "
-                          "Hikayeyi gereksiz tekrarlarla uzatma. "
-                          "Yalnızca geçerli JSON döndür."
-                      )
-
-                      story = generate(prompt + correction)
 
               scenes = story["scenes"]
               narration = " ".join(
