@@ -103,6 +103,13 @@ jobs:
                       "Çocuk masalının yalnızca ilk cümlesini yeniden yaz. "
                       "En fazla 12 Türkçe kelime kullan. "
                       "Merak uyandırsın ve mevcut olay örgüsünü değiştirmesin. "
+                      "Doğal, akıcı ve çocukların kolay anlayacağı Türkçe kullan. "
+                      "Cansız oyuncakları kendiliğinden hareket eden veya karar veren "
+                      "varlıklar gibi anlatma; hikâye bunu gerektirmiyorsa "
+                      "eylemi gerçek karakterlere bağla. "
+                      "Gereksiz tekrar, yapay ifade ve mantık hatası oluşturma. "
+                      "İlk sahnenin görseliyle ve ikinci sahnenin olaylarıyla uyumlu ol. "
+                      "Merak uyandırırken hikâyeye yeni olay ekleme. "
                       "'Bir gün', 'Güzel bir sabah', 'Bir zamanlar' ile başlama. "
                       "Yalnız JSON döndür: "
                       '{"opening":"yeni ilk cümle"}\n'
