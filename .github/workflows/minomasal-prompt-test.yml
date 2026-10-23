@@ -88,6 +88,7 @@ jobs:
               if label == "YENI PROMPT":
                   first = story["scenes"][0]["narration"].strip()
 
+                  
                   match = re.match(r"^.*?[.!?](?=\s|$)", first)
                   if not match:
                       raise RuntimeError("İlk cümle belirlenemedi.")
