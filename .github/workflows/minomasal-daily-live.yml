@@ -2,7 +2,7 @@ name: MinoMasal Daily YouTube Instagram (20 TR)
 
 on:
   schedule:
-    - cron: '0 17 * * *'  # 20:00 Europe/Istanbul (UTC+3 year-round)
+    - cron: '0 16 * * *'  # 19:00 Europe/Istanbul (UTC+3 year-round)
   workflow_dispatch:
 
 permissions:
