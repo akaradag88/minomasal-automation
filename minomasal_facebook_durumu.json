@@ -74,9 +74,9 @@
       "finish_attempted": true
     },
     "28": {
-      "status": "ambiguous",
+      "status": "published",
       "video_id": "1793137968270546",
-      "post_id": null,
+      "post_id": "1793137968270546",
       "video_url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-28/minomasal-28-facebook.mp4",
       "upload_complete": true,
       "finish_attempted": true
