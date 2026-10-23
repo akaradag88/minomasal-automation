@@ -56,8 +56,23 @@ jobs:
               method="POST"
           )
 
-          with urllib.request.urlopen(req, timeout=30) as response:
-              access_token = json.load(response)["access_token"]
+          
+          import urllib.error
+
+          try:
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  access_token = json.load(response)["access_token"]
+          except urllib.error.HTTPError as exc:
+              print("Google OAuth HTTP kodu:", exc.code)
+
+              try:
+                  details = json.load(exc)
+                  print("OAuth hata türü:", details.get("error", "bilinmiyor"))
+              except (ValueError, UnicodeDecodeError):
+                  print("OAuth hata ayrıntısı okunamadı.")
+
+              raise SystemExit(1)
+
 
           
           ids = ",".join(video_id for _, video_id in videos)
