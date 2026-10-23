@@ -1,0 +1,86 @@
+
+name: MinoMasal Ozel Gun Testi (No Publish)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check special day stories
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          source = Path("minomasal.py").read_text(encoding="utf-8")
+          tree = ast.parse(source)
+
+          assignments = {
+              target.id: node.value
+              for node in ast.walk(tree)
+              if isinstance(node, ast.Assign)
+              for target in node.targets
+              if isinstance(target, ast.Name)
+          }
+
+          topics = ast.literal_eval(assignments["KONULAR"])
+          special = ast.literal_eval(assignments["ozel_gunler"])
+
+          expected = {
+              33: "Minik Sincabın Kırmızı Beyaz Bayrağı",
+              34: "Orman Okulunda Cumhuriyet Coşkusu",
+              45: "Küçük Baykuş Atatürk'ü Öğreniyor",
+              46: "Orman Okulunda Atatürk'ü Anma Günü",
+          }
+
+          rules = Path(
+              "minomasal_ozel_gun_kurallari.txt"
+          ).read_text(encoding="utf-8")
+
+          republic = "29 EKİM CUMHURİYET BAYRAMI:"
+          memorial = "10 KASIM ATATÜRK'Ü ANMA GÜNÜ:"
+          common = "ORTAK KURALLAR:"
+
+          assert rules.index(republic) < rules.index(memorial)
+          assert rules.index(memorial) < rules.index(common)
+
+          assert "29 Ekim 1923" in rules
+          assert "10 Kasım 1938" in rules
+          assert len(special) == 4
+
+          for number, topic in expected.items():
+              assert topics[number - 1] == topic, (
+                  f"Video {number}: konu sirasi yanlis"
+              )
+
+              heading = republic if number in (33, 34) else memorial
+              assert special[topic] == heading, (
+                  f"Video {number}: yanlis ozel gun kurali"
+              )
+
+              end = memorial if number in (33, 34) else common
+              selected = rules.split(heading, 1)[1].split(end, 1)[0]
+
+              assert selected.strip()
+              assert rules.split(common, 1)[1].strip()
+
+              print(f"Video {number}: konu ve kurallar DOGRU")
+
+          assert any(
+              isinstance(node, ast.AugAssign)
+              and isinstance(node.target, ast.Name)
+              and node.target.id == "prompt"
+              for node in ast.walk(tree)
+          ), "Prompt ekleme islemi bulunamadi"
+
+          print("TEST BASARILI. Video uretilmedi veya yayinlanmadi.")
+          PY
