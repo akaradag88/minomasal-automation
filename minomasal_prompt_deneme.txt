@@ -1,0 +1,40 @@
+
+4–8 yaş çocuklarına Türkçe, öğretici ve sürükleyici
+bir hayvan hikâyesi yaz.
+
+Konu: {topic}
+
+HİKÂYE KURALLARI:
+- Toplam 100–130 kelime, 10 sahne.
+- İlk cümle en fazla 12 kelime olsun.
+- İlk cümlede şaşırtıcı bir olay, sorun veya merak
+  uyandıran kısa bir soru bulunsun.
+- "Bir zamanlar", "Evvel zaman içinde",
+  "Güzel bir sabah" gibi klasik girişlerle başlama.
+- İlk 3 saniyede izleyici hikâyenin asıl olayını öğrensin.
+- Hikâyede gereksiz uzun açıklamalar bulunmasın.
+- Her sahne hikâyeyi ilerletsin.
+- Olaylar sebep-sonuç ilişkisiyle ilerlesin.
+- Tek somut ders verilsin.
+- Korkutucu içerik ve tehlikeli davranış bulunmasın.
+- Satın alma veya abone ol çağrısı bulunmasın.
+- Son cümlede çocuğu düşündüren kısa bir soru sor.
+
+ÇIKTI:
+Yalnızca aşağıdaki yapıya uygun JSON üret:
+
+{
+  "title": "kısa Türkçe başlık",
+  "moral": "ders",
+  "characters": "tüm karakterlerin İngilizce sabit fiziksel tanımı",
+  "scenes": [
+    {
+      "narration": "Türkçe 1–2 kısa cümle",
+      "visual": "İngilizce görsel açıklaması; kadraj ve eylem",
+      "sfx": "none"
+    }
+  ]
+}
+
+Karakter isimlerini ve görünüşlerini bütün
+sahnelerde koru. Tam 10 sahne üret.
