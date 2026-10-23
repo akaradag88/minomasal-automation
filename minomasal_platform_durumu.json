@@ -442,6 +442,21 @@
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-27/minomasal-27.mp4",
         "release_tag": "minomasal-story-27"
       }
+    },
+    "28": {
+      "topic": "Sözünü Tutmayan Kunduz",
+      "title": "Sözünü Tutmayan Kunduz | MinoMasal",
+      "youtube": {
+        "status": "pending",
+        "video_id": null,
+        "privacy": null
+      },
+      "instagram": {
+        "status": "pending",
+        "container_id": null,
+        "media_id": null
+      },
+      "video_asset": null
     }
   }
 }
