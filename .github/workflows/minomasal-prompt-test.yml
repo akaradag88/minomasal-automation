@@ -114,7 +114,16 @@ jobs:
                       "Yalnız JSON döndür: "
                       '{"opening":"yeni ilk cümle"}\n'
                       f"Hikâye konusu: {topic}\n"
-                      f"İlk sahne: {first}"
+                      f"İlk sahne: {first}\n"
+                      f"İkinci sahne: {story['scenes'][1]['narration']}\n"
+                      f"İlk sahnenin görseli: {story['scenes'][0]['visual']}\n"
+                      "İlk cümle ikinci sahneye mantıklı biçimde bağlansın. "
+                      "Oyuncak gibi cansız nesnelere kendi kendine hareket, "
+                      "niyet veya duygu atfetme. "
+                      "'Derken' ve 'sanki' kelimelerini kullanma. "
+                      "Cümlenin öznesi açık olsun. "
+                      "Yalnızca görseldeki ve hikâyedeki gerçek olayı anlat. "
+
                   )
 
                   
