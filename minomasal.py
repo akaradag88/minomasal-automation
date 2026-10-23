@@ -150,6 +150,43 @@ Yalnız JSON döndür: {{"title":"kısa Türkçe başlık","moral":"ders","chara
 "scenes":[{{"narration":"Türkçe 1–2 kısa cümle","visual":"bu anlatımdaki olayın İngilizce görsel açıklaması","sfx":"none"}}]}}.
 Karakter isimlerini ve görünüşlerini bütün sahnelerde koru. Görsel açıklamasında kadraj ve eylem belirt.
 """
+    
+    # Özel gün kuralları yalnızca ilgili dört hikâyeye uygulanır.
+    ozel_gunler = {
+        "Minik Sincabın Kırmızı Beyaz Bayrağı": "29 EKİM CUMHURİYET BAYRAMI:",
+        "Orman Okulunda Cumhuriyet Coşkusu": "29 EKİM CUMHURİYET BAYRAMI:",
+        "Küçük Baykuş Atatürk'ü Öğreniyor": "10 KASIM ATATÜRK'Ü ANMA GÜNÜ:",
+        "Orman Okulunda Atatürk'ü Anma Günü": "10 KASIM ATATÜRK'Ü ANMA GÜNÜ:",
+    }
+
+    baslik = ozel_gunler.get(topic)
+
+    if baslik:
+        dosya = Path(__file__).with_name(
+            "minomasal_ozel_gun_kurallari.txt"
+        )
+        metin = dosya.read_text(encoding="utf-8")
+
+        ortak_baslik = "ORTAK KURALLAR:"
+        bitis = (
+            "10 KASIM ATATÜRK'Ü ANMA GÜNÜ:"
+            if baslik.startswith("29 EKİM")
+            else ortak_baslik
+        )
+
+        if baslik not in metin or bitis not in metin or ortak_baslik not in metin:
+            raise RuntimeError("Özel gün kuralları eksik.")
+
+        ozel = metin.split(baslik, 1)[1].split(bitis, 1)[0]
+        ortak = metin.split(ortak_baslik, 1)[1]
+
+        prompt += (
+            "\n\nBU HİKÂYEYE ÖZEL ZORUNLU KURALLAR:\n"
+            + ozel.strip()
+            + "\n\nORTAK KURALLAR:\n"
+            + ortak.strip()
+        )
+
     r=requests.post('https://gen.pollinations.ai/v1/chat/completions',headers={'Authorization':'Bearer '+key},
         json={'model':model,'messages':[{'role':'user','content':prompt}],'response_format':{'type':'json_object'}},timeout=150)
     if r.status_code!=200: raise RuntimeError(f'Hikâye servisi HTTP {r.status_code}; anahtar, bakiye ve model adını kontrol edin.')
