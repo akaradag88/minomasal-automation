@@ -447,9 +447,9 @@
       "topic": "Sözünü Tutmayan Kunduz",
       "title": "Sözünü Tutmayan Kunduz | MinoMasal",
       "youtube": {
-        "status": "ambiguous",
-        "video_id": null,
-        "privacy": null
+        "status": "published",
+        "video_id": "ZTL8_hTG09c",
+        "privacy": "public"
       },
       "instagram": {
         "status": "pending",
