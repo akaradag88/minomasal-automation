@@ -112,6 +112,15 @@ jobs:
               "'Kuş kapının önünde durdu.' -> "
               "'Kuş kapının önünde durmuş.' "
 
+              "ÖNEMLİ ÖZNE KURALI: "
+              "Özne önceki cümleden anlaşılıyorsa onu koru. "
+              "Gerekirse karakterin adını açıkça tekrar yaz. "
+              "Örnek: 'Sincap Sisi durdu. Ağacın yanında oyuncak gördü.' "
+              "-> 'Sincap Sisi durmuş. Ağacın yanında oyuncak görmüş.' "
+              "'Gördü' fiilini 'görülmüş' olarak değiştirme. "
+              "'Buldu' fiilini 'bulunmuş' olarak değiştirme. "
+              "Etken anlatımı edilgen anlatıma dönüştürme. "
+
               "Özne ve eylemi kesinlikle koru. "
               "Etken cümleleri edilgen yapma. "
               "'Durur gibi olmuş', 'görülmüş', "
