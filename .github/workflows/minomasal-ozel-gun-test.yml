@@ -213,11 +213,23 @@ jobs:
               "Orman Okulunda Atatürk'ü Anma Günü",
           ]
 
+          preview_dir = Path("ozel_gun_onizleme")
+          preview_dir.mkdir(exist_ok=True)
+
           for topic in topics:
               story = namespace["create_story"](
                   topic,
                   os.environ["POLLINATIONS_API_KEY"],
                   "openai"
+              )
+
+              preview_file = preview_dir / (
+                  f"hikaye_{topics.index(topic) + 1:02d}.json"
+              )
+
+              preview_file.write_text(
+                  json.dumps(story, ensure_ascii=False, indent=2),
+                  encoding="utf-8"
               )
 
               scenes = story["scenes"]
