@@ -1,0 +1,92 @@
+
+name: MinoMasal YouTube Analytics (No Publish)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analytics:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read YouTube video statistics
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os
+          import json
+          import urllib.parse
+          import urllib.request
+
+          ledger = json.load(open(
+              "minomasal_platform_durumu.json",
+              encoding="utf-8"
+          ))
+
+          videos = []
+          for number, story in ledger["stories"].items():
+              yt = story.get("youtube", {})
+              if yt.get("status") == "published" and yt.get("video_id"):
+                  videos.append((int(number), yt["video_id"]))
+
+          videos = sorted(videos)[-10:]
+
+          if not videos:
+              raise RuntimeError("Yayimlanmis YouTube videosu bulunamadi.")
+
+          payload = urllib.parse.urlencode({
+              "client_id": os.environ["YOUTUBE_CLIENT_ID"],
+              "client_secret": os.environ["YOUTUBE_CLIENT_SECRET"],
+              "refresh_token": os.environ["YOUTUBE_REFRESH_TOKEN"],
+              "grant_type": "refresh_token"
+          }).encode()
+
+          req = urllib.request.Request(
+              "https://oauth2.googleapis.com/token",
+              data=payload,
+              method="POST"
+          )
+
+          with urllib.request.urlopen(req, timeout=30) as response:
+              access_token = json.load(response)["access_token"]
+
+          ids = ",".join(video_id for _, video_id in videos)
+          query = urllib.parse.urlencode({
+              "part": "snippet,statistics",
+              "id": ids
+          })
+
+          req = urllib.request.Request(
+              "https://www.googleapis.com/youtube/v3/videos?" + query,
+              headers={"Authorization": "Bearer " + access_token}
+          )
+
+          with urllib.request.urlopen(req, timeout=30) as response:
+              data = json.load(response)
+
+          results = {item["id"]: item for item in data.get("items", [])}
+
+          print("MINOMASAL YOUTUBE - SON 10 VIDEO")
+          for number, video_id in videos:
+              item = results.get(video_id)
+              if not item:
+                  print(f"Video {number}: veri alinamadi")
+                  continue
+
+              stats = item.get("statistics", {})
+              print(
+                  f"Video {number} | "
+                  f"Izlenme: {stats.get('viewCount', 'N/A')} | "
+                  f"Begeni: {stats.get('likeCount', 'N/A')} | "
+                  f"Yorum: {stats.get('commentCount', 'N/A')}"
+              )
+          PY
