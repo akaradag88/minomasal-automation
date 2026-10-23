@@ -254,4 +254,12 @@ jobs:
           print("\nON IZLEME TAMAMLANDI - VIDEO YAYINLANMADI.")
           PY
 
+      - name: Save special day story JSON files
+        uses: actions/upload-artifact@v4
+        with:
+          name: minomasal-ozel-gun-hikayeleri
+          path: ozel_gun_onizleme/*.json
+          if-no-files-found: error
+          retention-days: 7
+
 
