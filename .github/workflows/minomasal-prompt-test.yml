@@ -149,6 +149,26 @@ jobs:
           if len(masal_scenes) != 10:
               raise RuntimeError("Tam 10 sahne bekleniyordu.")
 
+          
+          original_words = sum(
+              len(text.split()) for text in original_scenes
+          )
+
+          masal_words = sum(
+              len(text.split()) for text in masal_scenes
+          )
+
+          print("ORIJINAL KELIME:", original_words)
+          print("MASALSI KELIME:", masal_words)
+
+          if not 100 <= masal_words <= 130:
+              raise RuntimeError(
+                  "Masalsı hikâye kelime sınırını aştı."
+              )
+
+          print("MASALSI UZUNLUK KONTROLU BASARILI")
+
+
           print("MASALSI ANLATIM KARSILASTIRMASI")
           for i, (old, new) in enumerate(
               zip(original_scenes, masal_scenes), 1
