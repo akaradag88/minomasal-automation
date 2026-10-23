@@ -114,12 +114,18 @@ jobs:
                   opening = None
 
                   for attempt in range(3):
+                      
                       result = generate(
                           opening_prompt
-                          + "\nZORUNLU: En fazla 10 kelimelik "
-                            "tek bir cümle yaz. "
-                            "Yalnız JSON döndür."
+                          + f"\nBu {attempt + 1}. denemedir. "
+                          "Yeni cümle doğrudan olayla başlasın. "
+                          "İlk iki kelime kesinlikle 'Bir gün' olmasın. "
+                          "Önceki cümleyi aynen tekrarlama. "
+                          "En fazla 10 kelime kullan. "
+                          "Hikâyeye yeni olay veya karakter ekleme. "
+                          'Yalnız {"opening":"..."} JSON döndür.'
                       )
+
 
                       candidate = result.get("opening", "").strip()
                       word_count = len(candidate.split())
