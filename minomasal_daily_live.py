@@ -66,8 +66,47 @@ async def main():
     if number is None:
         return
 
+    
     topic = KONULAR[number - 1]
-    video = await produce(topic)
+
+    # Özel günlerde yalnızca önceden onaylanan hikâyeleri kullan.
+    onayli_hikayeler = {
+        33: ("Minik Sincabın Kırmızı Beyaz Bayrağı", "hikaye_01.json"),
+        34: ("Orman Okulunda Cumhuriyet Coşkusu", "hikaye_02.json"),
+        45: ("Küçük Baykuş Atatürk'ü Öğreniyor", "hikaye_03.json"),
+        46: ("Orman Okulunda Atatürk'ü Anma Günü", "hikaye_04.json"),
+    }
+
+    if number in onayli_hikayeler:
+        beklenen_konu, dosya_adi = onayli_hikayeler[number]
+
+        if topic != beklenen_konu:
+            raise RuntimeError("Özel gün konu numarası uyuşmuyor.")
+
+        dosya = Path(__file__).resolve().parent / dosya_adi
+
+        if not dosya.is_file():
+            raise RuntimeError(
+                f"Onaylı hikâye bulunamadı: {dosya_adi}"
+            )
+
+        onayli_masal = json.loads(
+            dosya.read_text(encoding="utf-8")
+        )
+
+        if (
+            not isinstance(onayli_masal, dict)
+            or len(onayli_masal.get("scenes", [])) != 10
+        ):
+            raise RuntimeError("Onaylı hikâye geçersiz.")
+
+        video = await produce(
+            topic,
+            supplied_story=onayli_masal
+        )
+    else:
+        video = await produce(topic)
+
 
     if not video.is_file() or duration(video) <= 1:
         raise RuntimeError("Produced video is missing or invalid.")
