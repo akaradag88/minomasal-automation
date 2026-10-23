@@ -92,15 +92,17 @@ jobs:
           base_story = generate(old_prompt)
           
           # Masalsı anlatım denemesi: Hikâyeyi değiştirme.
+          
           original_scenes = [
               scene["narration"]
-              for scene in base_story["scenes"][:2]
+              for scene in base_story["scenes"]
           ]
+
 
           
           masal_prompt = (
               "Sen deneyimli bir Türkçe çocuk masalı editörüsün. "
-              "Aşağıdaki iki sahneyi doğal ve akıcı "
+              "Aşağıdaki on sahneyi doğal ve akıcı "
               "-miş'li geçmiş zamanla yeniden anlat. "
 
               "TEMEL KURAL: Hikâyeyi yeniden yazma; "
@@ -132,7 +134,10 @@ jobs:
               "Karakterlerin konuşmalarını doğal bırak. "
 
               "Her sahneyi ayrı dönüştür. "
-              'Yalnız JSON döndür: {"scenes":["metin1","metin2"]}\n'
+              
+              'Yalnız JSON döndür. "scenes" alanı '
+              'tam 10 dönüştürülmüş metin içersin.\n'
+
               + json.dumps(original_scenes, ensure_ascii=False)
           )
 
@@ -140,8 +145,9 @@ jobs:
           masal_result = generate(masal_prompt)
           masal_scenes = masal_result["scenes"]
 
-          if len(masal_scenes) != 2:
-              raise RuntimeError("İki sahne bekleniyordu.")
+          
+          if len(masal_scenes) != 10:
+              raise RuntimeError("Tam 10 sahne bekleniyordu.")
 
           print("MASALSI ANLATIM KARSILASTIRMASI")
           for i, (old, new) in enumerate(
