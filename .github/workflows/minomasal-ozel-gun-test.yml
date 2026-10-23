@@ -263,3 +263,85 @@ jobs:
           retention-days: 7
 
 
+      - name: Verify approved story routing (No Publish)
+        run: |
+          python - <<'PY'
+          import ast
+          import json
+          from pathlib import Path
+
+          daily = ast.parse(
+              Path("minomasal_daily_live.py").read_text(encoding="utf-8")
+          )
+          main_code = ast.parse(
+              Path("minomasal.py").read_text(encoding="utf-8")
+          )
+
+          def assignment(tree, name):
+              for node in ast.walk(tree):
+                  if isinstance(node, ast.Assign):
+                      if any(
+                          isinstance(t, ast.Name) and t.id == name
+                          for t in node.targets
+                      ):
+                          return ast.literal_eval(node.value)
+              raise RuntimeError(f"Degisken bulunamadi: {name}")
+
+          mapping = assignment(daily, "onayli_hikayeler")
+          topics = assignment(main_code, "KONULAR")
+
+          expected = {
+              33: "hikaye_01.json",
+              34: "hikaye_02.json",
+              45: "hikaye_03.json",
+              46: "hikaye_04.json",
+          }
+
+          assert set(mapping) == set(expected)
+
+          for number, filename in expected.items():
+              topic, selected_file = mapping[number]
+
+              assert selected_file == filename
+              assert topics[number - 1] == topic
+
+              story = json.loads(
+                  Path(filename).read_text(encoding="utf-8")
+              )
+
+              assert story.get("title")
+              assert story.get("characters")
+              assert len(story.get("scenes", [])) == 10
+
+              for scene in story["scenes"]:
+                  assert scene.get("narration")
+                  assert scene.get("visual")
+
+              words = sum(
+                  len(scene["narration"].split())
+                  for scene in story["scenes"]
+              )
+
+              assert 100 <= words <= 130, (
+                  f"Video {number}: {words} kelime"
+              )
+
+              print(
+                  f"Video {number}: ONAYLI JSON DOGRU - "
+                  f"{words} kelime"
+              )
+
+          assert any(
+              isinstance(node, ast.Call)
+              and isinstance(node.func, ast.Name)
+              and node.func.id == "produce"
+              and any(
+                  kw.arg == "supplied_story"
+                  for kw in node.keywords
+              )
+              for node in ast.walk(daily)
+          ), "Onayli hikaye produce baglantisi eksik"
+
+          print("TEST BASARILI - YAYIN YAPILMADI.")
+          PY
+
