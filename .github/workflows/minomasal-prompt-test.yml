@@ -77,12 +77,18 @@ jobs:
 
               return json.loads(content)
 
+          
+          # Tek hikaye uret; eski ve yeni acilis icin ayni hikayeyi kullan.
+          base_story = generate(old_prompt)
+
           for label, prompt in [
               ("ESKI PROMPT", old_prompt),
               ("YENI PROMPT", new_prompt)
           ]:
-              
-              story = generate(prompt)
+              story = json.loads(
+                  json.dumps(base_story, ensure_ascii=False)
+              )
+
 
               
               if label == "YENI PROMPT":
