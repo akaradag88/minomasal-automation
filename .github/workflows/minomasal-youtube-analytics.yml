@@ -59,7 +59,9 @@ jobs:
           with urllib.request.urlopen(req, timeout=30) as response:
               access_token = json.load(response)["access_token"]
 
+          
           ids = ",".join(video_id for _, video_id in videos)
+
           query = urllib.parse.urlencode({
               "part": "snippet,statistics",
               "id": ids
@@ -70,8 +72,21 @@ jobs:
               headers={"Authorization": "Bearer " + access_token}
           )
 
-          with urllib.request.urlopen(req, timeout=30) as response:
-              data = json.load(response)
+          import urllib.error
+
+          try:
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  data = json.load(response)
+          except urllib.error.HTTPError as exc:
+              error = json.load(exc).get("error", {})
+              reasons = [
+                  item.get("reason", "")
+                  for item in error.get("errors", [])
+              ]
+              print("YouTube HTTP kodu:", exc.code)
+              print("YouTube hata nedeni:", reasons)
+              print("YouTube hata durumu:", error.get("status"))
+              raise SystemExit(1)
 
           results = {item["id"]: item for item in data.get("items", [])}
 
