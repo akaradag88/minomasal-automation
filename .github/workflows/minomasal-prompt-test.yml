@@ -145,10 +145,18 @@ jobs:
                           opening = candidate
                           break
 
+                      
                       print(
                           f"Açılış denemesi {attempt + 1}: "
-                          f"{word_count} kelime, uygun değil."
+                          f"{word_count} kelime"
                       )
+                      print("Üretilen cümle:", candidate)
+                      print("Yasaklı başlangıç kontrolü:", valid_start)
+                      print(
+                          "Noktalama kontrolü:",
+                          candidate.endswith((".", "!", "?"))
+                      )
+
 
                   if opening is None:
                       raise RuntimeError(
