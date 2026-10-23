@@ -49,10 +49,10 @@ KONULAR = ['Paylaşmayı Öğrenen Sincap', 'Yalan Söyleyen Küçük Tilki',
     'Sorumluluk Alan Küçük Tilki',
     'Yalnız Oynamak İsteyen Koala',
     'Başkalarıyla Alay Eden Maymun',
-    'Küçük Baykuş Atatürk'ü Öğreniyor',
+    "Küçük Baykuş Atatürk'ü Öğreniyor",
 
     # 46–60: İş makineleri ve araçlar
-    'Orman Okulunda Atatürk'ü Anma Günü',
+    "Orman Okulunda Atatürk'ü Anma Günü",
     'Kaybolan Oyuncak Kamyon',
     'İlk Görevine Çıkan İtfaiye Aracı',
     'Sabırsız Küçük Yarış Arabası',
