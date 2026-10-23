@@ -110,11 +110,37 @@ jobs:
                       f"İlk sahne: {first}"
                   )
 
-                  result = generate(opening_prompt)
-                  opening = result["opening"].strip()
+                  
+                  opening = None
 
-                  if len(opening.split()) > 12:
-                      raise RuntimeError("Yeni açılış 12 kelimeyi aşıyor.")
+                  for attempt in range(3):
+                      result = generate(
+                          opening_prompt
+                          + "\nZORUNLU: En fazla 10 kelimelik "
+                            "tek bir cümle yaz. "
+                            "Yalnız JSON döndür."
+                      )
+
+                      candidate = result.get("opening", "").strip()
+                      word_count = len(candidate.split())
+
+                      if (
+                          1 <= word_count <= 12
+                          and candidate.endswith((".", "!", "?"))
+                      ):
+                          opening = candidate
+                          break
+
+                      print(
+                          f"Açılış denemesi {attempt + 1}: "
+                          f"{word_count} kelime, uygun değil."
+                      )
+
+                  if opening is None:
+                      raise RuntimeError(
+                          "Üç denemede uygun açılış oluşturulamadı."
+                      )
+
 
                   remainder = first[match.end():].strip()
                   story["scenes"][0]["narration"] = (
