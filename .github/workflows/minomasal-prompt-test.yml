@@ -97,18 +97,36 @@ jobs:
               for scene in base_story["scenes"][:2]
           ]
 
+          
           masal_prompt = (
-              "Aşağıdaki iki çocuk masalı sahnesini "
-              "doğal Türkçeyle, ağırlıklı olarak "
+              "Sen deneyimli bir Türkçe çocuk masalı editörüsün. "
+              "Aşağıdaki iki sahneyi doğal ve akıcı "
               "-miş'li geçmiş zamanla yeniden anlat. "
-              "Olayları, karakterlerin duygularını ve "
-              "anlamı kesinlikle değiştirme. "
-              "Yeni olay veya karakter ekleme. "
-              "Karakter konuşmalarını doğal bırak. "
-              "Her sahnenin uzunluğunu yaklaşık koru. "
+
+              "TEMEL KURAL: Hikâyeyi yeniden yazma; "
+              "yalnızca anlatımın zaman kipini dönüştür. "
+
+              "Örnekler: "
+              "'Sincap ağaca baktı.' -> 'Sincap ağaca bakmış.' "
+              "'Tavşan çok sevindi.' -> 'Tavşan çok sevinmiş.' "
+              "'Kuş kapının önünde durdu.' -> "
+              "'Kuş kapının önünde durmuş.' "
+
+              "Özne ve eylemi kesinlikle koru. "
+              "Etken cümleleri edilgen yapma. "
+              "'Durur gibi olmuş', 'görülmüş', "
+              "'yapar olmuş' gibi yapay ifadeler kullanma. "
+
+              "Karakterlerin duygularını değiştirme. "
+              "Yeni olay, karakter veya duygu ekleme. "
+              "Gereksiz kelimelerle anlatımı uzatma. "
+              "Karakterlerin konuşmalarını doğal bırak. "
+
+              "Her sahneyi ayrı dönüştür. "
               'Yalnız JSON döndür: {"scenes":["metin1","metin2"]}\n'
               + json.dumps(original_scenes, ensure_ascii=False)
           )
+
 
           masal_result = generate(masal_prompt)
           masal_scenes = masal_result["scenes"]
