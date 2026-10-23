@@ -165,3 +165,81 @@ jobs:
           print("TEST BASARILI - API cagrilmadi, video yayinlanmadi.")
           PY
 
+          
+      - name: Generate special day story previews (No Publish)
+        env:
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+        run: |
+          python -m pip install requests
+
+          python - <<'PY'
+          import ast
+          import json
+          import os
+          import re
+          from pathlib import Path
+          import requests
+
+          source = Path("minomasal.py")
+          tree = ast.parse(source.read_text(encoding="utf-8"))
+
+          functions = [
+              node for node in tree.body
+              if isinstance(node, ast.FunctionDef)
+              and node.name in ("validate", "create_story")
+          ]
+
+          namespace = {
+              "Path": Path,
+              "json": json,
+              "re": re,
+              "requests": requests,
+              "__file__": str(source.resolve()),
+          }
+
+          exec(
+              compile(
+                  ast.Module(body=functions, type_ignores=[]),
+                  "minomasal_preview",
+                  "exec"
+              ),
+              namespace
+          )
+
+          topics = [
+              "Minik Sincabın Kırmızı Beyaz Bayrağı",
+              "Orman Okulunda Cumhuriyet Coşkusu",
+              "Küçük Baykuş Atatürk'ü Öğreniyor",
+              "Orman Okulunda Atatürk'ü Anma Günü",
+          ]
+
+          for topic in topics:
+              story = namespace["create_story"](
+                  topic,
+                  os.environ["POLLINATIONS_API_KEY"],
+                  "openai"
+              )
+
+              scenes = story["scenes"]
+              narration = " ".join(
+                  scene["narration"] for scene in scenes
+              )
+              words = len(narration.split())
+
+              print("\n" + "=" * 50)
+              print("KONU:", topic)
+              print("BASLIK:", story["title"])
+              print("KELIME:", words)
+              print("SAHNE:", len(scenes))
+              print("DERS:", story["moral"])
+
+              for i, scene in enumerate(scenes, 1):
+                  print(f"{i}. {scene['narration']}")
+
+              if len(scenes) != 10 or not 100 <= words <= 130:
+                  print("UYARI: Uzunluk veya sahne hedefi tutmadi.")
+
+          print("\nON IZLEME TAMAMLANDI - VIDEO YAYINLANMADI.")
+          PY
+
+
