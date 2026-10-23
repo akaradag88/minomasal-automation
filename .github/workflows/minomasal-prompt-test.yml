@@ -199,6 +199,13 @@ jobs:
               print("Toplam kelime:", len(narration.split()))
               print("Sahne sayisi:", len(scenes))
               print("Ders:", story["moral"])
+              
+              if label == "YENI PROMPT":
+                  print("SAHNE 1 ANLATIM:", scenes[0]["narration"])
+                  print("SAHNE 1 GORSEL:", scenes[0]["visual"])
+                  print("SAHNE 2 ANLATIM:", scenes[1]["narration"])
+                  print("SAHNE 2 GORSEL:", scenes[1]["visual"])
+
 
           print("\nTest tamamlandi. Video yayinlanmadi.")
           PY
