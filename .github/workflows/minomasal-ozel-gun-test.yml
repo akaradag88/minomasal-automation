@@ -84,3 +84,84 @@ jobs:
 
           print("TEST BASARILI. Video uretilmedi veya yayinlanmadi.")
           PY
+
+        
+      - name: Verify actual special day prompts (No API)
+        run: |
+          python - <<'PY'
+          import ast
+          import json
+          import re
+          from pathlib import Path
+
+          source = Path("minomasal.py").read_text(encoding="utf-8")
+          tree = ast.parse(source)
+
+          function = next(
+              node for node in tree.body
+              if isinstance(node, ast.FunctionDef)
+              and node.name == "create_story"
+          )
+
+          captured = []
+
+          class FakeResponse:
+              status_code = 200
+
+              def json(self):
+                  return {
+                      "choices": [{
+                          "message": {
+                              "content": json.dumps({
+                                  "title": "Test",
+                                  "characters": "Test character",
+                                  "scenes": []
+                              })
+                          }
+                      }]
+                  }
+
+          class FakeRequests:
+              @staticmethod
+              def post(url, headers, json, timeout):
+                  captured.append(json["messages"][0]["content"])
+                  return FakeResponse()
+
+          namespace = {
+              "Path": Path,
+              "json": json,
+              "re": re,
+              "requests": FakeRequests,
+              "validate": lambda story: story,
+              "__file__": str(Path("minomasal.py").resolve())
+          }
+
+          module = ast.Module(body=[function], type_ignores=[])
+          exec(compile(module, "dry_run", "exec"), namespace)
+
+          cases = {
+              "Minik Sincabın Kırmızı Beyaz Bayrağı": "29 Ekim 1923",
+              "Orman Okulunda Cumhuriyet Coşkusu": "29 Ekim 1923",
+              "Küçük Baykuş Atatürk'ü Öğreniyor": "10 Kasım 1938",
+              "Orman Okulunda Atatürk'ü Anma Günü": "10 Kasım 1938"
+          }
+
+          for topic, expected in cases.items():
+              namespace["create_story"](topic, "TEST_KEY", "openai")
+              prompt = captured[-1]
+
+              assert expected in prompt, topic
+              assert "ORTAK KURALLAR:" in prompt, topic
+
+              print("DOGRU:", topic)
+
+          namespace["create_story"](
+              "Yuva Yapmayı Öğrenen Serçe", "TEST_KEY", "openai"
+          )
+
+          assert "BU HİKÂYEYE ÖZEL ZORUNLU KURALLAR" not in captured[-1]
+
+          print("Normal hikaye etkilenmiyor.")
+          print("TEST BASARILI - API cagrilmadi, video yayinlanmadi.")
+          PY
+
