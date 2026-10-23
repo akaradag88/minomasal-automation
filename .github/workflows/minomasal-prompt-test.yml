@@ -90,6 +90,39 @@ jobs:
           
           # Tek hikaye uret; eski ve yeni acilis icin ayni hikayeyi kullan.
           base_story = generate(old_prompt)
+          
+          # Masalsı anlatım denemesi: Hikâyeyi değiştirme.
+          original_scenes = [
+              scene["narration"]
+              for scene in base_story["scenes"][:2]
+          ]
+
+          masal_prompt = (
+              "Aşağıdaki iki çocuk masalı sahnesini "
+              "doğal Türkçeyle, ağırlıklı olarak "
+              "-miş'li geçmiş zamanla yeniden anlat. "
+              "Olayları, karakterlerin duygularını ve "
+              "anlamı kesinlikle değiştirme. "
+              "Yeni olay veya karakter ekleme. "
+              "Karakter konuşmalarını doğal bırak. "
+              "Her sahnenin uzunluğunu yaklaşık koru. "
+              'Yalnız JSON döndür: {"scenes":["metin1","metin2"]}\n'
+              + json.dumps(original_scenes, ensure_ascii=False)
+          )
+
+          masal_result = generate(masal_prompt)
+          masal_scenes = masal_result["scenes"]
+
+          if len(masal_scenes) != 2:
+              raise RuntimeError("İki sahne bekleniyordu.")
+
+          print("MASALSI ANLATIM KARSILASTIRMASI")
+          for i, (old, new) in enumerate(
+              zip(original_scenes, masal_scenes), 1
+          ):
+              print(f"SAHNE {i} ESKI:", old)
+              print(f"SAHNE {i} MASALSI:", new)
+
 
           for label, prompt in [
               ("ESKI PROMPT", old_prompt),
