@@ -79,7 +79,35 @@ jobs:
               ("ESKI PROMPT", old_prompt),
               ("YENI PROMPT", new_prompt)
           ]:
+              
               story = generate(prompt)
+
+              if label == "YENI PROMPT":
+                  for attempt in range(2):
+                      count = sum(
+                          len(scene["narration"].split())
+                          for scene in story["scenes"]
+                      )
+
+                      if 110 <= count <= 125 and len(story["scenes"]) == 10:
+                          break
+
+                      print(
+                          f"Yeniden deneme {attempt + 1}: "
+                          f"{count} kelime, hedef 110-125."
+                      )
+
+                      correction = (
+                          f"\nÖnceki hikaye {count} kelimeydi. "
+                          "Bu kurallara uymuyor. "
+                          "Tam 10 sahne ve toplam 110-125 kelime üret. "
+                          "Her sahnede yaklaşık 11-12 kelime kullan. "
+                          "Hikayeyi gereksiz tekrarlarla uzatma. "
+                          "Yalnızca geçerli JSON döndür."
+                      )
+
+                      story = generate(prompt + correction)
+
               scenes = story["scenes"]
               narration = " ".join(
                   scene["narration"] for scene in scenes
