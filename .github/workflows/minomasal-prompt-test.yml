@@ -206,7 +206,13 @@ jobs:
                   
                   # Yeni açılış, eski ilk sahnenin tamamının yerine geçer.
                   # Böylece tekrar eden anlatım eklenmez.
-                  story["scenes"][0]["narration"] = opening
+                  
+                  # Yeni açılış yalnızca adaydır.
+                  # Kalite onayı olmadan orijinal hikâyeyi değiştirme.
+                  print("ORIJINAL ACILIS:", first)
+                  print("ADAY ACILIS:", opening)
+                  print("DURUM: Manuel kalite kontrolü bekleniyor.")
+
 
 
                   count = sum(
