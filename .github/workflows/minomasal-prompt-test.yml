@@ -124,10 +124,24 @@ jobs:
                       candidate = result.get("opening", "").strip()
                       word_count = len(candidate.split())
 
+                      
+                      forbidden = (
+                          "bir gün",
+                          "bir zamanlar",
+                          "güzel bir sabah",
+                          "evvel zaman",
+                      )
+
+                      valid_start = not candidate.casefold().startswith(
+                          forbidden
+                      )
+
                       if (
                           1 <= word_count <= 12
                           and candidate.endswith((".", "!", "?"))
+                          and valid_start
                       ):
+
                           opening = candidate
                           break
 
