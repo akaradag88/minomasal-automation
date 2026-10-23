@@ -104,6 +104,19 @@ jobs:
               "Sen deneyimli bir Türkçe çocuk masalı editörüsün. "
               "Aşağıdaki on sahneyi doğal ve akıcı "
               "-miş'li geçmiş zamanla yeniden anlat. "
+              
+              "ZAMAN KIPI KURALI: "
+              "Tamamlanmış olayları -miş'li geçmiş zamanla anlat. "
+              "'Sevindi' -> 'sevinmiş', "
+              "'gülümsedi' -> 'gülümsemiş', "
+              "'buldu' -> 'bulmuş', "
+              "'yardım etti' -> 'yardım etmiş'. "
+              "Tamamlanmış olayları -yormuş biçimine çevirme. "
+              "'Seviniyormuş' yerine 'sevinmiş' kullan. "
+              "Yalnızca geçmişte devam eden eylemlerde "
+              "-yormuş kullan: 'arıyordu' -> 'arıyormuş'. "
+              "Olayların anlamını ve sırasını koru. "
+
 
               "TEMEL KURAL: Hikâyeyi yeniden yazma; "
               "yalnızca anlatımın zaman kipini dönüştür. "
