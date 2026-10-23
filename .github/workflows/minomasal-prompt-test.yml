@@ -41,11 +41,7 @@ jobs:
 
           
           
-          new_prompt = old_prompt.replace(
-              "İlk cümle merak uyandırsın.",
-              "İlk cümle en fazla 12 kelime olsun ve "
-              "şaşırtıcı bir olay veya merak uyandıran soruyla başlasın."
-          )
+          new_prompt = old_prompt
 
 
 
