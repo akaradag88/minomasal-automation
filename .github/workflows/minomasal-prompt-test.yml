@@ -150,6 +150,31 @@ jobs:
               raise RuntimeError("Tam 10 sahne bekleniyordu.")
 
           
+          # Son sahnedeki çocuklara yöneltilen soruyu aynen koru.
+          original_question = re.search(
+              r"[^.!?]*\?\s*$",
+              original_scenes[-1]
+          )
+
+          converted_question = re.search(
+              r"[^.!?]*\?\s*$",
+              masal_scenes[-1]
+          )
+
+          if not original_question or not converted_question:
+              raise RuntimeError(
+                  "Son düşünme sorusu korunamadı."
+              )
+
+          masal_scenes[-1] = (
+              masal_scenes[-1][:converted_question.start()]
+              + original_question.group(0)
+          )
+
+          print("SON SORU KORUNDU:", original_question.group(0).strip())
+
+
+          
           original_words = sum(
               len(text.split()) for text in original_scenes
           )
