@@ -1,0 +1,97 @@
+
+name: MinoMasal Hikaye Prompt Testi (No Publish)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compare old and new prompts
+        env:
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import re
+          import urllib.request
+          from pathlib import Path
+
+          topic = "Sincap ve Saklanan Oyuncak"
+          key = os.environ["POLLINATIONS_API_KEY"]
+
+          old_prompt = """4–8 yaş çocuklarına Türkçe öğretici hayvan hikâyesi yaz. Konu: {topic}.
+          Toplam 100–130 kelime, 10 sahne. İlk cümle merak uyandırsın. Olaylar sebep-sonuç sırasıyla ilerlesin.
+          Tek somut ders, korkutucu içerik yok, tehlikeli davranışa özendirme yok, satın alma/abone ol çağrısı yok.
+          Son cümlede çocukla ilgili kısa düşünme sorusu sor.
+          Yalnız JSON döndür: {"title":"kısa Türkçe başlık","moral":"ders","characters":"tüm karakterlerin İngilizce sabit fiziksel tanımı",
+          "scenes":[{"narration":"Türkçe 1–2 kısa cümle","visual":"bu anlatımdaki olayın İngilizce görsel açıklaması","sfx":"none"}]}.
+          Karakter isimlerini ve görünüşlerini bütün sahnelerde koru. Görsel açıklamasında kadraj ve eylem belirt.
+          """
+
+          new_prompt = Path(
+              "minomasal_prompt_deneme.txt"
+          ).read_text(encoding="utf-8")
+
+          def generate(prompt):
+              payload = json.dumps({
+                  "model": "openai",
+                  "messages": [{
+                      "role": "user",
+                      "content": prompt.replace("{topic}", topic)
+                  }],
+                  "response_format": {"type": "json_object"}
+              }).encode("utf-8")
+
+              request = urllib.request.Request(
+                  "https://gen.pollinations.ai/v1/chat/completions",
+                  data=payload,
+                  headers={
+                      "Authorization": "Bearer " + key,
+                      "Content-Type": "application/json"
+                  },
+                  method="POST"
+              )
+
+              with urllib.request.urlopen(request, timeout=150) as response:
+                  result = json.load(response)
+
+              content = result["choices"][0]["message"]["content"]
+              content = re.sub(
+                  r"^```(?:json)?\s*|\s*```$",
+                  "",
+                  content.strip()
+              )
+
+              return json.loads(content)
+
+          for label, prompt in [
+              ("ESKI PROMPT", old_prompt),
+              ("YENI PROMPT", new_prompt)
+          ]:
+              story = generate(prompt)
+              scenes = story["scenes"]
+              narration = " ".join(
+                  scene["narration"] for scene in scenes
+              )
+
+              print("\n" + "=" * 40)
+              print(label)
+              print("Baslik:", story["title"])
+              print("Ilk sahne:", scenes[0]["narration"])
+              print("Toplam kelime:", len(narration.split()))
+              print("Sahne sayisi:", len(scenes))
+              print("Ders:", story["moral"])
+
+          print("\nTest tamamlandi. Video yayinlanmadi.")
+          PY
