@@ -1,0 +1,61 @@
+
+name: MinoMasal Facebook 29 Recovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_recovery:
+        description: "Kurtarmayi onaylamak icin YES_29 yazin"
+        required: true
+        default: "NO"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: minomasal-facebook-publish
+  cancel-in-progress: false
+
+jobs:
+  recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout full Git history
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+          ref: main
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Verify recovery authorization and Git state
+        env:
+          CONFIRM_RECOVERY: ${{ inputs.confirm_recovery }}
+        run: |
+          if [ "$CONFIRM_RECOVERY" != "YES_29" ]; then
+            echo "Kurtarma onayi verilmedi."
+            exit 1
+          fi
+
+          git fetch origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+          test -z "$(git status --porcelain)"
+
+          python -m py_compile minomasal_facebook_29_kurtarma.py
+
+          echo "Kurtarma on kontrolleri basarili."
+
+      - name: Recover existing Facebook video 29
+        env:
+          FACEBOOK_RECOVERY_CONFIRM: "YES"
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+        run: |
+          python minomasal_facebook_29_kurtarma.py
