@@ -340,6 +340,28 @@ jobs:
           print("GERCEK AI ADAYI GUVENLI UYGULAMA TESTI BASARILI")
           print("ORIJINAL HIKAYE VE GORSELLER KORUNDU")
 
+          from pathlib import Path
+          import json
+
+          # Yalnizca test amacli karsilastirma dosyasi.
+          # Onayli ozel gun JSON dosyalarini degistirme.
+          output = Path("masalsi_test_sonucu.json")
+
+          output.write_text(
+              json.dumps(
+                  {
+                      "status": "TEST_ONLY_NOT_APPROVED",
+                      "original": original_story,
+                      "masalsi_candidate": approved_preview
+                  },
+                  ensure_ascii=False,
+                  indent=2
+              ),
+              encoding="utf-8"
+          )
+
+          print("MASALSI TEST JSON DOSYASI HAZIR")
+
           print("MASALSI ANLATIM ON IZLEME")
 
           for i, (scene, text) in enumerate(
