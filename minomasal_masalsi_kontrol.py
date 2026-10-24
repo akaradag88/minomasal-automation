@@ -28,7 +28,9 @@ def select_narrations(original, converted, approved=False):
     import re
 
     def last_question(text):
-        match = re.search(r"[^.!?]*\?\s*$", text)
+        
+        match = re.search(r'[^.!?]*\?[”"»]?\s*$', text)
+
         return match.group(0).strip() if match else None
 
     if last_question(original[-1]) != last_question(converted[-1]):
