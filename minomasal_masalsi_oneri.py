@@ -85,7 +85,9 @@ def create_masalsi_candidate(story, api_key, model="openai"):
         raise ValueError("Masalsı sahne yapısı geçersiz.")
 
     # Son düşünme sorusunu orijinal hâliyle koru.
-    question_pattern = r"[^.!?]*\?\s*$"
+    
+    question_pattern = r'[^.!?]*\?[”"»]?\s*$'
+
 
     old_question = re.search(question_pattern, original[-1])
     new_question = re.search(question_pattern, converted[-1])
