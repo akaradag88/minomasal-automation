@@ -257,3 +257,40 @@ jobs:
 
           print("TUM TESTLER BASARILI - YAYIN YAPILMADI.")
           PY
+
+      - name: Real masalsi narration preview (No Publish)
+        env:
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          from minomasal_masalsi_guvenli import prepare_masalsi_safely
+
+          story = json.loads(
+              Path("hikaye_01.json").read_text(encoding="utf-8")
+          )
+
+          original, candidate = prepare_masalsi_safely(
+              story,
+              os.environ["POLLINATIONS_API_KEY"]
+          )
+
+          if candidate is None:
+              print("Masalsi donusum basarisiz. Orijinal korundu.")
+              raise SystemExit(1)
+
+          print("MASALSI ANLATIM ON IZLEME")
+
+          for i, (scene, text) in enumerate(
+              zip(original["scenes"], candidate), 1
+          ):
+              print(f"\nSAHNE {i}")
+              print("ESKI:", scene["narration"])
+              print("MASALSI:", text)
+
+          print("\nMANUEL KALITE ONAYI BEKLENIYOR.")
+          print("VIDEO YAYINLANMADI.")
+          PY
