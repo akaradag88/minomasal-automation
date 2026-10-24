@@ -556,3 +556,73 @@ jobs:
           print("TEST 3: Bilinen yayin ve kayit cagrilari BULUNMADI")
           print("STATIK KONTROL BASARILI - VIDEO URETILMEDI")
           PY
+
+      - name: Diagnose new story masalsi conversion (No Video)
+        env:
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+        run: |
+          python - <<'PY'
+          import ast
+          import json
+          import os
+          import re
+          from pathlib import Path
+          import requests
+
+          from minomasal_masalsi_guvenli import prepare_masalsi_safely
+
+          source = Path("minomasal.py")
+          tree = ast.parse(source.read_text(encoding="utf-8"))
+
+          functions = [
+              node for node in tree.body
+              if isinstance(node, ast.FunctionDef)
+              and node.name in ("validate", "create_story")
+          ]
+
+          assert len(functions) == 2
+
+          namespace = {
+              "Path": Path,
+              "json": json,
+              "re": re,
+              "requests": requests,
+              "__file__": str(source.resolve()),
+          }
+
+          exec(
+              compile(
+                  ast.Module(body=functions, type_ignores=[]),
+                  "story_test",
+                  "exec"
+              ),
+              namespace
+          )
+
+          key = os.environ["POLLINATIONS_API_KEY"]
+          topic = "Arkadaşına Yardım Eden Minik Fil"
+
+          story = namespace["create_story"](topic, key, "openai")
+
+          print("TEST KONUSU:", topic)
+          print("ORIJINAL SAHNE:", len(story["scenes"]))
+          print(
+              "ORIJINAL KELIME:",
+              sum(len(s["narration"].split()) for s in story["scenes"])
+          )
+
+          original, candidate = prepare_masalsi_safely(
+              story, key, model="openai"
+          )
+
+          if candidate is None:
+              print("SONUC: Orijinal hikaye korundu.")
+          else:
+              print("SONUC: Masalsi aday olusturuldu.")
+              print(
+                  "MASALSI KELIME:",
+                  sum(len(s.split()) for s in candidate)
+              )
+
+          print("METIN TESTI TAMAMLANDI - VIDEO YAYINLANMADI.")
+          PY
