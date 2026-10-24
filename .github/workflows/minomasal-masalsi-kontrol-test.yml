@@ -203,3 +203,57 @@ jobs:
           print("TEST 4: Orijinal hikaye korundu.")
           print("TUM TESTLER BASARILI - YAYIN YAPILMADI.")
           PY
+
+      - name: Test automatic masalsi fallback (No API, No Publish)
+        run: |
+          python - <<'PY'
+          import json
+          from copy import deepcopy
+          from pathlib import Path
+          from unittest.mock import patch
+
+          from minomasal_masalsi_guvenli import prepare_masalsi_safely
+
+          story = json.loads(
+              Path("hikaye_01.json").read_text(encoding="utf-8")
+          )
+          original = deepcopy(story)
+
+          candidate = [
+              scene["narration"]
+              for scene in story["scenes"]
+          ]
+
+          # TEST 1: AI basarili yanit veriyor.
+          with patch(
+              "minomasal_masalsi_guvenli.create_masalsi_candidate",
+              return_value=candidate
+          ):
+              result, suggestion = prepare_masalsi_safely(
+                  story, "TEST_KEY"
+              )
+
+          assert result == original
+          assert suggestion == candidate
+          assert result is not story
+          print("TEST 1: Basarili aday olusturuldu.")
+
+          # TEST 2: AI hata veriyor.
+          with patch(
+              "minomasal_masalsi_guvenli.create_masalsi_candidate",
+              side_effect=RuntimeError("Test API hatasi")
+          ):
+              result, suggestion = prepare_masalsi_safely(
+                  story, "TEST_KEY"
+              )
+
+          assert result == original
+          assert suggestion is None
+          print("TEST 2: AI hatasinda orijinal korundu.")
+
+          # TEST 3: Kaynak hikaye degismedi.
+          assert story == original
+          print("TEST 3: Kaynak JSON degismedi.")
+
+          print("TUM TESTLER BASARILI - YAYIN YAPILMADI.")
+          PY
