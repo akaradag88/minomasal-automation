@@ -503,3 +503,56 @@ jobs:
           print("TEST 4: Otomatik onay kapali.")
           print("TUM TESTLER BASARILI - VIDEO YAYINLANMADI.")
           PY
+
+      - name: Check independent video preview safety (No Publish)
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          path = Path("minomasal_masalsi_video_test.py")
+          source = path.read_text(encoding="utf-8")
+          tree = ast.parse(source)
+
+          # Test dosyası yayın iş akışını çağırmamalı.
+          forbidden = [
+              "youtube_upload(",
+              "media_publish",
+              "minomasal_daily_live",
+              "minomasal_dual_publish",
+              "minomasal_facebook_daily",
+              "minomasal_yayin_durumu.json",
+              "minomasal_platform_durumu.json",
+              "minomasal_onizleme_durumu.json",
+          ]
+
+          for item in forbidden:
+              assert item not in source, (
+                  f"Guvenlik kontrolu: {item}"
+              )
+
+          calls = [
+              node for node in ast.walk(tree)
+              if isinstance(node, ast.Call)
+          ]
+
+          # Doğrudan produce() kullanılmalı.
+          produce_calls = [
+              node for node in calls
+              if isinstance(node.func, ast.Name)
+              and node.func.id == "produce"
+          ]
+
+          assert len(produce_calls) == 1
+          assert any(
+              keyword.arg == "supplied_story"
+              for keyword in produce_calls[0].keywords
+          )
+
+          assert "masalsi_video_onizleme.mp4" in source
+
+          print("TEST 1: Dogrudan video uretimi baglantisi DOGRU")
+          print("TEST 2: Onayli hikaye aktarimi DOGRU")
+          print("TEST 3: Bilinen yayin ve kayit cagrilari BULUNMADI")
+          print("STATIK KONTROL BASARILI - VIDEO URETILMEDI")
+          PY
