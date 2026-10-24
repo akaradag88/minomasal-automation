@@ -493,7 +493,15 @@ def render(story,images,audios,folder):
     return final
 
 async def produce(topic, supplied_story=None):
-    story=validate(supplied_story) if supplied_story else create_story(topic,API_KEY,HIKAYE_MODELI)
+    
+    story = validate(supplied_story) if supplied_story else create_story(topic, API_KEY, HIKAYE_MODELI)
+
+    from minomasal_masalsi_kopru import prepare_story_for_render
+    story = prepare_story_for_render(
+        story,
+        supplied_story=supplied_story is not None
+    )
+
     identity={'story':story,'voice':SES,'rate':SES_HIZI,'image_model':GORSEL_MODELI,'seed':SEED,'local':GORSel_KLASORU,'music_files':{k:hashlib.sha256((MUZIK_KLASORU / v).read_bytes()).hexdigest()[:12] if (MUZIK_KLASORU / v).is_file() else 'missing' for k,v in MUZIK_DOSYALARI.items()},'music_level':MUZIK_SEVIYESI,'sfx':SFX_KLASORU,'fps':FPS,'channel':KANAL_ADI,'engine':4}
     fingerprint=hashlib.sha256(json.dumps(identity,ensure_ascii=False,sort_keys=True).encode()).hexdigest()[:12]
     folder=(ROOT/fingerprint).resolve(); folder.mkdir(parents=True,exist_ok=True)
