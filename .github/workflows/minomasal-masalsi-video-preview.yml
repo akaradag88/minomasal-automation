@@ -31,19 +31,13 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg
 
+      
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
+          python -m pip install -r requirements-minomasal.txt
 
-          if [ -f requirements.txt ]; then
-            python -m pip install -r requirements.txt
-          else
-            python -m pip install \
-              requests pillow numpy aiohttp pydub \
-              google-genai google-auth \
-              google-api-python-client
-          fi
-
+     
       - name: Check preview safety
         run: |
           python -m py_compile minomasal.py
