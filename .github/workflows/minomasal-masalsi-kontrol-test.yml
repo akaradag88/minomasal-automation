@@ -303,6 +303,17 @@ jobs:
               print("Masalsi donusum basarisiz. Orijinal korundu.")
               raise SystemExit(1)
 
+          # Gercek zaman kipi donusumlerini dogrula.
+          assert "bayrak gördü." in story["scenes"][0]["narration"]
+          assert "bayrak görmüş." in candidate[0]
+
+          assert "yanına geldi." in story["scenes"][1]["narration"]
+          assert "yanına gelmiş." in candidate[1]
+
+          assert len(candidate) == 10
+
+          print("ZAMAN KIPI DONUSUM TESTI BASARILI")
+
           print("MASALSI ANLATIM ON IZLEME")
 
           for i, (scene, text) in enumerate(
