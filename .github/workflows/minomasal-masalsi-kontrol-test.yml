@@ -626,3 +626,55 @@ jobs:
 
           print("METIN TESTI TAMAMLANDI - VIDEO YAYINLANMADI.")
           PY
+
+      - name: Verify character dictionary (No Publish)
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("minomasal_karakterler.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+
+          characters = data["characters"]
+          mapping = data["story_characters_31_100"]
+
+          assert len(characters) == 44
+          assert len(mapping) == 70
+
+          for number in range(31, 101):
+              assert str(number) in mapping
+
+              for species in mapping[str(number)]:
+                  assert species in characters, (
+                      f"Video {number}: tanimsiz karakter {species}"
+                  )
+
+          names = [c["name"] for c in characters.values()]
+          assert len(names) == len(set(names)), (
+              "Ayni isim birden fazla karaktere verilmis."
+          )
+
+          for species, character in characters.items():
+              assert character.get("name")
+              assert character.get("appearance_en")
+              assert character.get("type_tr")
+
+          expected = {
+              "sincap": "Sisi",
+              "zurafa": "Zeli",
+              "fil": "Edi",
+              "ejderha": "Dogo",
+              "ari": "Mara",
+              "roket": "Rokko",
+              "elektrikli_otomobil": "İvi",
+          }
+
+          for species, name in expected.items():
+              assert characters[species]["name"] == name
+
+          print("44 KARAKTER KONTROL EDILDI")
+          print("70 HIKAYE ESLESTIRMESI DOGRU")
+          print("SABIT ISIMLER DOGRULANDI")
+          print("TEST BASARILI - VIDEO YAYINLANMADI")
+          PY
