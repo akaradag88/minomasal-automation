@@ -27,7 +27,7 @@ jobs:
           import urllib.request
           from pathlib import Path
 
-          topic = "Kaybolan Küçük Penguen"
+          topic = "Arkadaşına Yardım Eden Minik Fil"
           key = os.environ["POLLINATIONS_API_KEY"]
 
           old_prompt = """4–8 yaş çocuklarına Türkçe öğretici hayvan hikâyesi yaz. Konu: {topic}.
