@@ -1,0 +1,70 @@
+
+name: MinoMasal Masalsi Guvenlik Testi (No Publish)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test safe fallback
+        run: |
+          python - <<'PY'
+          from minomasal_masalsi_kontrol import select_narrations
+
+          original = [
+              "Küçük fil ormanda arkadaşına yardım etti. "
+              "Sonra birlikte güvenli bir yere gittiler."
+          ] * 9 + [
+              "Küçük fil çok sevindi. "
+              "Sen bugün kime yardım edersin?"
+          ]
+
+          converted = [
+              "Küçük fil ormanda arkadaşına yardım etmiş. "
+              "Sonra birlikte güvenli bir yere gitmişler."
+          ] * 9 + [
+              "Küçük fil çok sevinmiş. "
+              "Sen bugün kime yardım edersin?"
+          ]
+
+          # 1. Varsayılan: Onay yoksa orijinali koru.
+          assert select_narrations(
+              original, converted
+          ) == original
+          print("TEST 1: Onaysiz donusum reddedildi.")
+
+          # 2. Onaylı ve geçerli dönüşüm kabul edilmeli.
+          assert select_narrations(
+              original, converted, approved=True
+          ) == converted
+          print("TEST 2: Gecerli donusum kabul edildi.")
+
+          # 3. Eksik sahneli dönüşüm reddedilmeli.
+          assert select_narrations(
+              original, converted[:9], approved=True
+          ) == original
+          print("TEST 3: Eksik sahne reddedildi.")
+
+          # 4. Son soruyu değiştiren dönüşüm reddedilmeli.
+          wrong = converted.copy()
+          wrong[-1] = (
+              "Küçük fil çok sevinmiş. "
+              "Bugün ne öğrendin?"
+          )
+
+          assert select_narrations(
+              original, wrong, approved=True
+          ) == original
+          print("TEST 4: Degisen son soru reddedildi.")
+
+          print("TUM TESTLER BASARILI - YAYIN YAPILMADI.")
+          PY
