@@ -120,3 +120,82 @@ jobs:
 
           print("TUM TESTLER BASARILI - VIDEO YAYINLANMADI.")
           PY
+
+      - name: Test masalsi AI module (No API, No Publish)
+        run: |
+          python -m pip install requests
+
+          python - <<'PY'
+          import json
+          from copy import deepcopy
+          from pathlib import Path
+          from unittest.mock import patch
+          import requests
+
+          from minomasal_masalsi_oneri import create_masalsi_candidate
+          from minomasal_masalsi_uygula import apply_masalsi
+
+          story = json.loads(
+              Path("hikaye_01.json").read_text(encoding="utf-8")
+          )
+          original = deepcopy(story)
+          narrations = [
+              s["narration"] for s in story["scenes"]
+          ]
+
+          class FakeResponse:
+              def raise_for_status(self):
+                  pass
+
+              def json(self):
+                  return {
+                      "choices": [{
+                          "message": {
+                              "content": json.dumps({
+                                  "scenes": narrations
+                              }, ensure_ascii=False)
+                          }
+                      }]
+                  }
+
+          # API yanıtını taklit et. Gerçek API kullanılmaz.
+          with patch(
+              "minomasal_masalsi_oneri.requests.post",
+              return_value=FakeResponse()
+          ):
+              candidate = create_masalsi_candidate(
+                  story, "TEST_KEY"
+              )
+
+          assert len(candidate) == 10
+          assert story == original
+          print("TEST 1: Aday metin olusturuldu.")
+
+          rejected = apply_masalsi(
+              story, candidate, approved=False
+          )
+          assert rejected == original
+          print("TEST 2: Onaysiz aday uygulanmadi.")
+
+          # API hatasını taklit et.
+          with patch(
+              "minomasal_masalsi_oneri.requests.post",
+              side_effect=requests.RequestException(
+                  "Simulated API failure"
+              )
+          ):
+              try:
+                  create_masalsi_candidate(
+                      story, "TEST_KEY"
+                  )
+              except requests.RequestException:
+                  print("TEST 3: API hatasi yakalandi.")
+              else:
+                  raise AssertionError(
+                      "API hatasi yakalanmadi."
+                  )
+
+          assert story == original
+          print("TEST 4: Orijinal hikaye korundu.")
+          print("TUM TESTLER BASARILI - YAYIN YAPILMADI.")
+          PY
