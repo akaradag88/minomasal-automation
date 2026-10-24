@@ -17,6 +17,15 @@ from minomasal_masalsi_uygula import apply_masalsi
 
 
 async def main():
+    
+    # Test ortaminda YouTube yuklemesi kesinlikle kapali olmali.
+    if os.environ.get(
+        "MINOMASAL_YOUTUBE_UPLOAD", "false"
+    ).lower() != "false":
+        raise RuntimeError(
+            "GUVENLIK: Video on izlemesinde YouTube yuklemesi kapali olmali."
+        )
+
     # Yayın ve ön izleme sıra kayıtlarına dokunma.
     topic = "Arkadaşına Yardım Eden Minik Fil"
 
