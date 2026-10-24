@@ -273,6 +273,27 @@ jobs:
               Path("hikaye_01.json").read_text(encoding="utf-8")
           )
 
+          
+          # Yalnızca bellekteki test kopyasını değiştir.
+          # GitHub'daki onaylı JSON dosyasına dokunma.
+          replacements = [
+              (0, "bayrak görmüş.", "bayrak gördü."),
+              (1, "yanına gelmiş.", "yanına geldi."),
+          ]
+
+          for index, old, new in replacements:
+              narration = story["scenes"][index]["narration"]
+              if old not in narration:
+                  raise RuntimeError(
+                      f"Test sahnesinde beklenen ifade bulunamadi: {old}"
+                  )
+              story["scenes"][index]["narration"] = narration.replace(
+                  old, new, 1
+              )
+
+          print("TEST GIRISI: Ilk iki sahne -di'li gecmis zamana cevrildi.")
+
+
           original, candidate = prepare_masalsi_safely(
               story,
               os.environ["POLLINATIONS_API_KEY"]
