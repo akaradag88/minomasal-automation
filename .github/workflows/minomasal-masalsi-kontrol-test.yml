@@ -382,3 +382,63 @@ jobs:
           path: masalsi_test_sonucu.json
           if-no-files-found: error
           retention-days: 7
+
+      - name: Test masalsi render bridge (No Publish)
+        run: |
+          python - <<'PY'
+          import json
+          from copy import deepcopy
+          from pathlib import Path
+          from minomasal_masalsi_kopru import prepare_story_for_render
+
+          story = json.loads(
+              Path("hikaye_01.json").read_text(encoding="utf-8")
+          )
+          original = deepcopy(story)
+
+          candidate = [
+              scene["narration"]
+              for scene in story["scenes"]
+          ]
+
+          assert "görmüş." in candidate[0]
+          candidate[0] = candidate[0].replace(
+              "görmüş.", "gördü.", 1
+          )
+
+          # TEST 1: Onayli ozel gun hikayesi degismemeli.
+          result = prepare_story_for_render(
+              story,
+              supplied_story=True,
+              approved_candidate=candidate
+          )
+          assert result == original
+          print("TEST 1: Ozel gun hikayesi korundu.")
+
+          # TEST 2: Aday yoksa orijinali kullan.
+          result = prepare_story_for_render(story)
+          assert result == original
+          print("TEST 2: Onaysiz hikaye korundu.")
+
+          # TEST 3: Acikca verilen aday uygulansin.
+          result = prepare_story_for_render(
+              story,
+              supplied_story=False,
+              approved_candidate=candidate
+          )
+          assert result["scenes"][0]["narration"] == candidate[0]
+          assert result["scenes"][0]["visual"] == original["scenes"][0]["visual"]
+          print("TEST 3: Aday anlatim uygulandi.")
+
+          # TEST 4: Gecersiz aday orijinale donsun.
+          result = prepare_story_for_render(
+              story,
+              approved_candidate=candidate[:9]
+          )
+          assert result == original
+          print("TEST 4: Gecersiz aday reddedildi.")
+
+          assert story == original
+          print("TEST 5: Kaynak JSON degismedi.")
+          print("TUM TESTLER BASARILI - YAYIN YAPILMADI.")
+          PY
