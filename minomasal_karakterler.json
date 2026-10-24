@@ -1,0 +1,554 @@
+{
+  "schema_version": 1,
+  "status": "taslak_onayli_isimler_gorunusler_kod_entegrasyonu_bekliyor",
+  "purpose": "MinoMasal 31-100 video karakter kimligi referansi. Bu dosya tek basina video uretimini degistirmez.",
+  "visual_rules": [
+    "Use the same character name, exact species or vehicle class, body structure, color palette, accessories and personality in every scene.",
+    "The named primary character must be clearly visible and visually identifiable in every scene where narration refers to them.",
+    "Do not invent new names or substitute species for mapped characters.",
+    "Include the full appearance_en description of every visible named character in each image prompt.",
+    "No lettering or watermarks in generated images. Do not rely on text labels to establish the character identity.",
+    "Preserve previously approved special-day JSON stories 33, 34, 45 and 46 unchanged.",
+    "A text-only character dictionary improves consistency but does not guarantee identical images; reference images and post-generation checks are recommended."
+  ],
+  "characters": {
+    "sincap": {
+      "name": "Sisi",
+      "type_tr": "sincap",
+      "appearance_en": "A small russet squirrel with a fluffy curled tail, cream-colored chest, bright brown eyes, and a plain green neck scarf. Clearly recognizable squirrel anatomy.",
+      "personality_tr": "Meraklı, hareketli ve yardımsever.",
+      "category": "hayvan"
+    },
+    "tavsan": {
+      "name": "Ela",
+      "type_tr": "tavşan",
+      "appearance_en": "A small light-brown rabbit with long upright white-tipped ears, warm brown eyes, a cream muzzle, and a plain blue neck scarf. Clearly recognizable rabbit anatomy.",
+      "personality_tr": "Nazik, dikkatli ve arkadaş canlısı.",
+      "category": "hayvan"
+    },
+    "fil": {
+      "name": "Edi",
+      "type_tr": "fil",
+      "appearance_en": "A young light-gray elephant with a short flexible trunk, large ears with pink inner surfaces, expressive dark eyes, and a plain blue vest. Clearly recognizable elephant anatomy.",
+      "personality_tr": "Güçlü, hassas ve yardımsever.",
+      "category": "hayvan"
+    },
+    "zurafa": {
+      "name": "Zeli",
+      "type_tr": "zürafa",
+      "appearance_en": "A young golden-yellow giraffe with a very long neck, clear large brown patches, small ossicones, warm brown eyes, and a plain orange neck scarf. The long neck and giraffe body must be visible.",
+      "personality_tr": "Biraz utangaç, sevecen ve düşünceli.",
+      "category": "hayvan"
+    },
+    "kedi": {
+      "name": "Misket",
+      "type_tr": "kedi",
+      "appearance_en": "A small gray-and-white kitten with green eyes, pointed cat ears, soft whiskers, a long feline tail, and a plain purple neck scarf.",
+      "personality_tr": "Oyuncu ve meraklı.",
+      "category": "hayvan"
+    },
+    "kirpi": {
+      "name": "Pıtır",
+      "type_tr": "kirpi",
+      "appearance_en": "A small hedgehog with brown spines on its back, a cream-colored face, tiny paws, round dark eyes, and a plain red scarf.",
+      "personality_tr": "Çekingen ama cesur olmayı öğrenen.",
+      "category": "hayvan"
+    },
+    "penguen": {
+      "name": "Piko",
+      "type_tr": "penguen",
+      "appearance_en": "A small black-and-white penguin with yellow feet, a short orange beak, round dark eyes, and a plain turquoise scarf. Distinctive penguin flippers.",
+      "personality_tr": "Neşeli ve meraklı.",
+      "category": "hayvan"
+    },
+    "aslan": {
+      "name": "Asil",
+      "type_tr": "aslan",
+      "appearance_en": "A young lion with golden fur, a small deep-orange mane, green eyes, rounded lion ears, and a tufted lion tail.",
+      "personality_tr": "Gururlu ama iyi kalpli.",
+      "category": "hayvan"
+    },
+    "panda": {
+      "name": "Pofi",
+      "type_tr": "panda",
+      "appearance_en": "A small giant panda with black-and-white fur, black eye patches, a round face, short rounded ears, and a small yellow backpack.",
+      "personality_tr": "Sakin ve sevimli.",
+      "category": "hayvan"
+    },
+    "serce": {
+      "name": "Cıvıl",
+      "type_tr": "serçe",
+      "appearance_en": "A little sparrow with light-brown wings and back, cream belly, a short yellow beak, small bird feet, and a tiny pink ribbon.",
+      "personality_tr": "Konuşkan ve çalışkan.",
+      "category": "hayvan"
+    },
+    "tilki": {
+      "name": "Tili",
+      "type_tr": "tilki",
+      "appearance_en": "A small orange fox with pointed ears, white muzzle and tail tip, bright amber eyes, and a plain navy-blue vest.",
+      "personality_tr": "Zeki ve neşeli.",
+      "category": "hayvan"
+    },
+    "koala": {
+      "name": "Koko",
+      "type_tr": "koala",
+      "appearance_en": "A small gray koala with large fluffy round ears with pink inner fur, a prominent dark oval nose, round eyes, and a plain green neck scarf.",
+      "personality_tr": "Sakin ve sevecen.",
+      "category": "hayvan"
+    },
+    "maymun": {
+      "name": "Momo",
+      "type_tr": "maymun",
+      "appearance_en": "A small light-brown monkey with a cream face and belly, big dark eyes, a long curled monkey tail, and a plain red T-shirt.",
+      "personality_tr": "Enerjik ve esprili.",
+      "category": "hayvan"
+    },
+    "baykus": {
+      "name": "Badi",
+      "type_tr": "baykuş",
+      "appearance_en": "A tawny-brown owl with large golden eyes, feathered ear tufts, a short hooked beak, brown-and-cream feathers, and a plain green vest; often the forest-school teacher.",
+      "personality_tr": "Bilge, sabırlı, iyi bir öğretmen.",
+      "category": "hayvan"
+    },
+    "ayi": {
+      "name": "Bobo",
+      "type_tr": "ayı",
+      "appearance_en": "A small friendly honey-brown bear with rounded ears, a cream muzzle, kind dark eyes, and a plain red neck scarf.",
+      "personality_tr": "Koruyucu ve iyi kalpli.",
+      "category": "hayvan"
+    },
+    "ayicik": {
+      "name": "Balım",
+      "type_tr": "minik ayıcık",
+      "appearance_en": "A tiny light-brown bear cub with rounded ears, a cream snout, bright dark eyes, and a little sky-blue vest. Distinct from the older bear Bobo.",
+      "personality_tr": "Sevecen, zaman zaman kıskanç ama öğrenmeye açık.",
+      "category": "hayvan"
+    },
+    "kaplumbaga": {
+      "name": "Tosbi",
+      "type_tr": "kaplumbağa",
+      "appearance_en": "A small turtle with light-green skin, a dark-green patterned shell, short legs, and large brown eyes.",
+      "personality_tr": "Sabırlı ve kararlı.",
+      "category": "hayvan"
+    },
+    "ari": {
+      "name": "Mara",
+      "type_tr": "arı",
+      "appearance_en": "A small friendly bee with clear yellow-and-black abdominal stripes, large blue eyes, two transparent wings, and short antennae. Clearly a bee, not another insect.",
+      "personality_tr": "Çalışkan ve meraklı.",
+      "category": "hayvan"
+    },
+    "ejderha": {
+      "name": "Dogo",
+      "type_tr": "ejderha",
+      "appearance_en": "A friendly small fantasy dragon with light-green scales, small orange wings, a pale blue belly, short rounded horns, and a long dragon tail; no fire or threatening features.",
+      "personality_tr": "Sevecen ve heyecanlı.",
+      "category": "fantastik"
+    },
+    "dinozor": {
+      "name": "Dino",
+      "type_tr": "dinozor",
+      "appearance_en": "A small friendly green cartoon dinosaur with a rounded snout, short legs, a medium-length thick tail, lighter green belly, and gentle dark eyes. Clearly a dinosaur, not a dragon.",
+      "personality_tr": "Meraklı ve iyi niyetli.",
+      "category": "fantastik"
+    },
+    "oyuncak_kamyon": {
+      "name": "Tonton",
+      "type_tr": "oyuncak kamyon",
+      "appearance_en": "A small blue toy dump truck with four black wheels, an open cargo bed, friendly windshield eyes, and a tiny silver front bumper. Clearly a truck.",
+      "personality_tr": "Sevimli ve öğrenmeye açık.",
+      "category": "arac"
+    },
+    "itfaiye": {
+      "name": "Lava",
+      "type_tr": "itfaiye aracı",
+      "appearance_en": "A friendly bright-red fire engine with a silver roof ladder, white reflective stripes, four dark wheels, and expressive windshield eyes. Clearly recognizable fire truck.",
+      "personality_tr": "Cesur ve yardımsever.",
+      "category": "arac"
+    },
+    "yaris_arabasi": {
+      "name": "Rüzgâr",
+      "type_tr": "yarış arabası",
+      "appearance_en": "A compact sporty race car with a bright red body, yellow racing accents, a low aerodynamic shape, four black racing tires, and expressive windshield eyes. No text or numbers.",
+      "personality_tr": "Hızlı ve enerjik; sabretmeyi öğreniyor.",
+      "category": "arac"
+    },
+    "traktor": {
+      "name": "Tora",
+      "type_tr": "traktör",
+      "appearance_en": "A friendly green farm tractor with large rear black tires, smaller front tires, yellow wheel rims, a black exhaust pipe, and expressive windshield eyes.",
+      "personality_tr": "Çalışkan ve dayanıklı.",
+      "category": "arac"
+    },
+    "cekici": {
+      "name": "Atlas",
+      "type_tr": "çekici",
+      "appearance_en": "An orange tow truck with a visible rear towing hook and boom, four black wheels, a sturdy body, and expressive windshield eyes.",
+      "personality_tr": "Güçlü ve yardımsever.",
+      "category": "arac"
+    },
+    "beton_mikseri": {
+      "name": "Miko",
+      "type_tr": "beton mikseri",
+      "appearance_en": "A white-and-orange concrete mixer truck with a large clearly visible rotating mixing drum, six dark wheels, and friendly windshield eyes.",
+      "personality_tr": "Neşeli ve titiz.",
+      "category": "arac"
+    },
+    "otobus": {
+      "name": "Boni",
+      "type_tr": "otobüs",
+      "appearance_en": "A small sunshine-yellow city bus with large side windows, four black wheels, friendly windshield eyes, and rounded corners. Clearly recognizable bus.",
+      "personality_tr": "Nazik ve sosyal.",
+      "category": "arac"
+    },
+    "oyuncak_tren": {
+      "name": "Tutu",
+      "type_tr": "oyuncak tren",
+      "appearance_en": "A small red-and-blue toy locomotive with a short chimney, a smiling front face, black train wheels, and two tiny matching carriages.",
+      "personality_tr": "Paylaşmayı seven, meraklı.",
+      "category": "arac"
+    },
+    "vinc": {
+      "name": "Vini",
+      "type_tr": "vinç",
+      "appearance_en": "A compact golden-yellow mobile crane with a long raised boom and visible hook, four black wheels, and friendly cab eyes. Clearly a crane.",
+      "personality_tr": "Dikkatli ve sabırlı.",
+      "category": "arac"
+    },
+    "cop_kamyonu": {
+      "name": "Pako",
+      "type_tr": "çöp kamyonu",
+      "appearance_en": "A bright-green garbage collection truck with an enclosed rear compactor body, four dark wheels, and friendly windshield eyes.",
+      "personality_tr": "Temizliği ve doğayı seven.",
+      "category": "arac"
+    },
+    "kucuk_araba": {
+      "name": "Minti",
+      "type_tr": "küçük araba",
+      "appearance_en": "A small rounded sky-blue passenger car with four wheels, a compact hatchback body, friendly windshield eyes, and a simple silver grille.",
+      "personality_tr": "Çekingen ama kararlı.",
+      "category": "arac"
+    },
+    "ambulans": {
+      "name": "Şifa",
+      "type_tr": "ambulans",
+      "appearance_en": "A friendly white ambulance with clear red emergency stripes, a red medical cross emblem, a roof emergency lightbar, and expressive windshield eyes.",
+      "personality_tr": "Şefkatli ve sakin.",
+      "category": "arac"
+    },
+    "elektrikli_otomobil": {
+      "name": "İvi",
+      "type_tr": "elektrikli otomobil",
+      "appearance_en": "A modern compact turquoise electric hatchback with sleek LED headlights, smooth closed front grille, four dark wheels, friendly windshield eyes, and a small charging port. No exhaust pipe.",
+      "personality_tr": "Sessiz, yenilikçi ve meraklı.",
+      "category": "arac"
+    },
+    "ucak": {
+      "name": "Pırpır",
+      "type_tr": "küçük uçak",
+      "appearance_en": "A small light-blue-and-white propeller airplane with clearly visible wings, a front propeller, landing wheels, and expressive cockpit windshield eyes.",
+      "personality_tr": "Neşeli ve maceracı.",
+      "category": "arac"
+    },
+    "denizalti": {
+      "name": "Dalgıç",
+      "type_tr": "denizaltı",
+      "appearance_en": "A small friendly bright-yellow submarine with a rounded hull, circular blue porthole windows, a short periscope, and a smiling face near its front.",
+      "personality_tr": "Keşfetmeyi seven ve cesur.",
+      "category": "arac"
+    },
+    "balon": {
+      "name": "Ponpon",
+      "type_tr": "sıcak hava balonu",
+      "appearance_en": "A small friendly red hot-air balloon with a rounded balloon envelope, tan wicker basket, simple smiling eyes on the envelope, and visible supporting ropes.",
+      "personality_tr": "Meraklı ve gezgin.",
+      "category": "arac"
+    },
+    "roket": {
+      "name": "Rokko",
+      "type_tr": "roket",
+      "appearance_en": "A small friendly white rocket with red nose cone and fins, two circular blue windows, a safe non-threatening propulsion glow, and expressive eyes near the front.",
+      "personality_tr": "Cesur, sabırlı ve meraklı.",
+      "category": "uzay"
+    },
+    "robot": {
+      "name": "Bibo",
+      "type_tr": "robot",
+      "appearance_en": "A small rounded friendly robot with a white-and-silver body, two blue digital eyes on a dark face screen, short articulated arms, and two compact legs. Consistent blue chest indicator.",
+      "personality_tr": "Düzenli, nazik ve öğrenmeye açık.",
+      "category": "teknoloji"
+    },
+    "bulut": {
+      "name": "Buli",
+      "type_tr": "bulut",
+      "appearance_en": "A small fluffy white cartoon cloud with soft rounded edges, tiny rosy cheeks, two expressive eyes, and a gentle smile; floating above the landscape.",
+      "personality_tr": "Duyarlı ve yardımsever.",
+      "category": "doga"
+    },
+    "gokkusagi": {
+      "name": "Gökçe",
+      "type_tr": "gökkuşağı",
+      "appearance_en": "A bright friendly rainbow arch with seven distinct bands of red orange yellow green blue indigo and violet, small expressive eyes and a smile near its center.",
+      "personality_tr": "İyimser ve neşeli.",
+      "category": "doga"
+    },
+    "yagmur_damlasi": {
+      "name": "Damla",
+      "type_tr": "yağmur damlası",
+      "appearance_en": "A small shiny sky-blue teardrop-shaped water droplet with expressive eyes, a tiny smile, and translucent highlights.",
+      "personality_tr": "Meraklı ve maceracı.",
+      "category": "doga"
+    },
+    "cocuk_efe": {
+      "name": "Efe",
+      "type_tr": "çocuk",
+      "appearance_en": "A young boy about six years old with short chestnut-brown hair, warm brown eyes, a yellow rain jacket, navy trousers, and blue shoes.",
+      "personality_tr": "Neşeli ve meraklı.",
+      "category": "insan"
+    },
+    "cocuk_mert": {
+      "name": "Mert",
+      "type_tr": "çocuk",
+      "appearance_en": "A young boy about six years old with short black hair, dark brown eyes, a green hoodie, denim trousers, and white sneakers. Visually distinct from Efe.",
+      "personality_tr": "Sevecen ve dürüst.",
+      "category": "insan"
+    },
+    "astronot": {
+      "name": "Lina",
+      "type_tr": "çocuk astronot",
+      "appearance_en": "A young girl astronaut with short dark-brown hair, dark eyes, a white spacesuit with turquoise trim, clear helmet visor and blue gloves.",
+      "personality_tr": "Meraklı, dikkatli ve cesur.",
+      "category": "insan"
+    }
+  },
+  "story_characters_31_100": {
+    "31": [
+      "kedi"
+    ],
+    "32": [
+      "kirpi"
+    ],
+    "33": [
+      "sincap"
+    ],
+    "34": [
+      "sincap",
+      "tavsan",
+      "baykus"
+    ],
+    "35": [
+      "fil"
+    ],
+    "36": [
+      "tavsan"
+    ],
+    "37": [
+      "penguen"
+    ],
+    "38": [
+      "zurafa"
+    ],
+    "39": [
+      "aslan"
+    ],
+    "40": [
+      "panda"
+    ],
+    "41": [
+      "serce"
+    ],
+    "42": [
+      "tilki"
+    ],
+    "43": [
+      "koala"
+    ],
+    "44": [
+      "maymun"
+    ],
+    "45": [
+      "baykus"
+    ],
+    "46": [
+      "baykus",
+      "sincap",
+      "tavsan"
+    ],
+    "47": [
+      "oyuncak_kamyon"
+    ],
+    "48": [
+      "itfaiye"
+    ],
+    "49": [
+      "yaris_arabasi"
+    ],
+    "50": [
+      "traktor"
+    ],
+    "51": [
+      "cekici"
+    ],
+    "52": [
+      "beton_mikseri"
+    ],
+    "53": [
+      "otobus"
+    ],
+    "54": [
+      "oyuncak_tren"
+    ],
+    "55": [
+      "vinc"
+    ],
+    "56": [
+      "cop_kamyonu"
+    ],
+    "57": [
+      "kucuk_araba"
+    ],
+    "58": [
+      "ambulans"
+    ],
+    "59": [
+      "elektrikli_otomobil"
+    ],
+    "60": [
+      "traktor",
+      "vinc",
+      "beton_mikseri",
+      "cekici"
+    ],
+    "61": [
+      "dinozor"
+    ],
+    "62": [
+      "ejderha"
+    ],
+    "63": [
+      "cocuk_efe"
+    ],
+    "64": [
+      "robot"
+    ],
+    "65": [
+      "bulut"
+    ],
+    "66": [
+      "dinozor"
+    ],
+    "67": [
+      "ayicik"
+    ],
+    "68": [
+      "tavsan"
+    ],
+    "69": [
+      "cocuk_mert"
+    ],
+    "70": [
+      "robot"
+    ],
+    "71": [
+      "aslan"
+    ],
+    "72": [
+      "fil"
+    ],
+    "73": [
+      "dinozor"
+    ],
+    "74": [
+      "roket"
+    ],
+    "75": [
+      "panda"
+    ],
+    "76": [
+      "kucuk_araba"
+    ],
+    "77": [
+      "tavsan"
+    ],
+    "78": [
+      "ayi"
+    ],
+    "79": [
+      "robot"
+    ],
+    "80": [
+      "tilki"
+    ],
+    "81": [
+      "roket"
+    ],
+    "82": [
+      "denizalti"
+    ],
+    "83": [
+      "dinozor"
+    ],
+    "84": [
+      "astronot"
+    ],
+    "85": [
+      "robot"
+    ],
+    "86": [
+      "tavsan"
+    ],
+    "87": [
+      "gokkusagi"
+    ],
+    "88": [
+      "ari"
+    ],
+    "89": [
+      "yagmur_damlasi"
+    ],
+    "90": [
+      "bulut"
+    ],
+    "91": [
+      "kaplumbaga"
+    ],
+    "92": [
+      "robot"
+    ],
+    "93": [
+      "kirpi"
+    ],
+    "94": [
+      "penguen"
+    ],
+    "95": [
+      "ucak"
+    ],
+    "96": [
+      "balon"
+    ],
+    "97": [
+      "traktor"
+    ],
+    "98": [
+      "baykus"
+    ],
+    "99": [
+      "sincap"
+    ],
+    "100": [
+      "sincap",
+      "tavsan",
+      "fil",
+      "dinozor",
+      "robot"
+    ]
+  },
+  "notes_tr": [
+    "Rüzgâr yarış arabasının adı; uçak için Pırpır kullanılır.",
+    "Pofi panda, Buli bulut; iki karakterin adı farklıdır.",
+    "Bobo ayı, Balım minik ayıcık olarak ayrı kimliklerdir.",
+    "33, 34, 45, 46 numaralı onaylı özel gün JSON dosyalarındaki karakterleri geriye dönük değiştirmeyin.",
+    "Görseller üretilmeden önce karakter adları ve türleri üretim aşamasında eşlenmelidir."
+  ]
+}
