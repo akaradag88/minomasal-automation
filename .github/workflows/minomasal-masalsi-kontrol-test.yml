@@ -374,3 +374,11 @@ jobs:
           print("\nMANUEL KALITE ONAYI BEKLENIYOR.")
           print("VIDEO YAYINLANMADI.")
           PY
+
+      - name: Save masalsi comparison JSON
+        uses: actions/upload-artifact@v4
+        with:
+          name: minomasal-masalsi-karsilastirma
+          path: masalsi_test_sonucu.json
+          if-no-files-found: error
+          retention-days: 7
