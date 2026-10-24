@@ -314,6 +314,32 @@ jobs:
 
           print("ZAMAN KIPI DONUSUM TESTI BASARILI")
 
+          from copy import deepcopy
+          from minomasal_masalsi_uygula import apply_masalsi
+
+          original_story = deepcopy(story)
+
+          # Gercek AI adayini yalnizca testte uygula.
+          approved_preview = apply_masalsi(
+              story, candidate, approved=True
+          )
+
+          assert story == original_story
+          assert len(approved_preview["scenes"]) == 10
+
+          for index in range(10):
+              assert (
+                  approved_preview["scenes"][index]["narration"]
+                  == candidate[index]
+              )
+              assert (
+                  approved_preview["scenes"][index]["visual"]
+                  == story["scenes"][index]["visual"]
+              )
+
+          print("GERCEK AI ADAYI GUVENLI UYGULAMA TESTI BASARILI")
+          print("ORIJINAL HIKAYE VE GORSELLER KORUNDU")
+
           print("MASALSI ANLATIM ON IZLEME")
 
           for i, (scene, text) in enumerate(
