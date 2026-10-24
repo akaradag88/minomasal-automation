@@ -68,3 +68,55 @@ jobs:
 
           print("TUM TESTLER BASARILI - YAYIN YAPILMADI.")
           PY
+
+      - name: Test masalsi application with real story (No Publish)
+        run: |
+          python - <<'PY'
+          import json
+          from copy import deepcopy
+          from pathlib import Path
+          from minomasal_masalsi_uygula import apply_masalsi
+
+          story = json.loads(
+              Path("hikaye_01.json").read_text(encoding="utf-8")
+          )
+          original = deepcopy(story)
+
+          converted = [
+              scene["narration"]
+              for scene in story["scenes"]
+          ]
+
+          # Yalnızca test için geçici bir metin farkı oluştur.
+          converted[0] = "Masalsı deneme: " + converted[0]
+
+          # Onaysız dönüşüm orijinali korumalı.
+          rejected = apply_masalsi(
+              story, converted, approved=False
+          )
+          assert rejected == original
+          print("TEST 1: Onaysiz hikaye korunuyor.")
+
+          # Onaylı dönüşüm anlatıma uygulanmalı.
+          accepted = apply_masalsi(
+              story, converted, approved=True
+          )
+          assert accepted["scenes"][0]["narration"] == converted[0]
+          print("TEST 2: Onayli anlatim uygulandi.")
+
+          # Görseller ve karakter tanımları değişmemeli.
+          assert accepted["characters"] == original["characters"]
+
+          for old, new in zip(
+              original["scenes"], accepted["scenes"]
+          ):
+              assert old["visual"] == new["visual"]
+
+          print("TEST 3: Gorseller ve karakterler korundu.")
+
+          # Kaynak hikaye değiştirilmemeli.
+          assert story == original
+          print("TEST 4: Orijinal JSON degismedi.")
+
+          print("TUM TESTLER BASARILI - VIDEO YAYINLANMADI.")
+          PY
