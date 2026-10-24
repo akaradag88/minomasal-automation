@@ -1,0 +1,71 @@
+
+name: MinoMasal Facebook Status Check (No Publish)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check existing Facebook video status
+        env:
+          FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.parse
+          import urllib.request
+          import urllib.error
+
+          video_id = "1453876890009815"
+          token = os.environ["FACEBOOK_PAGE_ACCESS_TOKEN"]
+
+          if not token:
+              raise RuntimeError("Facebook token bulunamadi.")
+
+          query = urllib.parse.urlencode({
+              "fields": "id,status"
+          })
+
+          url = (
+              f"https://graph.facebook.com/v26.0/"
+              f"{video_id}?{query}"
+          )
+
+          request = urllib.request.Request(
+              url,
+              headers={
+                  "Authorization": f"Bearer {token}"
+              },
+              method="GET"
+          )
+
+          try:
+              with urllib.request.urlopen(
+                  request, timeout=60
+              ) as response:
+                  result = json.load(response)
+          except urllib.error.HTTPError as exc:
+              print("FACEBOOK HTTP HATASI:", exc.code)
+              raise SystemExit(1)
+
+          if str(result.get("id")) != video_id:
+              raise RuntimeError("Video ID uyusmuyor.")
+
+          status = result.get("status") or {}
+
+          print("VIDEO ID:", video_id)
+          print(
+              "FACEBOOK DURUMU:",
+              json.dumps(status, ensure_ascii=False)
+          )
+
+          print("SADECE DURUM SORGULANDI.")
+          print("YAYIN VE YUKLEME YAPILMADI.")
+          PY
