@@ -478,6 +478,21 @@
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-29/minomasal-29.mp4",
         "release_tag": "minomasal-story-29"
       }
+    },
+    "30": {
+      "topic": "Yapamam Diyen Küçük Fare",
+      "title": "Küçük Fare Yapamam Dedi! | MinoMasal",
+      "youtube": {
+        "status": "pending",
+        "video_id": null,
+        "privacy": null
+      },
+      "instagram": {
+        "status": "pending",
+        "container_id": null,
+        "media_id": null
+      },
+      "video_asset": null
     }
   }
 }
