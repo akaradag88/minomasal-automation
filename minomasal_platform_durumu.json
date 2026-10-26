@@ -506,9 +506,9 @@
         "privacy": "public"
       },
       "instagram": {
-        "status": "ambiguous",
+        "status": "published",
         "container_id": "18137363800631544",
-        "media_id": null
+        "media_id": "18016690274752910"
       },
       "video_asset": {
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-31/minomasal-31.mp4",
