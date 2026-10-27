@@ -12,6 +12,13 @@ SEED = 1234
 GORSel_KLASORU = ""
 MUZIK_KLASORU = Path("music")
 MUZIK_SEVIYESI = 0.12
+
+# 30 saniyelik masal denemesi.
+# Varsayilan olarak kapali; gunluk yayinlar etkilenmez.
+KISA_MASAL_TEST = (
+    os.environ.get("MINOMASAL_30SN_TEST", "false").lower() == "true"
+)
+
 SFX_KLASORU = ""
 ROOT = Path("minomasal_data").resolve()
 ROOT.mkdir(parents=True, exist_ok=True)
