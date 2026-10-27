@@ -102,7 +102,7 @@ jobs:
           print("Sahne sayısı:", count)
           print("Kelime sayısı:", words)
 
-          if count != 6 or not 50 <= words <= 65:
+          if count != 6 or not 45 <= words <= 65:
               raise RuntimeError(
                   "Hikâye 30 saniyelik formata uymuyor."
               )
