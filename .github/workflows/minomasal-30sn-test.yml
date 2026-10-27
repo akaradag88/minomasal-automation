@@ -24,33 +24,46 @@ jobs:
       
       
      
+    
       - name: Install dependencies
         timeout-minutes: 12
         run: |
           set -euo pipefail
 
-          curl -fL --retry 2 --max-time 240 \
-            -o "$RUNNER_TEMP/ffmpeg.tar.xz" \
-            "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"
+          ASSET="ffmpeg-master-latest-linux64-gpl.tar.xz"
+          REPO="BtbN/FFmpeg-Builds"
 
-          echo "2e17e5bba6cbbd764ada366f96d496d6e63f3117961950590ccffa33d7413257  $RUNNER_TEMP/ffmpeg.tar.xz" | sha256sum -c -
+          gh release download latest \
+            --repo "$REPO" \
+            --pattern "$ASSET" \
+            --pattern "checksums.sha256" \
+            --dir "$RUNNER_TEMP"
+
+          cd "$RUNNER_TEMP"
+
+          grep -F "$ASSET" checksums.sha256 \
+            | sha256sum -c -
 
           mkdir -p "$RUNNER_TEMP/ffmpeg"
-          tar -xJf "$RUNNER_TEMP/ffmpeg.tar.xz" \
+          tar -xJf "$ASSET" \
             -C "$RUNNER_TEMP/ffmpeg"
 
-          FFMPEG_BIN="$(find "$RUNNER_TEMP/ffmpeg" -type f -name ffmpeg -print -quit)"
+          FFMPEG_BIN="$(find "$RUNNER_TEMP/ffmpeg" \
+            -type f -name ffmpeg -print -quit)"
+
           test -n "$FFMPEG_BIN"
 
           BIN_DIR="$(dirname "$FFMPEG_BIN")"
+
           echo "$BIN_DIR" >> "$GITHUB_PATH"
           export PATH="$BIN_DIR:$PATH"
 
           ffmpeg -version
           ffprobe -version
 
-          python -m pip install --disable-pip-version-check \
-            -r requirements-minomasal.txt
+          python -m pip install \
+            --disable-pip-version-check \
+            -r "$GITHUB_WORKSPACE/requirements-minomasal.txt"
 
 
       - name: Generate 30-second preview
