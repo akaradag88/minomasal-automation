@@ -1,124 +1,56 @@
-
 name: MinoMasal 30 Saniye Test (No Publish)
-
 on:
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   short-preview:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      
-      
-     
-    
-     
       - name: Install dependencies
         timeout-minutes: 12
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-
-
           ASSET="ffmpeg-master-latest-linux64-gpl.tar.xz"
           REPO="BtbN/FFmpeg-Builds"
-
           gh release download latest \
             --repo "$REPO" \
             --pattern "$ASSET" \
             --pattern "checksums.sha256" \
             --dir "$RUNNER_TEMP"
-
           cd "$RUNNER_TEMP"
-
-          grep -F "$ASSET" checksums.sha256 \
-            | sha256sum -c -
-
+          grep -F "$ASSET" checksums.sha256 | sha256sum -c -
           mkdir -p "$RUNNER_TEMP/ffmpeg"
-          tar -xJf "$ASSET" \
-            -C "$RUNNER_TEMP/ffmpeg"
-
-          FFMPEG_BIN="$(find "$RUNNER_TEMP/ffmpeg" \
-            -type f -name ffmpeg -print -quit)"
-
+          tar -xJf "$ASSET" -C "$RUNNER_TEMP/ffmpeg"
+          FFMPEG_BIN="$(find "$RUNNER_TEMP/ffmpeg" -type f -name ffmpeg -print -quit)"
           test -n "$FFMPEG_BIN"
-
           BIN_DIR="$(dirname "$FFMPEG_BIN")"
-
           echo "$BIN_DIR" >> "$GITHUB_PATH"
           export PATH="$BIN_DIR:$PATH"
-
           ffmpeg -version
           ffprobe -version
-
-          python -m pip install \
-            --disable-pip-version-check \
-            -r "$GITHUB_WORKSPACE/requirements-minomasal.txt"
-
-
-      - name: Generate 30-second preview
+          python -m pip install --disable-pip-version-check -r "$GITHUB_WORKSPACE/requirements-minomasal.txt"
+      - name: Generate isolated Tosbi preview
         env:
           MINOMASAL_30SN_TEST: 'true'
           MINOMASAL_YOUTUBE_UPLOAD: 'false'
           POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          python - <<'PY'
-          import asyncio
-          from minomasal import (
-              KISA_MASAL_TEST,
-              API_KEY,
-              HIKAYE_MODELI,
-              create_story,
-              produce,
-              duration,
-          )
-
-          assert KISA_MASAL_TEST
-
-          topic = "Minik Kaplumbağanın Kayıp Yıldızı"
-          story = create_story(topic, API_KEY, HIKAYE_MODELI)
-
-          count = len(story["scenes"])
-          words = sum(
-              len(s["narration"].split())
-              for s in story["scenes"]
-          )
-
-          print("Sahne sayısı:", count)
-          print("Kelime sayısı:", words)
-
-          if count != 6 or not 45 <= words <= 65:
-              raise RuntimeError(
-                  "Hikâye 30 saniyelik formata uymuyor."
-              )
-
-          video = asyncio.run(
-              produce(topic, supplied_story=story)
-          )
-
-          seconds = duration(video)
-          print("Video süresi:", round(seconds, 2), "saniye")
-          print("Video hazır. Sosyal medya yayını yapılmadı.")
-          PY
-
+        run: python minomasal_30sn_duzeltilmis_test.py
       - name: Save preview
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: minomasal-30sn-preview
           path: minomasal_data/**/masal_short.mp4
+          if-no-files-found: warn
           retention-days: 3
