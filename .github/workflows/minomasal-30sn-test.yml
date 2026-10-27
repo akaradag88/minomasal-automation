@@ -1,0 +1,81 @@
+
+name: MinoMasal 30 Saniye Test (No Publish)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  short-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install -r requirements-minomasal.txt
+
+      - name: Generate 30-second preview
+        env:
+          MINOMASAL_30SN_TEST: 'true'
+          MINOMASAL_YOUTUBE_UPLOAD: 'false'
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python - <<'PY'
+          import asyncio
+          from minomasal import (
+              KISA_MASAL_TEST,
+              API_KEY,
+              HIKAYE_MODELI,
+              create_story,
+              produce,
+              duration,
+          )
+
+          assert KISA_MASAL_TEST
+
+          topic = "Minik Kaplumbağanın Kayıp Yıldızı"
+          story = create_story(topic, API_KEY, HIKAYE_MODELI)
+
+          count = len(story["scenes"])
+          words = sum(
+              len(s["narration"].split())
+              for s in story["scenes"]
+          )
+
+          print("Sahne sayısı:", count)
+          print("Kelime sayısı:", words)
+
+          if count != 6 or not 50 <= words <= 65:
+              raise RuntimeError(
+                  "Hikâye 30 saniyelik formata uymuyor."
+              )
+
+          video = asyncio.run(
+              produce(topic, supplied_story=story)
+          )
+
+          seconds = duration(video)
+          print("Video süresi:", round(seconds, 2), "saniye")
+          print("Video hazır. Sosyal medya yayını yapılmadı.")
+          PY
+
+      - name: Save preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: minomasal-30sn-preview
+          path: minomasal_data/**/masal_short.mp4
+          retention-days: 3
