@@ -25,10 +25,14 @@ jobs:
       
      
     
+     
       - name: Install dependencies
         timeout-minutes: 12
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+
 
           ASSET="ffmpeg-master-latest-linux64-gpl.tar.xz"
           REPO="BtbN/FFmpeg-Builds"
