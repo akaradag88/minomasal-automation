@@ -21,11 +21,14 @@ jobs:
         with:
           python-version: '3.11'
 
+      
       - name: Install dependencies
+        timeout-minutes: 8
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
-          python -m pip install -r requirements-minomasal.txt
+          timeout 120s sudo apt-get update -qq
+          timeout 240s sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
+          python -m pip install --disable-pip-version-check -r requirements-minomasal.txt
+          ffmpeg -version
 
       - name: Generate 30-second preview
         env:
