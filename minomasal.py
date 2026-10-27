@@ -149,6 +149,22 @@ def validate(story):
 
 def create_story(topic, key, model):
     if not key: raise ValueError('Yeni hikâye için Colab Secrets bölümüne POLLINATIONS_API_KEY ekleyin veya JSON hikâye yükleyin.')
+    
+    if KISA_MASAL_TEST:
+        format_kurali = (
+            "Toplam 50–65 kelime ve tam 6 sahne oluştur. "
+            "Her sahnede bir kısa anlatım cümlesi kullan. "
+            "İlk cümle ilk 2 saniyede merak uyandırsın. "
+            "Gereksiz giriş yapma. "
+            "Olayı hızlıca başlat, geliştir ve sonuçlandır."
+        )
+    else:
+        format_kurali = (
+            "Toplam 100–130 kelime, 10 sahne. "
+            "İlk cümle merak uyandırsın. "
+            "Olaylar sebep-sonuç sırasıyla ilerlesin."
+        )
+
     prompt = f"""4–8 yaş çocuklarına Türkçe öğretici hayvan hikâyesi yaz. Konu: {topic}.
 Toplam 100–130 kelime, 10 sahne. İlk cümle merak uyandırsın. Olaylar sebep-sonuç sırasıyla ilerlesin.
 Tek somut ders, korkutucu içerik yok, tehlikeli davranışa özendirme yok, satın alma/abone ol çağrısı yok.
