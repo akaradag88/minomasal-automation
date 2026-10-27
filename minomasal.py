@@ -150,14 +150,21 @@ def validate(story):
 def create_story(topic, key, model):
     if not key: raise ValueError('Yeni hikâye için Colab Secrets bölümüne POLLINATIONS_API_KEY ekleyin veya JSON hikâye yükleyin.')
     
+    
     if KISA_MASAL_TEST:
         format_kurali = (
-            "Toplam 50–65 kelime ve tam 6 sahne oluştur. "
-            "Her sahnede bir kısa anlatım cümlesi kullan. "
-            "İlk cümle ilk 2 saniyede merak uyandırsın. "
-            "Gereksiz giriş yapma. "
-            "Olayı hızlıca başlat, geliştir ve sonuçlandır."
+            "KESİN KURAL: Tam 6 sahne oluştur. "
+            "Toplam anlatım metni 50–65 Türkçe kelime olmalı. "
+            "İlk sahnenin narration metni 5–7 kelime olsun. "
+            "Diğer 5 sahnenin her biri 9–11 kelime içersin. "
+            "Her sahnede yalnızca bir kısa anlatım cümlesi kullan. "
+            "İlk sahnede doğrudan merak uyandıran olayı göster. "
+            "Giriş, uzun betimleme ve tekrar kullanma. "
+            "JSON yanıtını vermeden önce narration kelimelerini say. "
+            "Sınırlar dışındaysa metni kısaltarak düzelt. "
+            "Başlık, moral ve visual metinleri kelime hesabına dahil değildir."
         )
+
     else:
         format_kurali = (
             "Toplam 100–130 kelime, 10 sahne. "
