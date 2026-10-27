@@ -39,6 +39,7 @@ jobs:
           ffmpeg -version
           ffprobe -version
           python -m pip install --disable-pip-version-check -r "$GITHUB_WORKSPACE/requirements-minomasal.txt"
+          python -m pip install --disable-pip-version-check "faster-whisper>=1.1,<2"
       - name: Generate isolated Tosbi preview
         env:
           MINOMASAL_30SN_TEST: 'true'
