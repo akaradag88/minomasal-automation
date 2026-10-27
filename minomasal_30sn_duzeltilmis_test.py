@@ -105,9 +105,17 @@ async def scene_voices(story, folder):
         d = mm.duration(path)
         if d <= 0:
             raise RuntimeError(f'Bos ses dosyasi: {path}')
+        
         out.append((path, d, []))
         print(f'Ses {i}/{len(story["scenes"])} hazir ({d:.2f} sn)')
+
+        # Gemini ücretsiz kota sınırı için bekleme
+        if i < len(story['scenes']):
+            print('Sonraki seslendirme için 25 saniye bekleniyor...')
+            await asyncio.sleep(25)
+
     return out
+
 
 
 def sentence_subtitles(words, text, dur):
