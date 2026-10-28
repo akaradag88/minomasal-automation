@@ -2,7 +2,7 @@ name: MinoMasal Daily YouTube Instagram (19 TR)
 
 on:
   schedule:
-    - cron: '0 16 * * *'  # 19:00 Europe/Istanbul (UTC+3 year-round)
+    - cron: '0 16 * * *'  # 19:00 Europe/Istanbul (UTC+3)
   workflow_dispatch:
 
 permissions:
@@ -27,38 +27,24 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         run: |
+          set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg fonts-dejavu-core
-          python -m pip install -r requirements-minomasal.txt
-          python -m pip install google-api-python-client google-auth google-auth-httplib2
-      - name: Generate next video from ledger
+          python -m pip install --disable-pip-version-check -r requirements-minomasal.txt
+          python -m pip install --disable-pip-version-check google-api-python-client google-auth google-auth-httplib2 'faster-whisper>=1.1,<2'
+          ffmpeg -filters | grep -E '(^| )ass( |$)' || { echo 'FFmpeg ass filtresi bulunamadi'; exit 1; }
+      - name: Generate next video from ledger (approved story 34)
         id: stage
         env:
           POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
-          MINOMASAL_YOUTUBE_UPLOAD: 'false'
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python minomasal_daily_live.py
+          MINOMASAL_YOUTUBE_UPLOAD: 'false'
+        run: python minomasal_34_onayli_gunluk.py
       - name: Configure Git identity
         if: steps.stage.outputs.number != ''
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-      
-      - name: Sync latest GitHub state before publishing
-        if: steps.stage.outputs.number != ''
-        run: |
-          git fetch origin main
-          git diff --quiet || {
-            echo "Tracked files have local changes; refusing to discard them."
-            exit 1
-          }
-          git diff --cached --quiet || {
-            echo "Staged changes exist; refusing to discard them."
-            exit 1
-          }
-          git reset --hard origin/main
-          git status --short
-     
       - name: Publish same video to YouTube and Instagram
         if: steps.stage.outputs.number != ''
         env:
