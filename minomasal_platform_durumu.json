@@ -532,6 +532,21 @@
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-32/minomasal-32.mp4",
         "release_tag": "minomasal-story-32"
       }
+    },
+    "33": {
+      "topic": "Minik Sincabın Kırmızı Beyaz Bayrağı",
+      "title": "Minik Sincabın Kırmızı Beyaz Bayrağı | MinoMasal",
+      "youtube": {
+        "status": "published",
+        "video_id": "UU1QoRUSXFc",
+        "privacy": "public"
+      },
+      "instagram": {
+        "status": "published",
+        "container_id": null,
+        "media_id": "18387048796233534"
+      },
+      "video_asset": null
     }
   }
 }
