@@ -53,7 +53,7 @@ def prompt_rules(topic, all_topics):
         'Her sahnede 1 veya 2 gorunen karakter olsun. Gereksiz figuran, kalabalik, ekstra hayvan, gorunmeyen yeni isim ekleme.',
         'Ana karakterin sabit turunu, adini, govdesini, renklerini, aksesuarlarini butun sahnelerde koru.',
         'Anlatilan olay ile English visual tasviri tam ayni olsun. Her sahnede tek ana eylem.',
-        '10 sahne, toplam 100-130 Turkce narration kelimesi. Her sahnede kisa ve kolay anlasilir metin.',
+        '10 sahne, toplam 75-110 Turkce narration kelimesi. Akici bir hikaye icin tercihen 85-95 kelime hedefle.',
         'Her sahne icin sadece gercekte gorunecek karakterleri ve eylemi visual icinde tarif et.',
     ]
     if cast:
@@ -80,8 +80,8 @@ def verify_and_enrich(story, topic, all_topics):
     if not isinstance(scenes, list) or len(scenes) != 10:
         raise ValueError(f'10 sahne bekleniyor; {len(scenes) if isinstance(scenes,list) else "sahne yok"}.')
     total_words = sum(len(s['narration'].split()) for s in scenes)
-    if not 100 <= total_words <= 130:
-        raise ValueError(f'100-130 kelime bekleniyor; bulunan {total_words}.')
+    if not 75 <= total_words <= 110:
+        raise ValueError(f'75-110 kelime bekleniyor; bulunan {total_words}.')
     for idx, scene in enumerate(scenes, 1):
         if not isinstance(scene.get('narration'), str) or not isinstance(scene.get('visual'), str):
             raise ValueError(f'{idx}. sahnede narration veya visual eksik.')
@@ -157,15 +157,15 @@ def create_story_v2(topic, key, model, all_topics):
     if not key:
         raise RuntimeError('POLLINATIONS_API_KEY bulunamadi.')
 
-    # Modelin 100-130 toplam kelime istegini kacirmamasi icin sahne basi
-    # 11-12 kelime hedefliyoruz: 10 sahne => 110-120 kelime.
+    # 10 sahnede 80-100 kelimeyi hedefle; kalite kapisi 75-110 kelimeyi kabul eder.
+    # Asiri katı sahne-basi uzunluk kuralı yerine akiciliga oncelik ver.
     base_prompt = f"""4-8 yas cocuklar icin Turkce, ogretici, sicak bir masal yaz.
 Konu: {topic}.
 {prompt_rules(topic, all_topics)}
 KESIN SAYISAL KURAL:
 - Tam 10 scenes nesnesi olustur.
-- HER narration ALANI 11 veya 12 Turkce kelimeden olussun.
-- Toplam narration kelime sayisi boylece 110-120 olmali.
+- Her sahnede genellikle 8-10 Turkce kelime kullan; anlatimin akici olmasi oncelikli.
+- Toplam narration kelime sayisi tercihen 85-95; KABUL ARALIGI 75-110.
 - Kelimeler boslukla ayrilir; title, moral ve visual kelime hesabina girmez.
 - Her sahnede anlami olan akici 1-2 cumle yaz; sirf uzunluk icin
   tekrarlama veya dolgu cumlesi ekleme.
@@ -174,7 +174,7 @@ KESIN SAYISAL KURAL:
 Tek somut ders anlat. Korku, siddet, tehlikeli davranis, urun/abone ol cagrisi kullanma.
 Diyaloglari az tut. Edi veya diger onayli karakter adlarini degistirme.
 YALNIZCA JSON nesnesi dondur:
-{{"title":"Turkce baslik","moral":"kisa ders","characters":"cast appearance","scenes":[{{"narration":"11 veya 12 Turkce kelime","visual":"English scene description","sfx":"none"}}]}}
+{{"title":"Turkce baslik","moral":"kisa ders","characters":"cast appearance","scenes":[{{"narration":"yaklasik 8-10 Turkce kelime","visual":"English scene description","sfx":"none"}}]}}
 JSON'u vermeden once 10 sahnenin her birinin kelimesini tek tek say ve duzelt."""
 
     last_problem = None
@@ -189,7 +189,7 @@ JSON'u vermeden once 10 sahnenin her birinin kelimesini tek tek say ve duzelt.""
                 + '\n\nDUZELTME GEREKLI. Onceki JSON hikaye kalite kontrolunden gecmedi: '
                 + str(last_problem)
                 + '\nOnceki hikayeyi, karakter adlarini ve olaylarin mantigini koruyarak '
-                  'yeniden duzenle. Her narration TAM 11 veya 12 kelime olsun; '
+                  'yeniden duzenle. Toplam narration 75-110 kelime olsun (ideal 85-95); '
                   '10 sahnenin hepsini ve bunlarla eslesen visual tasvirlerini dondur.\n'
                 + 'ONCEKI JSON:\n'
                 + json.dumps(previous_story, ensure_ascii=False)
