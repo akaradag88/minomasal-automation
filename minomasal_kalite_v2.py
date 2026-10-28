@@ -139,7 +139,11 @@ def verify_and_enrich(story, topic, all_topics):
 
 
 def create_story_v2(topic, key, model, all_topics):
-    """Yalnizca yeni hikaye icin; tek Pollinations istegi kullanir."""
+    """Yeni hikaye olustur; kalite hatalarinda en fazla iki kez onarmayi dene.
+
+    Sadece yayinSIZ Adim 7 testinde kullanilir. Seslendirme ve video
+    ancak verify_and_enrich basariliysa baslar. Onayli JSON'lari degistirmez.
+    """
     number, cast, _ = dictionary_entry(topic, all_topics)
     if number in PRESERVE_APPROVED:
         raise ValueError(
@@ -147,25 +151,89 @@ def create_story_v2(topic, key, model, all_topics):
             'Yeni otomatik onizleme yerine onayli JSON akisi kullanilmali.'
         )
     if not cast:
-        raise ValueError(f'{number}. hikaye icin onayli karakter eslemesi yok; API cagrisi yapilmadi.')
+        raise ValueError(
+            f'{number}. hikaye icin onayli karakter eslemesi yok; API cagrisi yapilmadi.'
+        )
     if not key:
         raise RuntimeError('POLLINATIONS_API_KEY bulunamadi.')
-    prompt = f'''4-8 yas cocuklar icin Turkce, ogretici ve sicak bir masal yaz. Konu: {topic}.
+
+    # Modelin 100-130 toplam kelime istegini kacirmamasi icin sahne basi
+    # 11-12 kelime hedefliyoruz: 10 sahne => 110-120 kelime.
+    base_prompt = f"""4-8 yas cocuklar icin Turkce, ogretici, sicak bir masal yaz.
+Konu: {topic}.
 {prompt_rules(topic, all_topics)}
+KESIN SAYISAL KURAL:
+- Tam 10 scenes nesnesi olustur.
+- HER narration ALANI 11 veya 12 Turkce kelimeden olussun.
+- Toplam narration kelime sayisi boylece 110-120 olmali.
+- Kelimeler boslukla ayrilir; title, moral ve visual kelime hesabina girmez.
+- Her sahnede anlami olan akici 1-2 cumle yaz; sirf uzunluk icin
+  tekrarlama veya dolgu cumlesi ekleme.
+- Ilk sahnede merak uyandir, sonraki sahnelerde sebep-sonuc kur,
+  sonunda cocuk icin basit bir dusunme sorusu sor.
 Tek somut ders anlat. Korku, siddet, tehlikeli davranis, urun/abone ol cagrisi kullanma.
-Diyaloglari az tut, cocugun anlayacagi akici masalsi anlatim kur.
-Yalnizca JSON nesnesi dondur:
-{{"title":"Turkce baslik", "moral":"kisa ders", "characters":"cast appearance", "scenes":[{{"narration":"Turkce metin", "visual":"English scene description", "sfx":"none"}}]}}
-JSON metnini vermeden once 10 sahne ve toplam 100-130 narration kelimesi kontrolunu yap.'''
-    r = requests.post(
-        'https://gen.pollinations.ai/v1/chat/completions',
-        headers={'Authorization':'Bearer ' + key},
-        json={'model': model, 'messages': [{'role':'user','content':prompt}], 'response_format':{'type':'json_object'}},
-        timeout=150,
+Diyaloglari az tut. Edi veya diger onayli karakter adlarini degistirme.
+YALNIZCA JSON nesnesi dondur:
+{{"title":"Turkce baslik","moral":"kisa ders","characters":"cast appearance","scenes":[{{"narration":"11 veya 12 Turkce kelime","visual":"English scene description","sfx":"none"}}]}}
+JSON'u vermeden once 10 sahnenin her birinin kelimesini tek tek say ve duzelt."""
+
+    last_problem = None
+    previous_story = None
+    max_attempts = 3
+    for attempt in range(1, max_attempts + 1):
+        if attempt == 1:
+            prompt = base_prompt
+        elif previous_story is not None:
+            prompt = (
+                base_prompt
+                + '\n\nDUZELTME GEREKLI. Onceki JSON hikaye kalite kontrolunden gecmedi: '
+                + str(last_problem)
+                + '\nOnceki hikayeyi, karakter adlarini ve olaylarin mantigini koruyarak '
+                  'yeniden duzenle. Her narration TAM 11 veya 12 kelime olsun; '
+                  '10 sahnenin hepsini ve bunlarla eslesen visual tasvirlerini dondur.\n'
+                + 'ONCEKI JSON:\n'
+                + json.dumps(previous_story, ensure_ascii=False)
+            )
+        else:
+            prompt = (
+                base_prompt + '\n\nONCEKI YANIT OKUNAMADI: '
+                + str(last_problem)
+                + '\nDuzgun, yalnizca JSON biciminde yeniden olustur.'
+            )
+        print(f'Hikaye kalite denemesi {attempt}/{max_attempts} basladi.', flush=True)
+        r = requests.post(
+            'https://gen.pollinations.ai/v1/chat/completions',
+            headers={'Authorization': 'Bearer ' + key},
+            json={
+                'model': model,
+                'messages': [{'role': 'user', 'content': prompt}],
+                'response_format': {'type': 'json_object'},
+            },
+            timeout=150,
+        )
+        # 429 vb. servis hatalarinda bos yere API kotasi harcayarak tekrar etme.
+        if r.status_code != 200:
+            raise RuntimeError(f'Hikaye servisi HTTP {r.status_code}; kota veya servis durumunu kontrol edin.')
+
+        try:
+            response_text = r.json()['choices'][0]['message']['content']
+            response_text = re.sub(r'^```(?:json)?\s*|\s*```$', '', response_text.strip())
+            previous_story = json.loads(response_text)
+            if not isinstance(previous_story, dict):
+                raise ValueError('JSON nesnesi bekleniyordu.')
+            scenes = previous_story.get('scenes', [])
+            if isinstance(scenes, list):
+                lengths = [len(s.get('narration', '').split())
+                           for s in scenes if isinstance(s, dict)]
+                print(f'Sahne kelimeleri: {lengths}; toplam: {sum(lengths)}', flush=True)
+            valid_story = verify_and_enrich(previous_story, topic, all_topics)
+            print(f'Hikaye kalite kontrolu BASARILI (deneme {attempt}).', flush=True)
+            return valid_story
+        except (ValueError, TypeError, KeyError, AttributeError) as exc:
+            last_problem = exc
+            print(f'Hikaye kalite denemesi {attempt} basarisiz: {exc}', flush=True)
+
+    raise RuntimeError(
+        f'Hikaye {max_attempts} denemede kalite kontrolunu gecemedi. '
+        f'Son hata: {last_problem}. Seslendirme ve yayin baslatilmadi.'
     )
-    if r.status_code != 200:
-        raise RuntimeError(f'Hikaye servisi HTTP {r.status_code}.')
-    text = r.json()['choices'][0]['message']['content']
-    text = re.sub(r'^```(?:json)?\s*|\s*```$', '', text.strip())
-    story = json.loads(text)
-    return verify_and_enrich(story, topic, all_topics)
