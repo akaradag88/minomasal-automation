@@ -224,30 +224,69 @@ YALNIZCA JSON nesnesi dondur:
 {{"title":"Turkce baslik","moral":"kisa ders","characters":"cast appearance","scenes":[{{"narration":"yaklasik 8-10 Turkce kelime","visual":"English scene description","sfx":"none"}}]}}
 JSON'u vermeden once 10 sahnenin kelimelerini say. Ayrica her narration ile English visual icindeki nesneleri tek tek karsilastir: tas=rock, kutuk=log, kopru=bridge, ip=rope, balon=balloon, yildiz=star, cicek=flower, kitap=book. Birbirinin yerine baska nesne koyma."""
 
+    # Once tum JSON'u olustur; uzunluk hatasinda sadece Turkce narration'lari
+    # kontrollu olarak yenile. Boylece resim komutlari/karakter kimligi korunsun.
     last_problem = None
     previous_story = None
+    last_length_issue = False
     max_attempts = 3
+
     for attempt in range(1, max_attempts + 1):
-        if attempt == 1:
-            prompt = base_prompt
-        elif previous_story is not None:
+        repairing_length = (
+            attempt > 1
+            and last_length_issue
+            and isinstance(previous_story, dict)
+            and isinstance(previous_story.get('scenes'), list)
+            and len(previous_story['scenes']) == 10
+        )
+
+        if repairing_length:
+            # Kisa ve tek isli istem: yeniden tum hikayeyi/gorselleri uretme.
+            # JSON'un sadece 10 Turkce narration metni isteniyor.
+            source_scenes = [
+                {
+                    'scene': i,
+                    'narration': scene.get('narration', ''),
+                    'visual': scene.get('visual', ''),
+                }
+                for i, scene in enumerate(previous_story['scenes'], 1)
+            ]
+            current_total = sum(len(x['narration'].split()) for x in source_scenes)
+            print(f'Anlatim duzeltmesi: mevcut {current_total} kelime, hedef 85-95.', flush=True)
+            prompt = f"""GOREV: Asagidaki 10 sahnenin YALNIZCA Turkce narration metinlerini
+kisaltilmis/uzatilmis ama dogal bir cocuk masali olacak sekilde duzenle.
+Mevcut toplam: {current_total} kelime. KESIN kabul araligi 75-110,
+HEDEF toplam 85-95 kelime. Her sahne 8-10 kelime hedeflesin.
+Tam 10 metin dondur, sahnelerin sirasi degismeyecek.
+
+Sabit kurallar:
+- Her sahnenin olayini, eylemini ve 'visual' icindeki somut nesnelerini aynen koru.
+- Yeni karakter, isim, nesne, eylem veya olay uydurma.
+- Karakter adlarini aynen koru; son sahnedeki cocuga soruyu koru.
+- Dogal, anlamli, tam cumleler yaz; kelimeleri ortadan kesme.
+- Ingilizce 'visual' alanlari yeniden yazilmayacak; bu metinler onlarla uyumlu kalmali.
+- Aciklama, numara veya markdown yazma.
+SADECE su JSON sekli: {{"narrations":["1. sahne metni","2. sahne metni", ... 10 metin]}}
+
+MEVCUT SAHNELER:
+{json.dumps(source_scenes, ensure_ascii=False)}"""
+        elif attempt > 1 and previous_story is not None:
             prompt = (
                 base_prompt
-                + '\n\nDUZELTME GEREKLI. Onceki JSON hikaye kalite kontrolunden gecmedi: '
+                + '\n\nONCEKI HIKAYE KALITE KONTROLUNDEN GECMEDI: '
                 + str(last_problem)
-                + '\nOnceki hikayeyi, karakter adlarini ve olaylarin mantigini koruyarak '
-                  'yeniden duzenle. Toplam narration 75-110 kelime olsun (ideal 85-95); '
-                  '10 sahnenin hepsini ve bunlarla eslesen visual tasvirlerini dondur.\n'
-                + 'ONCEKI JSON:\n'
+                + '\nOlay mantigini ve onayli karakterleri koru; butun sahneleri '
+                  've English visual tasvirlerini kurala uygun yeniden yaz.\n'
                 + json.dumps(previous_story, ensure_ascii=False)
             )
         else:
-            prompt = (
-                base_prompt + '\n\nONCEKI YANIT OKUNAMADI: '
-                + str(last_problem)
-                + '\nDuzgun, yalnizca JSON biciminde yeniden olustur.'
-            )
-        print(f'Hikaye kalite denemesi {attempt}/{max_attempts} basladi.', flush=True)
+            prompt = base_prompt
+
+        print(
+            f'Hikaye kalite denemesi {attempt}/{max_attempts}: '
+            + ('yalniz anlatim duzeltmesi' if repairing_length else 'hikaye olusturma'),
+            flush=True,
+        )
         r = requests.post(
             'https://gen.pollinations.ai/v1/chat/completions',
             headers={'Authorization': 'Bearer ' + key},
@@ -258,26 +297,59 @@ JSON'u vermeden once 10 sahnenin kelimelerini say. Ayrica her narration ile Engl
             },
             timeout=150,
         )
-        # 429 vb. servis hatalarinda bos yere API kotasi harcayarak tekrar etme.
         if r.status_code != 200:
-            raise RuntimeError(f'Hikaye servisi HTTP {r.status_code}; kota veya servis durumunu kontrol edin.')
+            raise RuntimeError(
+                f'Hikaye servisi HTTP {r.status_code}; kota veya servis durumunu kontrol edin.'
+            )
 
         try:
-            response_text = r.json()['choices'][0]['message']['content']
-            response_text = re.sub(r'^```(?:json)?\s*|\s*```$', '', response_text.strip())
-            previous_story = json.loads(response_text)
-            if not isinstance(previous_story, dict):
+            content = r.json()['choices'][0]['message']['content']
+            content = re.sub(r'^```(?:json)?\s*|\s*```$', '', content.strip())
+            answer = json.loads(content)
+            if not isinstance(answer, dict):
                 raise ValueError('JSON nesnesi bekleniyordu.')
-            scenes = previous_story.get('scenes', [])
-            if isinstance(scenes, list):
-                lengths = [len(s.get('narration', '').split())
-                           for s in scenes if isinstance(s, dict)]
-                print(f'Sahne kelimeleri: {lengths}; toplam: {sum(lengths)}', flush=True)
+
+            if repairing_length:
+                narrations = answer.get('narrations')
+                if not (isinstance(narrations, list)
+                        and len(narrations) == 10
+                        and all(isinstance(x, str) and x.strip() for x in narrations)):
+                    raise ValueError('Duzeltme 10 narration metni icermiyor.')
+                # Orijinal gorselleri ve karakterleri aynen koru.
+                import copy
+                candidate = copy.deepcopy(previous_story)
+                for scene, text_value in zip(candidate['scenes'], narrations):
+                    scene['narration'] = text_value.strip()
+                previous_story = candidate
+            else:
+                if 'scenes' not in answer:
+                    raise ValueError('Hikaye yanitinda scenes bulunamadi.')
+                previous_story = answer
+
+            scenes = previous_story['scenes']
+            if not isinstance(scenes, list):
+                raise ValueError('scenes bir liste olmali.')
+            lengths = [
+                len(scene.get('narration', '').split())
+                for scene in scenes if isinstance(scene, dict)
+            ]
+            total = sum(lengths)
+            print(f'Sahne kelimeleri: {lengths}; toplam: {total}', flush=True)
+            if not 75 <= total <= 110:
+                last_length_issue = True
+                last_problem = ValueError(f'75-110 kelime bekleniyor; bulunan {total}.')
+                print(f'Hikaye kalite denemesi {attempt} basarisiz: {last_problem}', flush=True)
+                continue
+
+            last_length_issue = False
             valid_story = verify_and_enrich(previous_story, topic, all_topics)
             print(f'Hikaye kalite kontrolu BASARILI (deneme {attempt}).', flush=True)
             return valid_story
-        except (ValueError, TypeError, KeyError, AttributeError) as exc:
+        except (ValueError, TypeError, KeyError, AttributeError, IndexError) as exc:
             last_problem = exc
+            # Bozuk veya kontrolu gecmeyen bir tam JSON, bir sonraki denemede
+            # yeniden yazilir. Yanlis metni otomatik kesip video uretmeyiz.
+            last_length_issue = False
             print(f'Hikaye kalite denemesi {attempt} basarisiz: {exc}', flush=True)
 
     raise RuntimeError(
