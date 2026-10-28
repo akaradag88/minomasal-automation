@@ -185,6 +185,70 @@ def verify_and_enrich(story, topic, all_topics):
     return story
 
 
+
+def _repair_tiny_word_shortfall(story, topic, all_topics):
+    """75 kelimeye 1-3 kelime kaldiysa karakteri tanimlayarak dogalce tamamla.
+
+    Yeni kisi, olay, eylem veya nesne eklemez. Uygun bir ana karakter adi
+    bulamazsa None dondurur; kalite kontrolu zorla gecilmez.
+    """
+    import copy
+
+    scenes = story.get('scenes') if isinstance(story, dict) else None
+    if not isinstance(scenes, list) or len(scenes) != 10:
+        return None
+    if any(not isinstance(s, dict) or not isinstance(s.get('narration'), str)
+           for s in scenes):
+        return None
+
+    total = sum(len(s['narration'].split()) for s in scenes)
+    missing = 75 - total
+    if missing not in (1, 2, 3):
+        return None
+
+    _, cast, _ = dictionary_entry(topic, all_topics)
+    if not cast:
+        return None
+    main = cast[0][1]
+    name = main['name']
+    species = main['type_tr'].strip()
+    # Bu sifatlar hareket veya yeni bir nesne eklemez; sadece karakteri tanimlar.
+    modifiers = {1: '', 2: 'küçük ', 3: 'sevimli küçük '}
+    pattern = re.compile(r'(?<!\w)' + re.escape(name) + r'(?=\W|$)', re.IGNORECASE)
+
+    for index, scene in enumerate(scenes):
+        narration = scene['narration']
+        for match in pattern.finditer(narration):
+            preceding = narration[:match.start()]
+            # Bir kez daha 'fil fil Edi' gibi yapilari olusturma.
+            recent = _norm(' '.join(preceding.split()[-3:]))
+            if _norm(species) in recent or any(
+                adjective in recent.split() for adjective in ('küçük', 'kucuk', 'minik', 'sevimli')
+            ):
+                continue
+            candidate_prefix = modifiers[missing] + species + ' '
+            actual_additions = len(candidate_prefix.split())
+            # Turu birden fazla kelime olan karakterlerde gereksiz dolgu yapma.
+            if actual_additions != missing:
+                continue
+            if not preceding.strip() or preceding.rstrip().endswith(('.', '!', '?')):
+                candidate_prefix = candidate_prefix[0].upper() + candidate_prefix[1:]
+
+            result = copy.deepcopy(story)
+            result['scenes'][index]['narration'] = (
+                narration[:match.start()] + candidate_prefix
+                + narration[match.start():]
+            )
+            fixed_total = sum(len(s['narration'].split()) for s in result['scenes'])
+            if fixed_total == 75:
+                print(
+                    f'Kucuk kelime eksigi giderildi: {total} -> {fixed_total}. '
+                    f'Sahne {index + 1}, sadece {name} tanimi eklendi.', flush=True
+                )
+                return result
+    return None
+
+
 def create_story_v2(topic, key, model, all_topics):
     """Yeni hikaye olustur; kalite hatalarinda en fazla iki kez onarmayi dene.
 
@@ -256,7 +320,8 @@ JSON'u vermeden once 10 sahnenin kelimelerini say. Ayrica her narration ile Engl
             prompt = f"""GOREV: Asagidaki 10 sahnenin YALNIZCA Turkce narration metinlerini
 kisaltilmis/uzatilmis ama dogal bir cocuk masali olacak sekilde duzenle.
 Mevcut toplam: {current_total} kelime. KESIN kabul araligi 75-110,
-HEDEF toplam 85-95 kelime. Her sahne 8-10 kelime hedeflesin.
+HEDEF toplam 90 kelime. Her sahne ortalama 9 kelime hedeflesin.
+Toplam kelimeyi hesaplayarak kontrol et; 75 altina veya 110 ustune cikma.
 Tam 10 metin dondur, sahnelerin sirasi degismeyecek.
 
 Sabit kurallar:
@@ -336,6 +401,27 @@ MEVCUT SAHNELER:
             total = sum(lengths)
             print(f'Sahne kelimeleri: {lengths}; toplam: {total}', flush=True)
             if not 75 <= total <= 110:
+                # 72-74 kelime gibi minicik eksiklerde yeni API istegiyle
+                # hikayeyi bastan yazmak yerine sabit karakteri tanit.
+                # Olay, gorsel prompt ve karakter kimligi aynen korunur.
+                # Yine de butun kalite kontrol kurallari zorunludur.
+                if 72 <= total < 75:
+                    minimally_completed = _repair_tiny_word_shortfall(
+                        previous_story, topic, all_topics
+                    )
+                    if minimally_completed is not None:
+                        try:
+                            valid_story = verify_and_enrich(
+                                minimally_completed, topic, all_topics
+                            )
+                        except (ValueError, TypeError, KeyError, AttributeError) as problem:
+                            last_length_issue = False
+                            last_problem = problem
+                            print(f'Kucuk duzeltme diger kalite kontrolune takildi: {problem}', flush=True)
+                            continue
+                        print('Hikaye kalite kontrolu BASARILI (kucuk kelime onarimi).', flush=True)
+                        return valid_story
+
                 last_length_issue = True
                 last_problem = ValueError(f'75-110 kelime bekleniyor; bulunan {total}.')
                 print(f'Hikaye kalite denemesi {attempt} basarisiz: {last_problem}', flush=True)
