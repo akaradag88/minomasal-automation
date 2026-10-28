@@ -1,0 +1,142 @@
+name: MinoMasal 34 - Son Yayin Kontrolu (NO PUBLISH)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-only:
+    name: Confirm #34 is next; do not publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Verify story, ledger, workflow and secret presence
+        env:
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          MINOMASAL_HOSTING_TOKEN: ${{ secrets.MINOMASAL_HOSTING_TOKEN }}
+        run: |
+          python - <<'PYCODE'
+          import ast
+          import hashlib
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          def fail(message):
+              raise SystemExit('KONTROL BAŞARISIZ: ' + message)
+
+          root = Path('.')
+          required = [
+              'minomasal.py', 'minomasal_daily_live.py',
+              'minomasal_dual_publish.py', 'minomasal_34_onayli_gunluk.py',
+              'minomasal_sami_hizalama_v2.py', 'hikaye_02.json',
+              'minomasal_platform_durumu.json',
+              '.github/workflows/minomasal-daily-live.yml',
+          ]
+          missing = [x for x in required if not (root / x).is_file()]
+          if missing:
+              fail('Eksik dosyalar: ' + ', '.join(missing))
+
+          ledger = json.loads(Path('minomasal_platform_durumu.json').read_text(encoding='utf-8'))
+          stories = ledger.get('stories')
+          if not isinstance(stories, dict):
+              fail('Yayın defterinde stories alanı bulunamadı.')
+
+          for n in ('32', '33'):
+              row = stories.get(n)
+              if not isinstance(row, dict):
+                  fail(f'#{n} yayın kaydı eksik.')
+              for platform, id_field in [('youtube','video_id'),('instagram','media_id')]:
+                  entry = row.get(platform, {})
+                  if entry.get('status') != 'published' or not entry.get(id_field):
+                      fail(f'#{n} {platform} yayımlandı olarak doğrulanmıyor. Yeniden yüklemeyin.')
+              print(f'#{n} YouTube ve Instagram kayıtları TAMAM.')
+
+          row33=stories['33']
+          if str(row33['youtube']['video_id']) != 'UU1QoRUSXFc':
+              fail('#33 YouTube kimliği beklenen gönderiyle eşleşmiyor.')
+          if str(row33['instagram']['media_id']) != '18387048796233534':
+              fail('#33 Instagram kimliği doğrulanan gönderiyle eşleşmiyor.')
+
+          if '34' in stories:
+              fail('#34 yayın defterinde zaten mevcut. Yükleme tekrarı riskinden durduruldu.')
+
+          tree = ast.parse(Path('minomasal.py').read_text(encoding='utf-8'))
+          topics = None
+          for node in tree.body:
+              if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'KONULAR' for t in node.targets):
+                  topics = ast.literal_eval(node.value)
+                  break
+          if not isinstance(topics, list) or len(topics) < 34:
+              fail('KONULAR listesi okunamadı.')
+          title = 'Orman Okulunda Cumhuriyet Coşkusu'
+          if topics[33] != title:
+              fail(f'KONULAR[33] farklı: {topics[33]}')
+
+          story = json.loads(Path('hikaye_02.json').read_text(encoding='utf-8'))
+          if story.get('title') != title or len(story.get('scenes', [])) != 10:
+              fail('Onaylı #34 hikâyesi başlık/sahne sayısı hatalı.')
+          text = ' '.join(x.get('narration','') for x in story['scenes'])
+          if 'Atatürk' not in text or '29 Ekim' not in text:
+              fail('29 Ekim veya Atatürk metinde bulunamadı.')
+          word_count=sum(len(x['narration'].split()) for x in story['scenes'])
+          if word_count != 91:
+              fail(f'Onaylı hikâye değişmiş görünüyor: {word_count} kelime (91 bekleniyor).')
+          canonical=json.dumps(story,ensure_ascii=False,sort_keys=True,separators=(',',':'))
+          approved='1407636e3d26bf9b86b3c907cda740beac836a54067eb7395a6fd3fee2511fc5'
+          if hashlib.sha256(canonical.encode('utf-8')).hexdigest() != approved:
+              fail('hikaye_02.json içeriği önceden onaylanan sürümden farklı.')
+          print('#34 ONAYLI hikaye_02.json doğrulandı: 10 sahne, 91 kelime.')
+
+          workflow=Path('.github/workflows/minomasal-daily-live.yml').read_text(encoding='utf-8')
+          if not re.search(r"^\s+-\s+cron:\s*['\"]0 16 \* \* \*['\"]",workflow,re.M):
+              fail('19.00 Türkiye cron (0 16 * * *) bulunamadı.')
+          if 'run: python minomasal_34_onayli_gunluk.py' not in workflow:
+              fail('Onaylı #34 üreten Python komutu günlük workflow içinde yok.')
+          if 'minomasal_dual_publish.py' not in workflow:
+              fail('YouTube–Instagram yayın adımı bulunamadı.')
+          if 'faster-whisper' not in workflow:
+              fail('Hizalama bağımlılığı günlük workflow içinde yok.')
+          if 'GEMINI_API_KEY' not in workflow:
+              fail('Sami seslendirme anahtarı workflow ortamında belirtilmemiş.')
+
+          runner = Path('minomasal_34_onayli_gunluk.py').read_text(encoding='utf-8')
+          if "APPROVED = Path('hikaye_02.json')" not in runner or 'aligned_scene_voices' not in runner:
+              fail('Onaylı senaryo veya Sami hizalaması bağlantısı farklı görünüyor.')
+          if "number != 34" not in runner:
+              fail('Hikâye 34 seçimi doğrulanamadı.')
+
+          secrets = [
+              'POLLINATIONS_API_KEY','GEMINI_API_KEY','YOUTUBE_CLIENT_ID',
+              'YOUTUBE_CLIENT_SECRET','YOUTUBE_REFRESH_TOKEN',
+              'INSTAGRAM_ACCESS_TOKEN','INSTAGRAM_USER_ID','MINOMASAL_HOSTING_TOKEN',
+          ]
+          absent = [name for name in secrets if not os.environ.get(name)]
+          if absent:
+              fail('Boş/eksik GitHub Secrets isimleri: ' + ', '.join(absent))
+          print('Gerekli 8 Secret adı dolu. Geçerlilikleri/izinleri henüz test edilmedi.')
+
+          # Sadece UYARI: ek programlanmış yayın akışları olabilir.
+          for path in Path('.github/workflows').glob('*.yml'):
+              if path.name == 'minomasal-daily-live.yml':
+                  continue
+              lines = [line for line in path.read_text(encoding='utf-8').splitlines()
+                       if line.strip() and not line.lstrip().startswith('#')]
+              if any(re.search(r'^\s+cron\s*:', line) for line in lines):
+                  print(f'UYARI: Başka zamanlanmış iş akışı da var: {path.name} — çifte yayın için elle gözden geçirin.')
+
+          print('SONUÇ: Ön kontrol YEŞİL. Sonraki hikâye #34.')
+          print('Hiçbir video üretilmedi, yayımlanmadı veya yayın kaydı değiştirilmedi.')
+          print('Not: Actions zamanlaması ve API/izin sorunları yine de canlı yayını aksatabilir.')
+          PYCODE
