@@ -22,46 +22,61 @@ CHARACTER_FILE = Path("minomasal_karakterler.json")
 
 
 def prepare_test_story():
+    """Karakter ve altyazı testleri için sabit, kota harcamayan pilot hikâye.
+
+    Bu test kasıtlı olarak yeni hikâye üretim API isteği yapmaz.
+    Böylece seslendirme ve altyazı testi değişen hikâye koşullarına takılmaz.
+    Günlük MinoMasal yayın akışını değiştirmez.
+    """
     data = json.loads(CHARACTER_FILE.read_text(encoding="utf-8"))
     turtle = data["characters"]["kaplumbaga"]
-    name, appearance = turtle["name"], turtle["appearance_en"]
-    prompt = f'''4-8 yaş çocuklar için Türkçe mini masal yaz. Konu: {TOPIC}.
-Ana karakter SADECE {name} adlı kaplumbağadır. Adını ASLA değiştirme.
-Görünüşü (değiştirme): {appearance}
-Tam 6 sahne. Toplam narration 45-65 Türkçe kelime.
-Her sahnede tek, kısa, rahat okunabilecek cümle olsun.
-Ana karakterin adı yalnızca {name} olsun, başka özel karakter adı üretme.
-Visual alanı İngilizce yazılsın; {name} her sahnede aynı anatomide ve kıyafette görünsün.
-Korkutucu içerik olmasın. Yalnız JSON döndür.
-Şema: {{"title":"...","moral":"...","characters":"{appearance}",
-"scenes":[{{"narration":"...","visual":"...","sfx":"none"}}]}}'''
-    for _ in range(3):
-        r = requests.post(
-            "https://gen.pollinations.ai/v1/chat/completions",
-            headers={"Authorization": "Bearer " + os.environ["POLLINATIONS_API_KEY"]},
-            json={"model": mm.HIKAYE_MODELI,
-                  "messages": [{"role": "user", "content": prompt}],
-                  "response_format": {"type": "json_object"}},
-            timeout=150,
-        )
-        r.raise_for_status()
-        raw = r.json()["choices"][0]["message"]["content"].strip()
-        raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw)
-        story = mm.validate(json.loads(raw))
-        narration = " ".join(s["narration"] for s in story["scenes"])
-        count = len(narration.split())
-        if len(story["scenes"]) != 6 or not 45 <= count <= 65:
-            print("Hikâye kurallara uymadı, yeniden deneniyor.")
-            continue
-        if not re.search(r"\b" + re.escape(name) + r"\b", narration, re.IGNORECASE):
-            print("Karakter adı yok, yeniden deneniyor.")
-            continue
-        story["characters"] = appearance
-        for scene in story["scenes"]:
-            scene["visual"] = f"{name} the turtle. {appearance} {scene['visual']}"
-        print("Karakter:", name, "Sahne:", len(story["scenes"]), "Kelime:", count)
-        return story
-    raise RuntimeError("Üç denemede geçerli Tosbi hikâyesi üretilemedi.")
+    name = turtle["name"]
+    appearance = turtle["appearance_en"]
+    if name != "Tosbi":
+        raise RuntimeError("Onaylı karakter sözlüğünde kaplumbağa adı Tosbi değil; test durduruldu.")
+
+    scene_specs = [
+        (
+            f"{name} her akşam gökyüzündeki parlak yıldızı izlerdi.",
+            f"{name} the turtle gazes up at one bright star in a calm evening forest clearing.",
+        ),
+        (
+            "Bir gece yıldızı göremeyince acaba nereye gitti diye merak etti.",
+            f"{name} the turtle looks curiously up at the cloudy night sky; the bright star is hidden.",
+        ),
+        (
+            "Ormanda yürürken gölün üstünde küçücük bir ışık fark etti.",
+            f"{name} the turtle walks beside a peaceful forest lake and notices a small light on the water.",
+        ),
+        (
+            f"{name} heyecanla yaklaştı fakat ışığın yalnızca bir yansıma olduğunu anladı.",
+            f"{name} the turtle peers closely at the shimmering reflected light on the lake surface.",
+        ),
+        (
+            "Tam o sırada bulutlar dağıldı ve yıldız yeniden göründü.",
+            f"{name} the turtle watches the clouds part, revealing the real star high in the night sky.",
+        ),
+        (
+            f"{name} gülümsedi çünkü sabırla bekleyince cevabı kendi gözleriyle bulmuştu.",
+            f"{name} the turtle smiles happily under the clear starry sky beside the forest lake.",
+        ),
+    ]
+    story = {
+        "title": "Tosbi ve Kayıp Yıldız",
+        "moral": "Bazen sabırla gözlem yapmak, merak ettiğimiz şeyi anlamamızı sağlar.",
+        "characters": appearance,
+        "scenes": [
+            {"narration": narration, "visual": visual, "sfx": "none"}
+            for narration, visual in scene_specs
+        ],
+    }
+    mm.validate(story)
+    words = sum(len(s["narration"].split()) for s in story["scenes"])
+    if len(story["scenes"]) != 6 or not 45 <= words <= 65:
+        raise RuntimeError(f"Sabit pilot hikâye test koşullarına uymuyor: {words} kelime.")
+    print(f"Sabit Tosbi hikâyesi doğrulandı: {len(story['scenes'])} sahne, {words} kelime.")
+    print("Hikâye için dış API isteği yapılmadı; karakter sözlüğü kullanıldı.")
+    return story
 
 
 def _normalize(token):
