@@ -1,57 +1,57 @@
 {
   "title": "Orman Okulunda Cumhuriyet Coşkusu",
-  "moral": "Cumhuriyet Bayramı’nı birlikte kutlamak, Cumhuriyet’in anlamını öğrenmek ve dayanışmak önemlidir.",
+  "moral": "Bayrak ve birlik için birlikte çalışıp dayanışınca Cumhuriyet coşkusu büyür.",
+  "characters": "Sincap Sifa: bright brown squirrel with a fluffy tail, wearing a small red scarf. Kuş Kıvılcım: tiny gray bird with a cheerful face and a green cap. Tilki Tın: orange fox with kind eyes, wearing a navy vest. Ayı Baba: big tan bear with a friendly smile, holding a small drum strapped to his chest. Tavşan Pofuduk: white rabbit with long ears, wearing simple striped suspenders.",
   "scenes": [
     {
-      "narration": "Orman okulunun bahçesi kırmızı beyaza bürünmüş. Küçük Sifa şaşırmış: “Bugün ne kutluyoruz?”",
-      "visual": "Wide shot of festive forest school courtyard: Sifa gazes at red-and-white decorations and an accurate Turkish flag.",
+      "narration": "Orman Okulu’nda bir sabah neden her şey kırmızı-beyaz renge bürünmüştü?",
+      "visual": "Wide shot, a cheerful forest school courtyard; a squirrel, bird, fox, bear, and rabbit stand in a semicircle holding small red-white ribbons; sunlight beams through trees.",
       "sfx": "none"
     },
     {
-      "narration": "Kıvılcım heyecanla uçmuş. “Bugün 29 Ekim Cumhuriyet Bayramı!” diye neşeyle haber vermiş.",
-      "visual": "Medium shot: Kıvılcım the tiny gray bird speaks excitedly to Sifa beside school decorations.",
+      "narration": "Sincap Sifa, 29 Ekim 1923’te Cumhuriyet’in ilan edildiğini söyledi.",
+      "visual": "Close-up, Sifa holds a tiny poster with red-white stripes while others lean in attentively; birdsong implied by still motion.",
       "sfx": "none"
     },
     {
-      "narration": "Pofuduk merak etmiş: “Peki Cumhuriyet nedir?” diye sormuş arkadaşlarına dönerek.",
-      "visual": "Close shot of Pofuduk the white rabbit asking a question, Sifa and Kıvılcım beside him.",
+      "narration": "Kuş Kıvılcım, Mustafa Kemal Atatürk’ün kurucu olduğunu hatırlattı.",
+      "visual": "Medium shot, Kıvılcım points gently toward a framed symbol on a classroom wall; characters nod together.",
       "sfx": "none"
     },
     {
-      "narration": "Öğretmen Baykuş gelmiş. “Cumhuriyet, halkın yöneticilerini seçebildiği bir yönetim biçimidir,” demiş.",
-      "visual": "Classroom doorway: Öğretmen Baykuş explains calmly while three young animals listen.",
+      "narration": "Sonra bayrak hazırlamaya karar verdiler; herkes bir parça aldı.",
+      "visual": "Top-down angle, they work at a table assembling a small flag; careful hand movements and coordinated teamwork.",
       "sfx": "none"
     },
     {
-      "narration": "“29 Ekim 1923’te Cumhuriyet ilan edilmiş,” diye anlatmış. “Atatürk bu değişime öncülük etmiş.”",
-      "visual": "Warm classroom scene with an open history book, Öğretmen Baykuş telling a story, all friends attentive.",
+      "narration": "Tilki Tın ipleri düğümledi, Ayı Baba da ritim tutup alkışladı.",
+      "visual": "Action shot, Tın ties a ribbon knot neatly while the bear taps a small drum in steady rhythm; friendly expressions.",
       "sfx": "none"
     },
     {
-      "narration": "Sifa sevinmiş. “Öyleyse bu özel günü hep birlikte kutlayalım!” diye arkadaşlarını çağırmış.",
-      "visual": "Sifa smiles and beckons friends toward the school courtyard, flags and soft daylight behind.",
+      "narration": "Tavşan Pofuduk boyaları taşıdı; birini unutunca hemen arkadaşını çağırdı.",
+      "visual": "Tracking shot, Pofuduk carries paint pots and looks back to invite the others; group closes ranks to help.",
       "sfx": "none"
     },
     {
-      "narration": "Kıvılcım süsleri yerleştirmiş. Pofuduk küçük sandalyeleri düzenlemiş. Herkes görev paylaşmış.",
-      "visual": "Courtyard: Kıvılcım hangs safe paper decorations, Pofuduk arranges child-sized stools; teamwork clearly visible.",
+      "narration": "Derste öğretmenleri, birlik olunca her şeyin daha kolay olduğunu anlattı.",
+      "visual": "Wide shot, classroom floor with circles of leaves; five animals sit, facing a teacher silhouette; attentive posture.",
       "sfx": "none"
     },
     {
-      "narration": "Bayrakları öğretmenleri özenle asmış. Arkadaşlar yan yana durup bayram şarkısı söylemiş.",
-      "visual": "Teacher owl hangs an accurate red Turkish flag with white crescent and star; animals sing together respectfully.",
+      "narration": "Bayrak gökyüzüne çıkınca orman şenlendi; birlikte yürüdüler.",
+      "visual": "Low-angle shot, a small banner rises on a pole; the group walks forward in a line, smiling.",
       "sfx": "none"
     },
     {
-      "narration": "Sifa, herkesin mutluluğunu görünce gururlanmış. Cumhuriyet’in önemini artık daha iyi anlamış.",
-      "visual": "Close-up: Sifa smiles with friends and celebration decorations in the background.",
+      "narration": "Sincap Sifa, Cumhuriyet coşkusunun paylaşmakla büyüdüğünü söyledi.",
+      "visual": "Close-up, Sifa holds the finished red-white flag; the others gather around, touching shoulders in friendship.",
       "sfx": "none"
     },
     {
-      "narration": "Öğretmen Baykuş son bir soru sormuş: “Cumhuriyet Bayramı senin için ne ifade ediyor?”",
-      "visual": "Final classroom courtyard shot: Öğretmen Baykuş looks toward viewer; friends smile beside Turkish flag.",
+      "narration": "Sence sen bugün sınıfında en çok hangi arkadaşınla dayanışınca daha güzel olur?",
+      "visual": "Over-the-shoulder view, the animals gesture invitingly toward a child-sized seat; warm, hopeful mood.",
       "sfx": "none"
     }
-  ],
-  "characters": "Sifa: a russet squirrel with a fluffy tail and a red scarf. Kıvılcım: a tiny gray bird with a green cap and bright round eyes. Pofuduk: a white rabbit with long ears and blue suspenders. Öğretmen Baykuş: a tawny owl with golden eyes and a green vest."
+  ]
 }
