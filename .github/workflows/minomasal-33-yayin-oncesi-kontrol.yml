@@ -1,0 +1,73 @@
+name: MinoMasal 33 - Yayin Oncesi Kontrol (Read Only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-ledger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check story 32 and story 33 without publishing
+        shell: bash
+        run: |
+          python - <<'PY'
+          import ast
+          import json
+          import re
+          from pathlib import Path
+
+          ledger = json.loads(Path('minomasal_platform_durumu.json').read_text(encoding='utf-8'))
+          stories = ledger['stories']
+          row32 = stories.get('32')
+          if row32 is None:
+              raise RuntimeError('32 numarali hikaye kaydi bulunamadi.')
+
+          yt = row32.get('youtube', {})
+          ig = row32.get('instagram', {})
+          print('32 YouTube:', yt.get('status'), 'video_id:', yt.get('video_id'))
+          print('32 Instagram:', ig.get('status'), 'media_id:', ig.get('media_id'))
+          if yt.get('status') != 'published' or not yt.get('video_id'):
+              raise RuntimeError('32 YouTube yayini dogrulanmamis, islem durduruldu.')
+          if ig.get('status') != 'published' or ig.get('media_id') != '18647153785013806':
+              raise RuntimeError('32 Instagram kaydi dogrulanmamis veya beklenen ID eslesmiyor.')
+          print('32 numarali hikayenin iki platform kaydi tamam.')
+
+          root = ast.parse(Path('minomasal.py').read_text(encoding='utf-8'))
+          topics = None
+          for node in root.body:
+              if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'KONULAR' for t in node.targets):
+                  topics = ast.literal_eval(node.value)
+                  break
+          if not topics or len(topics) < 33:
+              raise RuntimeError('Hikaye listesinin 33. maddesi bulunamadi.')
+          print('33 baslik:', topics[32])
+          row33 = stories.get('33')
+          if row33 is None:
+              print('33 kaydi yok: sonraki yeni hikaye adayi olabilir.')
+          else:
+              print('33 kaydi mevcut:')
+              print(json.dumps({'topic': row33.get('topic'), 'youtube': row33.get('youtube',{}).get('status'), 'instagram': row33.get('instagram',{}).get('status')}, ensure_ascii=False))
+              print('DIKKAT: 33 kaydi varken otomatik yayin tekrari kontrol gerektirir.')
+
+          workflow = Path('.github/workflows/minomasal-daily-live.yml')
+          if workflow.exists():
+              body = workflow.read_text(encoding='utf-8')
+              crons = re.findall(r"cron:\s*['\"]([^'\"]+)['\"]", body)
+              print('Gunluk workflow cron:', crons or 'bulunamadi')
+              if '0 15 * * *' in crons:
+                  print('UYARI: 0 15 * * * = Turkiye saatiyle 18:00, 19:00 degil.')
+              if 'GEMINI_API_KEY' not in body:
+                  print('UYARI: Gunluk workflow dosyasinda GEMINI_API_KEY aktarimi gorunmuyor; seslendirme oncesi kontrol edin.')
+              if 'PUBLISH_ENABLED' in body:
+                  print('UYARI: Gunluk workflow yayina alma adimi iceriyor; onay olmadan Run workflow yapmayin.')
+          else:
+              print('UYARI: Gunluk workflow dosyasi bulunamadi.')
+
+          print('KONTROL TAMAMLANDI. Video uretilmedi, hicbir platforma yukleme yapilmadi, yayin kaydi degistirilmedi.')
+          PY
