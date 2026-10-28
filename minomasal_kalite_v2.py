@@ -12,6 +12,32 @@ import requests
 CHARACTERS_JSON = Path(__file__).with_name('minomasal_karakterler.json')
 PRESERVE_APPROVED = {33, 34, 45, 46}
 
+# Sahne resimlerinde en sık karışan somut nesnelerin sözlüğü.
+# Türkçe anlatımda geçen nesne İngilizce visual içinde somut olarak bulunmalı.
+# Dar tutuldu: soyut sözcükleri/eylemleri yanlışlıkla nesne saymayalım.
+SCENE_OBJECTS = (
+    ("taş", r"\btas(?:i|a|ta|tan|lar|lari|larla|in|ini)?\b", r"\b(?:rock|rocks|stone|stones|boulder|boulders|pebble|pebbles)\b"),
+    ("kütük", r"\b(?:kutug(?:u|un|e|de|den)?|kutuk(?:ler|leri|lere|lerin|lerle)?)\b", r"\b(?:log|logs|fallen tree trunk|wooden trunk)\b"),
+    ("köprü", r"\bkopru(?:yu|nun|ye|de|den|ler|leri)?\b", r"\b(?:bridge|bridges|footbridge)\b"),
+    ("ip", r"\bip(?:i|in|e|le|ten|ler|leri)?\b", r"\b(?:rope|ropes|string|strings|cord|cords)\b"),
+    ("balon", r"\bbalon(?:u|un|a|da|dan|lar|lari)?\b", r"\b(?:balloon|balloons)\b"),
+    ("yıldız", r"\byildiz(?:i|in|a|da|dan|lar|lari)?\b", r"\b(?:star|stars|starlight)\b"),
+    ("çiçek", r"\b(?:ciceg(?:i|in|e|de|den)?|cicek(?:ler|leri|lere|lerin|lerle)?)\b", r"\b(?:flower|flowers|blossom|blossoms)\b"),
+    ("kitap", r"\b(?:kitab(?:i|in|a|da|dan)?|kitap(?:lar|lari|lara|larin|larla)?)\b", r"\b(?:book|books|storybook|storybooks)\b"),
+)
+
+
+def validate_scene_object_match(narration, visual, scene_number):
+    """Güvenilir somut nesne eşleşmesi; görüntüdeki gerçek nesneyi garanti etmez."""
+    tr_text, en_text = _norm(narration), _norm(visual)
+    for label, tr_regex, en_regex in SCENE_OBJECTS:
+        if re.search(tr_regex, tr_text) and not re.search(en_regex, en_text):
+            raise ValueError(
+                f"{scene_number}. sahne: anlatımda '{label}' var, ancak İngilizce visual "
+                f"bu nesneyi tanımlamıyor. Görseli olayla eşleştir."
+            )
+
+
 
 def number_for_topic(topic, all_topics):
     try:
@@ -53,6 +79,10 @@ def prompt_rules(topic, all_topics):
         'Her sahnede 1 veya 2 gorunen karakter olsun. Gereksiz figuran, kalabalik, ekstra hayvan, gorunmeyen yeni isim ekleme.',
         'Ana karakterin sabit turunu, adini, govdesini, renklerini, aksesuarlarini butun sahnelerde koru.',
         'Anlatilan olay ile English visual tasviri tam ayni olsun. Her sahnede tek ana eylem.',
+        'Sahne nesnelerini ASLA DEGISTIRME: narration tas diyorsa rock/stone; kutuk diyorsa log; kopru diyorsa bridge yaz.',
+        'English visual icinde gorunen KIM, NE YAPIYOR, HANGI SOMUT NESNEYLE, NEREDE ve NASIL KADRAJLANMIS acikca yaz.',
+        'English visual en az 20 civari anlamli kelimeyle belirgin eylem, somut nesne ve mekan tarif et; sadece ruh hali ve atmosfer yazma.',
+        'Gorunmeyen olaylari resme koyma; anlatimda olmayan kütük, tas, canli, esya, kiyafet veya yeni hareket uydurma.',
         '10 sahne, toplam 75-110 Turkce narration kelimesi. Akici bir hikaye icin tercihen 85-95 kelime hedefle.',
         'Her sahne icin sadece gercekte gorunecek karakterleri ve eylemi visual icinde tarif et.',
     ]
@@ -79,14 +109,17 @@ def verify_and_enrich(story, topic, all_topics):
     scenes = story.get('scenes')
     if not isinstance(scenes, list) or len(scenes) != 10:
         raise ValueError(f'10 sahne bekleniyor; {len(scenes) if isinstance(scenes,list) else "sahne yok"}.')
-    total_words = sum(len(s['narration'].split()) for s in scenes)
-    if not 75 <= total_words <= 110:
-        raise ValueError(f'75-110 kelime bekleniyor; bulunan {total_words}.')
     for idx, scene in enumerate(scenes, 1):
+        if not isinstance(scene, dict):
+            raise ValueError(f'{idx}. sahne nesnesi JSON object olmali.')
         if not isinstance(scene.get('narration'), str) or not isinstance(scene.get('visual'), str):
             raise ValueError(f'{idx}. sahnede narration veya visual eksik.')
         if not scene['narration'].strip() or not scene['visual'].strip():
             raise ValueError(f'{idx}. sahnede bos narration veya visual.')
+        validate_scene_object_match(scene['narration'], scene['visual'], idx)
+    total_words = sum(len(s['narration'].split()) for s in scenes)
+    if not 75 <= total_words <= 110:
+        raise ValueError(f'75-110 kelime bekleniyor; bulunan {total_words}.')
     if not cast:
         # 1-30 icin dogrudan character guard garantisi yok.
         raise ValueError(
@@ -132,7 +165,21 @@ def verify_and_enrich(story, topic, all_topics):
         appearance = ' '.join(
             f'{c["name"]} MUST look exactly like: {c["appearance_en"]}' for c in current_names
         )
-        sc['visual'] = sc['visual'].strip().rstrip('.') + '. ' + appearance + ' Exactly these visible characters, no crowd, no extra animals, no text.'
+        # Sözlükte fil Edi için fildişi yok; AI'nin kendiliğinden eklemesini yasakla.
+        # Narration/visual içinde açıkça fildişi isteniyorsa kontrollü biçimde dur.
+        if any(c['name'] == 'Edi' for c in current_names):
+            if re.search(r'\btusks?\b', sc['visual'], re.I) and not re.search(
+                r'\b(?:no|without|zero)\s+tusks?\b|\btuskless\b', sc['visual'], re.I
+            ):
+                raise ValueError('Edi: visual sözlükte olmayan fildişi ekliyor; görünüşü sabitle.')
+            appearance += ' Edi has NO tusks; keep his blue vest, light-gray body, large pink-inner ears and short trunk unchanged.'
+        sc['visual'] = (
+            sc['visual'].strip().rstrip('.') + '. '
+            + appearance
+            + ' Literal match to the narrated physical action and objects. '
+              'One clear foreground action, consistent anatomy and accessories. '
+              'Exactly these visible characters, no crowd, no extra animals, no text.'
+        )
         enriched.append(sc)
     story['scenes'] = enriched
     return story
@@ -172,10 +219,10 @@ KESIN SAYISAL KURAL:
 - Ilk sahnede merak uyandir, sonraki sahnelerde sebep-sonuc kur,
   sonunda cocuk icin basit bir dusunme sorusu sor.
 Tek somut ders anlat. Korku, siddet, tehlikeli davranis, urun/abone ol cagrisi kullanma.
-Diyaloglari az tut. Edi veya diger onayli karakter adlarini degistirme.
+Diyaloglari az tut. Yalnizca bu masalin onayli kadrosundaki isimleri kullan.
 YALNIZCA JSON nesnesi dondur:
 {{"title":"Turkce baslik","moral":"kisa ders","characters":"cast appearance","scenes":[{{"narration":"yaklasik 8-10 Turkce kelime","visual":"English scene description","sfx":"none"}}]}}
-JSON'u vermeden once 10 sahnenin her birinin kelimesini tek tek say ve duzelt."""
+JSON'u vermeden once 10 sahnenin kelimelerini say. Ayrica her narration ile English visual icindeki nesneleri tek tek karsilastir: tas=rock, kutuk=log, kopru=bridge, ip=rope, balon=balloon, yildiz=star, cicek=flower, kitap=book. Birbirinin yerine baska nesne koyma."""
 
     last_problem = None
     previous_story = None
