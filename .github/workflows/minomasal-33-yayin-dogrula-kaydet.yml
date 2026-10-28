@@ -1,0 +1,46 @@
+name: MinoMasal 33 - Dogrula ve Yayin Kaydini Tamamla
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+concurrency:
+  group: minomasal-preview-state
+  cancel-in-progress: false
+
+jobs:
+  verify-and-record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install validation packages
+        run: python -m pip install --disable-pip-version-check requests
+      - name: Verify live posts and write ledger (NEVER uploads)
+        env:
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          YOUTUBE_URL: https://www.youtube.com/shorts/UU1QoRUSXFc
+          INSTAGRAM_URL: https://www.instagram.com/p/DfDUWosP_lk/
+        run: |
+          python minomasal_33_kaydi_dogrula.py \
+            --youtube-url "$YOUTUBE_URL" \
+            --instagram-url "$INSTAGRAM_URL" --write
+      - name: Commit only verified publication ledger
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- minomasal_platform_durumu.json; then
+            echo 'Yayin defteri zaten dogru, commit gerekli degil.'
+          else
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add minomasal_platform_durumu.json
+            git commit -m 'Verify published story 33 on YouTube and Instagram [skip ci]'
+            git push origin HEAD:main
+          fi
