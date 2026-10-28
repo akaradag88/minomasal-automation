@@ -1,0 +1,64 @@
+name: MinoMasal 33 - 29 Ekim Onayli Video Onizleme (NO PUBLISH)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: minomasal-preview-state
+  cancel-in-progress: false
+
+jobs:
+  special-story-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies including verified FFmpeg build
+        timeout-minutes: 15
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ASSET="ffmpeg-master-latest-linux64-gpl.tar.xz"
+          REPO="BtbN/FFmpeg-Builds"
+          gh release download latest --repo "$REPO" --pattern "$ASSET" --pattern "checksums.sha256" --dir "$RUNNER_TEMP"
+          cd "$RUNNER_TEMP"
+          grep -F "$ASSET" checksums.sha256 | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/ffmpeg"
+          tar -xJf "$ASSET" -C "$RUNNER_TEMP/ffmpeg"
+          FFMPEG_BIN="$(find "$RUNNER_TEMP/ffmpeg" -type f -name ffmpeg -print -quit)"
+          test -n "$FFMPEG_BIN"
+          BIN_DIR="$(dirname "$FFMPEG_BIN")"
+          echo "$BIN_DIR" >> "$GITHUB_PATH"
+          export PATH="$BIN_DIR:$PATH"
+          ffmpeg -version
+          ffprobe -version
+          python -m pip install --disable-pip-version-check -r "$GITHUB_WORKSPACE/requirements-minomasal.txt"
+          python -m pip install --disable-pip-version-check "faster-whisper>=1.1,<2"
+
+      - name: Generate approved special day preview (never publishes)
+        env:
+          MINOMASAL_30SN_TEST: 'false'
+          MINOMASAL_YOUTUBE_UPLOAD: 'false'
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python minomasal_29ekim_33_onizleme.py
+
+      - name: Save preview artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: minomasal-33-29ekim-yayinsiz-onizleme
+          path: minomasal_29ekim_preview/
+          if-no-files-found: warn
+          retention-days: 7
