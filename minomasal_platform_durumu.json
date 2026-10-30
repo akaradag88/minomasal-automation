@@ -565,6 +565,21 @@
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-34/minomasal-34.mp4",
         "release_tag": "minomasal-story-34"
       }
+    },
+    "35": {
+      "topic": "Arkadaşına Yardım Eden Minik Fil",
+      "title": "Minik Filin Yardım Hali | MinoMasal",
+      "youtube": {
+        "status": "pending",
+        "video_id": null,
+        "privacy": null
+      },
+      "instagram": {
+        "status": "pending",
+        "container_id": null,
+        "media_id": null
+      },
+      "video_asset": null
     }
   }
 }
