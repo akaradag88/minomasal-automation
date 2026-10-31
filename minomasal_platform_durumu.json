@@ -583,6 +583,21 @@
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-35/minomasal-35.mp4",
         "release_tag": "minomasal-story-35"
       }
+    },
+    "36": {
+      "topic": "Sürekli Acele Eden Tavşan",
+      "title": "Acele Eden Tavşan | MinoMasal",
+      "youtube": {
+        "status": "pending",
+        "video_id": null,
+        "privacy": null
+      },
+      "instagram": {
+        "status": "pending",
+        "container_id": null,
+        "media_id": null
+      },
+      "video_asset": null
     }
   }
 }
