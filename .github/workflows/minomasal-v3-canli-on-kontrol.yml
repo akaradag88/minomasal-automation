@@ -1,0 +1,38 @@
+name: MinoMasal V3 Canli Gecis On Kontrolu (NO PUBLISH)
+
+on:
+  workflow_dispatch:
+    inputs:
+      activated:
+        description: 'Canli workflow V3 stage komutuna gecti mi? (ilk testte false)'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Read-only ledger and live V3 compatibility check
+        run: |
+          if [ '${{ inputs.activated }}' = 'true' ]; then
+            python minomasal_v3_canli_on_kontrol.py --activated
+          else
+            python minomasal_v3_canli_on_kontrol.py
+          fi
+      - name: Save result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: minomasal-v3-canli-on-kontrol
+          path: minomasal_v3_canli_on_kontrol_raporu.json
+          retention-days: 5
+          if-no-files-found: warn
