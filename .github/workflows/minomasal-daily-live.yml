@@ -39,7 +39,7 @@ jobs:
           POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           MINOMASAL_YOUTUBE_UPLOAD: 'false'
-        run: python minomasal_34_onayli_gunluk.py
+        run: python minomasal_gunluk_kalite_stage_v3.py
       - name: Configure Git identity
         if: steps.stage.outputs.number != ''
         run: |
