@@ -606,9 +606,9 @@
       "topic": "Söz Dinlemeyen Küçük Penguen",
       "title": "Söz Dinlemeyen Küçük Penguen Piko | MinoMasal",
       "youtube": {
-        "status": "ambiguous",
-        "video_id": null,
-        "privacy": null
+        "status": "published",
+        "video_id": "AgBbGOgA-cM",
+        "privacy": "public"
       },
       "instagram": {
         "status": "pending",
