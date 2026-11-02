@@ -619,6 +619,21 @@
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-37/minomasal-37.mp4",
         "release_tag": "minomasal-story-37"
       }
+    },
+    "38": {
+      "topic": "Kendini Beğenmeyen Zürafa",
+      "title": "Kendini Beğenmeyen Zürafa Zeli | MinoMasal",
+      "youtube": {
+        "status": "pending",
+        "video_id": null,
+        "privacy": null
+      },
+      "instagram": {
+        "status": "pending",
+        "container_id": null,
+        "media_id": null
+      },
+      "video_asset": null
     }
   }
 }
