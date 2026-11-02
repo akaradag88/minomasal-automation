@@ -43,7 +43,8 @@ def save(ledger, message):
     cmd('git', 'commit', '-m', message + ' [skip ci]')
 
     try:
-        cmd('git', 'push', 'origin', 'HEAD:main')
+        from minomasal_git_kayit_guvenligi import safe_push_ledger
+        safe_push_ledger()
     except subprocess.CalledProcessError:
         raise RuntimeError(
             'GitHub kayıtları değişmiş. Güvenlik nedeniyle yayın durduruldu. '
