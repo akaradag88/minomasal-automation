@@ -1,11 +1,9 @@
+
 name: MinoMasal Daily YouTube Instagram (19 TR)
 
-
 on:
-  schedule:
-    - cron: '7 19 * * *'
-      timezone: 'Europe/Istanbul'
   workflow_dispatch:
+
 
 
 permissions:
