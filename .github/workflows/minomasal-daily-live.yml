@@ -1,10 +1,8 @@
-
 name: MinoMasal Daily YouTube Instagram (19 TR)
 
+# Otomatik schedule YOK. Dis cron-job.org gunde bir kez workflow_dispatch cagiracak.
 on:
   workflow_dispatch:
-
-
 
 permissions:
   contents: write
@@ -34,22 +32,50 @@ jobs:
           python -m pip install --disable-pip-version-check -r requirements-minomasal.txt
           python -m pip install --disable-pip-version-check google-api-python-client google-auth google-auth-httplib2 'faster-whisper>=1.1,<2'
           ffmpeg -filters | grep -E '(^| )ass( |$)' || { echo 'FFmpeg ass filtresi bulunamadi'; exit 1; }
-      - name: Generate next video from ledger (approved story 34)
+      - name: Check daily slot (read only)
+        id: daycheck
+        env:
+          MINOMASAL_LOCK_TOKEN: ${{ github.token }}
+          MINOMASAL_LOCK_START_DATE: '2026-11-04'
+        run: python minomasal_gunluk_kilit.py preflight
+      - name: Generate next video from ledger (Quality V3)
         id: stage
+        if: steps.daycheck.outputs.eligible == 'true'
         env:
           POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           MINOMASAL_YOUTUBE_UPLOAD: 'false'
         run: python minomasal_gunluk_kalite_stage_v3.py
-      - name: Configure Git identity
+      - name: Reserve daily publication slot (atomic)
+        id: daylock
         if: steps.stage.outputs.number != ''
+        env:
+          MINOMASAL_LOCK_TOKEN: ${{ github.token }}
+          MINOMASAL_LOCK_START_DATE: '2026-11-04'
+        run: python minomasal_gunluk_kilit.py acquire --number '${{ steps.stage.outputs.number }}'
+      - name: Sync latest GitHub state after reservation
+        if: steps.daylock.outputs.acquired == 'true'
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git merge --ff-only origin/main
+      - name: Check lock ownership before publish
+        if: steps.daylock.outputs.acquired == 'true'
+        env:
+          MINOMASAL_LOCK_TOKEN: ${{ github.token }}
+        run: python minomasal_gunluk_kilit.py verify --number '${{ steps.stage.outputs.number }}' --day '${{ steps.daylock.outputs.day }}'
+      - name: Configure Git identity
+        if: steps.daylock.outputs.acquired == 'true'
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
       - name: Publish same video to YouTube and Instagram
-        if: steps.stage.outputs.number != ''
+        if: steps.daylock.outputs.acquired == 'true'
         env:
           PUBLISH_ENABLED: 'true'
+          MINOMASAL_ENFORCE_DAILY_LOCK: 'true'
+          MINOMASAL_LOCK_DAY: ${{ steps.daylock.outputs.day }}
+          MINOMASAL_LOCK_TOKEN: ${{ github.token }}
           MINOMASAL_YOUTUBE_PRIVACY: public
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
@@ -58,3 +84,8 @@ jobs:
           INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
           MINOMASAL_HOSTING_TOKEN: ${{ secrets.MINOMASAL_HOSTING_TOKEN }}
         run: python minomasal_dual_publish.py --stage staging --number '${{ steps.stage.outputs.number }}'
+      - name: Mark daily lock as published
+        if: steps.daylock.outputs.acquired == 'true'
+        env:
+          MINOMASAL_LOCK_TOKEN: ${{ github.token }}
+        run: python minomasal_gunluk_kilit.py finish --number '${{ steps.stage.outputs.number }}' --day '${{ steps.daylock.outputs.day }}'
