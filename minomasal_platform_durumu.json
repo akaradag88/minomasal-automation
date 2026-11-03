@@ -642,9 +642,9 @@
       "topic": "Arkadaşını Affeden Minik Aslan",
       "title": "Arkadaşını Affeden Minik Aslan | MinoMasal",
       "youtube": {
-        "status": "ambiguous",
-        "video_id": null,
-        "privacy": null
+        "status": "published",
+        "video_id": "f2dAeHT4yX0",
+        "privacy": "public"
       },
       "instagram": {
         "status": "pending",
