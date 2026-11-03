@@ -1,0 +1,24 @@
+
+name: MinoMasal External Trigger Test (NO PUBLISH)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  connection-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check external trigger
+        run: |
+          echo "MINOMASAL BAGLANTI TESTI"
+          echo "Trigger: ${{ github.event_name }}"
+          echo "UTC: $(date -u '+%Y-%m-%d %H:%M:%S')"
+          echo "Turkiye: $(TZ=Europe/Istanbul date '+%Y-%m-%d %H:%M:%S')"
+          echo "BAGLANTI BASARILI"
+          echo "Video uretilmedi."
+          echo "Sosyal medya yayini yapilmadi."
