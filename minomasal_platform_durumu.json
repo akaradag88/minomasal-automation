@@ -637,6 +637,21 @@
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-38/minomasal-38.mp4",
         "release_tag": "minomasal-story-38"
       }
+    },
+    "39": {
+      "topic": "Arkadaşını Affeden Minik Aslan",
+      "title": "Arkadaşını Affeden Minik Aslan | MinoMasal",
+      "youtube": {
+        "status": "pending",
+        "video_id": null,
+        "privacy": null
+      },
+      "instagram": {
+        "status": "pending",
+        "container_id": null,
+        "media_id": null
+      },
+      "video_asset": null
     }
   }
 }
