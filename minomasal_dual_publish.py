@@ -96,6 +96,14 @@ def main():
     if os.environ.get('PUBLISH_ENABLED') != 'true':
         print('DRY RUN PASS: staged video and ledger validated; no upload')
         return
+    # Yalnizca LIVE gunluk workflow'da etkin: tam olarak bu run'a ait
+    # GitHub kilidi olmadan ilk yayin kaydini veya API upload'unu baslatma.
+    if os.environ.get('MINOMASAL_ENFORCE_DAILY_LOCK') == 'true':
+        from minomasal_gunluk_kilit import verify
+        lock_day = os.environ.get('MINOMASAL_LOCK_DAY', '').strip()
+        if not lock_day:
+            raise RuntimeError('Gunluk kilit tarihi yok; yayin engellendi.')
+        verify(n, lock_day)
     if os.environ.get('MINOMASAL_YOUTUBE_PRIVACY') != 'public':
         raise RuntimeError('YouTube privacy must be explicitly public')
     for name in ('YOUTUBE_CLIENT_ID', 'YOUTUBE_CLIENT_SECRET', 'YOUTUBE_REFRESH_TOKEN', 'INSTAGRAM_ACCESS_TOKEN', 'INSTAGRAM_USER_ID', 'MINOMASAL_HOSTING_TOKEN'):
