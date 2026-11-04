@@ -655,6 +655,21 @@
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-39/minomasal-39.mp4",
         "release_tag": "minomasal-story-39"
       }
+    },
+    "40": {
+      "topic": "Her Şeye Hayır Diyen Panda",
+      "title": "Her Şeye Hayır Diyen Pofi | MinoMasal",
+      "youtube": {
+        "status": "pending",
+        "video_id": null,
+        "privacy": null
+      },
+      "instagram": {
+        "status": "pending",
+        "container_id": null,
+        "media_id": null
+      },
+      "video_asset": null
     }
   }
 }
