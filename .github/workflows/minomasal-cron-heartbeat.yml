@@ -1,0 +1,34 @@
+name: MinoMasal Cron Kalp Atisi (NO PUBLISH)
+
+on:
+  schedule:
+    # UTC: 7, 22, 37, 52. Sirf GitHub zamanlayicisini test eder.
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: minomasal-cron-heartbeat
+  cancel-in-progress: false
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Print trigger and times (NO API, NO PUBLISH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "MinoMasal heartbeat event: $GITHUB_EVENT_NAME"
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "UTC: $(date -u '+%Y-%m-%d %H:%M:%S %Z')"
+          echo "TR: $(TZ=Europe/Istanbul date '+%Y-%m-%d %H:%M:%S %Z')"
+          if [ "$GITHUB_EVENT_NAME" = 'schedule' ]; then
+            echo 'RESULT: SCHEDULE_TETIKLEMESI_CALISTI'
+          else
+            echo 'RESULT: MANUEL_TETIKLEME (cron kaniti degil)'
+          fi
+          echo 'No video generation, no social uploads, no Git writes.'
