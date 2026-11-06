@@ -691,6 +691,21 @@
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-41/minomasal-41.mp4",
         "release_tag": "minomasal-story-41"
       }
+    },
+    "42": {
+      "topic": "Sorumluluk Alan Küçük Tilki",
+      "title": "Sorumluluk Alan Küçük Tilki | MinoMasal",
+      "youtube": {
+        "status": "pending",
+        "video_id": null,
+        "privacy": null
+      },
+      "instagram": {
+        "status": "pending",
+        "container_id": null,
+        "media_id": null
+      },
+      "video_asset": null
     }
   }
 }
