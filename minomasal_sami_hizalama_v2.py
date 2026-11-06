@@ -247,43 +247,12 @@ async def aligned_scene_voices(story, folder):
     script = " ".join(narrations)
     full_wav = folder / "sami_tam_masal.wav"
 
+    
     if not full_wav.exists():
-        def generate_once():
-            client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-            response = client.models.generate_content(
-                model="gemini-3.8-flash-tts",
-                contents=(
-                    "# Style instructions\n"
-                    "Türkçe çocuk masalı anlatıcısı gibi sıcak, anlaşılır ve doğal oku. "
-                    "Yalnızca aşağıdaki metni sırayla ve eksiksiz seslendir. "
-                    "Sahne cümleleri arasında kısa ve doğal durakla.\n"
-                    "# Transcript\n" + script
-                ),
-                config=types.GenerateContentConfig(
-                    temperature=0.4,
-                    response_modalities=["AUDIO"],
-                    speech_config=types.SpeechConfig(
-                        voice_config=types.VoiceConfig(
-                            prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name="Sami")
-                        )
-                    ),
-                ),
-            )
-            if not response.candidates:
-                raise RuntimeError("Sami ses yanıtı boş.")
-            audio = next(
-                (p.inline_data for p in response.candidates[0].content.parts
-                 if p.inline_data and p.inline_data.data), None
-            )
-            if audio is None:
-                raise RuntimeError("Sami ses verisi bulunamadı.")
-            with wave.open(str(full_wav), "wb") as wav:
-                wav.setnchannels(1)
-                wav.setsampwidth(2)
-                wav.setframerate(24000)
-                wav.writeframes(audio.data)
-        await asyncio.to_thread(generate_once)
-        print("Sami: bütün hikâye TEK API isteğiyle üretildi.")
+        from minomasal_sami_tts_interactions import create_sami_wav
+        await asyncio.to_thread(create_sami_wav, script, full_wav)
+        print("Sami: Gemini Interactions TTS tamamlandı.")
+
 
     scene_tokens = [text.split() for text in narrations]
     expected = [word for tokens in scene_tokens for word in tokens]
