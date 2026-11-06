@@ -1,0 +1,39 @@
+name: MinoMasal Sami TTS API 9.12 (NO PUBLISH)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sami-api-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install current Gemini SDK
+        run: python -m pip install --disable-pip-version-check 'google-genai>=2.25.0,<3'
+      - name: Short Sami test (NO PUBLISH)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python - <<'PY'
+          import wave
+          from minomasal_sami_tts_interactions import create_sami_wav
+          output = create_sami_wav("Merhaba! Bugün MinoMasal'da yepyeni bir hikâye dinleyeceğiz.", "sami_api_test.wav")
+          with wave.open(str(output), "rb") as w:
+              print("SAMI_API_TTS_OK", "sample_rate=", w.getframerate(), "duration=", round(w.getnframes()/w.getframerate(), 2))
+          print("TEST_ONLY_NO_PUBLISH")
+          PY
+      - name: Save private test WAV artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sami-tts-9-12-smoke-test
+          path: sami_api_test.wav
+          if-no-files-found: error
+          retention-days: 1
