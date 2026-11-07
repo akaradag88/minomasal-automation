@@ -4,6 +4,9 @@
   "topic": "Yalnız Oynamak İsteyen Koala",
   "run_id": "42389667653",
   "run_attempt": "1",
-  "status": "reserved",
-  "created_at_utc": "2026-11-07T16:11:33.690496+00:00"
+  "status": "published",
+  "created_at_utc": "2026-11-07T16:11:33.690496+00:00",
+  "youtube_video_id": "m_XF9eIdRMA",
+  "instagram_media_id": "18090572372278565",
+  "completed_at_utc": "2026-11-07T16:13:05.203339+00:00"
 }
