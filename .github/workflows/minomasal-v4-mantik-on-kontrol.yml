@@ -1,0 +1,23 @@
+name: MinoMasal V4 Hikaye Mantik On Kontrolu (NO PUBLISH)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Read-only actor and story tests (NO API, NO PUBLISH)
+        run: |
+          python -m unittest -v test_minomasal_v4_mantik_kontrol.py
+          echo 'V4_MANTIK_PREFLIGHT_OK'
