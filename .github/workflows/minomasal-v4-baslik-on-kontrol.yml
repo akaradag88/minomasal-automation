@@ -1,0 +1,25 @@
+name: MinoMasal V4 Baslik On Kontrolu (NO PUBLISH)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v4-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline safety and title tests (NO APIs / NO PUBLISH)
+        run: |
+          python -m unittest -v test_minomasal_v4.py
+          python minomasal_v4_gunluk_stage.py --check
+      - name: Result
+        run: echo 'MinoMasal V4 baslik on kontrol basarili; hicbir video yayinlanmadi.'
