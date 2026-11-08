@@ -1,0 +1,35 @@
+name: MinoMasal V4 47 Sahne Sureklilik On Kontrol (NO PUBLISH)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: minomasal-preview-state
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline scene continuity checks - FREE, NO PUBLISH
+        run: |
+          python minomasal_v4_47_sureklilik_kontrol.py
+          python -m unittest -q test_minomasal_v4_47_sureklilik.py
+      - name: Save offline report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: minomasal-v4-47-offline-continuity-no-publish
+          retention-days: 7
+          if-no-files-found: warn
+          path: minomasal_v4_47_sureklilik_rapor.json
