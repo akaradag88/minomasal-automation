@@ -1,0 +1,53 @@
+name: MinoMasal 10.8 Ozel Gun Video Onizleme (NO PUBLISH)
+
+on:
+  workflow_dispatch:
+    inputs:
+      story_number:
+        description: 'Onayli ozel gun hikayesi'
+        required: true
+        default: '45'
+        type: choice
+        options:
+          - '45'
+          - '46'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: minomasal-special-preview-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  render-preview:
+    name: Generate MP4 for human review only
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install rendering dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install -r requirements-minomasal.txt
+      - name: Create isolated special-story preview (NO PUBLISH)
+        env:
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MINOMASAL_YOUTUBE_UPLOAD: 'false'
+          PUBLISH_ENABLED: 'false'
+        run: python minomasal_45_46_onizleme.py --number '${{ inputs.story_number }}'
+      - name: Save video, story, and images for human review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: minomasal-special-story-${{ inputs.story_number }}-preview
+          path: minomasal_45_46_preview_output/
+          retention-days: 7
+          if-no-files-found: warn
