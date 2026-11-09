@@ -29,8 +29,13 @@ def approved_special(number, topic):
     if not source.is_file():
         raise RuntimeError(f'#{number} icin onayli JSON yok: {source}')
     story = json.loads(source.read_text(encoding='utf-8'))
-    if story.get('title') != topic or len(story.get('scenes', [])) != 10:
-        raise RuntimeError(f'#{number} onayli JSON basligi/sahnesi uyusmuyor.')
+    # Küyruktaki konu ve onayli hikayenin yayin basligi farkli olabilir.
+    approved = {
+        45: ("Küçük Baykuş Atatürk'ü Öğreniyor", "Küçük Baykuş ve 10 Kasım Anısı"),
+        46: ("Orman Okulunda Atatürk'ü Anma Günü", "Orman Okulunda Saygı Yürüyüşü"),
+    }[number]
+    if topic != approved[0] or story.get('title') != approved[1] or len(story.get('scenes', [])) != 10:
+        raise RuntimeError(f'#{number} onayli JSON konusu/basligi/sahnesi uyusmuyor.')
     return story
 
 
