@@ -25,13 +25,15 @@ def ledger_hash():
 
 
 def approved_special(number, topic):
-    source = Path(SPECIAL_FILES[number])
-    if not source.is_file():
-        raise RuntimeError(f'#{number} icin onayli JSON yok: {source}')
-    story = json.loads(source.read_text(encoding='utf-8'))
+    import unicodedata
 
-    # Konu ile video basligi ayridir. Sadece onceden bilinen iki olasi
-    # baslik kabul edilir; baska numara/konu ile eslesmeye izin verilmez.
+    def canonical(value):
+        if not isinstance(value, str):
+            return None
+        return unicodedata.normalize('NFC', value).translate(
+            str.maketrans({"’": "'", "‘": "'", "ʼ": "'", "＇": "'"})
+        ).strip()
+
     approved = {
         45: (
             "Küçük Baykuş Atatürk'ü Öğreniyor",
@@ -42,28 +44,31 @@ def approved_special(number, topic):
             {"Orman Okulunda Atatürk'ü Anma Günü", "Orman Okulunda Saygı Yürüyüşü"},
         ),
     }
-    if number not in approved:
-        raise RuntimeError(f'#{number} onayli ozel gunler arasinda degil.')
-    expected_topic, allowed_titles = approved[number]
-    scenes = story.get('scenes')
-    valid_scenes = (
-        isinstance(scenes, list)
-        and len(scenes) == 10
-        and all(
-            isinstance(s, dict)
-            and isinstance(s.get('narration'), str) and s['narration'].strip()
-            and isinstance(s.get('visual'), str) and s['visual'].strip()
-            for s in scenes
-        )
-    )
-    if topic != expected_topic or story.get('title') not in allowed_titles or not valid_scenes:
-        raise RuntimeError(
-            f'#{number} onayli JSON konusu/basligi/sahnesi uyusmuyor: '
-            f'topic={topic!r}, title={story.get("title")!r}, '
-            f'scenes={len(scenes) if isinstance(scenes, list) else "invalid"}'
-        )
-    return story
+    if number not in approved or number not in SPECIAL_FILES:
+        raise RuntimeError(f'#{number} ozel gun sozlugunde tanimli degil.')
 
+    expected_topic, allowed_titles = approved[number]
+    if canonical(topic) != canonical(expected_topic):
+        raise RuntimeError(f'#{number} beklenmeyen konu: {topic!r}')
+
+    source = Path(SPECIAL_FILES[number])
+    if not source.is_file():
+        raise RuntimeError(f'#{number} icin onayli JSON bulunamadi: {source}')
+    story = json.loads(source.read_text(encoding='utf-8-sig'))
+    actual_title = canonical(story.get('title'))
+    if actual_title not in {canonical(title) for title in allowed_titles}:
+        raise RuntimeError(f'#{number} beklenmeyen JSON basligi: {story.get("title")!r}')
+
+    scenes = story.get('scenes')
+    if not isinstance(scenes, list) or len(scenes) != 10:
+        raise RuntimeError(f'#{number} tam 10 sahne bekleniyor.')
+    for i, scene in enumerate(scenes, start=1):
+        if not isinstance(scene, dict) or any(
+            not isinstance(scene.get(k), str) or not scene[k].strip()
+            for k in ('narration', 'visual')
+        ):
+            raise RuntimeError(f'#{number} {i}. sahne narration/visual eksik.')
+    return story
 
 
 async def main():
