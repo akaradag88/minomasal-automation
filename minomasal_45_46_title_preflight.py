@@ -1,62 +1,79 @@
 #!/usr/bin/env python3
-"""Offline check of the CURRENT staging function and 45/46 data. No publish."""
+"""#45/#46 only: local read-only title/scene guard test. No publishing / API calls."""
 from pathlib import Path
 import ast
 import json
-import tempfile
 import os
+import tempfile
+import unicodedata
+
 ROOT=Path(__file__).resolve().parent
 CASES={
-  45:("Küçük Baykuş Atatürk'ü Öğreniyor",{"Küçük Baykuş Atatürk'ü Öğreniyor","Küçük Baykuş ve 10 Kasım Anısı"},'hikaye_03.json'),
-  46:("Orman Okulunda Atatürk'ü Anma Günü",{"Orman Okulunda Atatürk'ü Anma Günü","Orman Okulunda Saygı Yürüyüşü"},'hikaye_04.json'),
+    45: ("Küçük Baykuş Atatürk'ü Öğreniyor", {"Küçük Baykuş Atatürk'ü Öğreniyor", "Küçük Baykuş ve 10 Kasım Anısı"}, 'hikaye_03.json'),
+    46: ("Orman Okulunda Atatürk'ü Anma Günü", {"Orman Okulunda Atatürk'ü Anma Günü", "Orman Okulunda Saygı Yürüyüşü"}, 'hikaye_04.json'),
 }
-def get_literal(path, name):
+
+def canonical(value):
+    if not isinstance(value,str):
+        return None
+    return unicodedata.normalize('NFC',value).translate(str.maketrans({"’":"'","‘":"'","ʼ":"'","＇":"'"})).strip()
+
+def literal(path,name):
     tree=ast.parse(path.read_text(encoding='utf-8-sig'))
     for node in tree.body:
         if isinstance(node,ast.Assign) and any(isinstance(t,ast.Name) and t.id==name for t in node.targets):
             return ast.literal_eval(node.value)
-    raise AssertionError(name+' not found')
-def get_function(path):
-    tree=ast.parse(path.read_text(encoding='utf-8-sig'))
+    raise AssertionError(f'{path.name}: {name} bulunamadi')
+
+def get_approved_special(stage):
+    tree=ast.parse(stage.read_text(encoding='utf-8-sig'))
     node=next((x for x in tree.body if isinstance(x,ast.FunctionDef) and x.name=='approved_special'),None)
-    assert node is not None,'approved_special function not found'
+    assert node is not None,'approved_special bulunamadi'
     ns={'Path':Path,'json':json,'SPECIAL_FILES':{45:'hikaye_03.json',46:'hikaye_04.json'}}
-    exec(compile(ast.Module(body=[node],type_ignores=[]),str(path),'exec'),ns)
+    exec(compile(ast.Module(body=[node],type_ignores=[]),str(stage),'exec'),ns)
     return ns['approved_special']
+
+def must_reject(call, what):
+    try:
+        call()
+    except (RuntimeError, ValueError, KeyError):
+        return
+    raise AssertionError(f'Kabul edilmemesi gereken {what} kabul edildi')
+
 def main():
     stage=ROOT/'minomasal_gunluk_kalite_stage_v3.py'
-    topics=get_literal(ROOT/'minomasal.py','KONULAR')
-    actual_files=get_literal(stage,'SPECIAL_FILES')
-    check=get_function(stage)
-    cwd=Path.cwd()
+    topics=literal(ROOT/'minomasal.py','KONULAR')
+    special=literal(stage,'SPECIAL_FILES')
+    check=get_approved_special(stage)
+    original=Path.cwd()
     os.chdir(ROOT)
     try:
-      for number,(topic,allowed,filename) in CASES.items():
-        assert actual_files.get(number)==filename,(number,'wrong file path')
-        assert topics[number-1]==topic,(number,'wrong topic')
-        data=json.loads((ROOT/filename).read_text(encoding='utf-8-sig'))
-        assert data.get('title') in allowed,(number,'unknown title',data.get('title'))
-        assert isinstance(data.get('scenes'),list) and len(data['scenes'])==10,(number,'wrong scenes')
-        result=check(number,topic)
-        assert result==data,(number,'returned other story')
-        print(f'PASS #{number}: {data["title"]!r}; scenes=10; words={sum(len(s["narration"].split()) for s in data["scenes"])}')
-      # Wrong topic must never be accepted (even when story data is valid)
-      for number,(topic,_,__) in CASES.items():
-        try:check(number,topic+' DİĞER')
-        except RuntimeError:pass
-        else:raise AssertionError('wrong topic accepted '+str(number))
-      # Wrong JSON title must fail. Save and restore fixture in an isolated directory.
-      with tempfile.TemporaryDirectory() as tmp:
-        tmp=Path(tmp)
-        for number,(topic,_,filename) in CASES.items():
-          data=json.loads((ROOT/filename).read_text(encoding='utf-8-sig'))
-          data['title']='BAŞKA BİR HİKÂYE'
-          (tmp/filename).write_text(json.dumps(data,ensure_ascii=False),encoding='utf-8')
-        os.chdir(tmp)
-        for number,(topic,_,filename) in CASES.items():
-          try:check(number,topic)
-          except RuntimeError:pass
-          else:raise AssertionError('wrong title accepted '+str(number))
-      print('SPECIAL_TITLE_GATE_OK; NO_PUBLISH; no secrets or API calls')
-    finally:os.chdir(cwd)
+        for number,(topic,allowed,filename) in CASES.items():
+            assert special.get(number)==filename,(number,'wrong file')
+            assert topics[number-1]==topic,(number,'wrong canonical topic',topics[number-1])
+            story=json.loads((ROOT/filename).read_text(encoding='utf-8-sig'))
+            assert canonical(story.get('title')) in {canonical(x) for x in allowed},(number,'unknown title',story.get('title'))
+            assert isinstance(story.get('scenes'),list) and len(story['scenes'])==10,(number,'wrong scene count')
+            assert all(isinstance(s,dict) and all(isinstance(s.get(k),str) and s[k].strip() for k in ('narration','visual')) for s in story['scenes']),(number,'empty scene')
+            assert check(number,topic)==story,(number,'stage returned wrong story')
+            must_reject(lambda:check(number,topic+' FARKLI'),f'#{number} wrong topic')
+            print(f'PASS #{number}: {story["title"]!r}; scenes=10; words={sum(len(s["narration"].split()) for s in story["scenes"])}')
+
+            # Test that an ordinary apostrophe and a curly apostrophe work both ways.
+            with tempfile.TemporaryDirectory() as td:
+                td=Path(td)
+                case=dict(story)
+                case['title']=next(x for x in allowed if "'" in x).replace("'",'’')
+                (td/filename).write_text(json.dumps(case,ensure_ascii=False),encoding='utf-8')
+                os.chdir(td)
+                assert check(number,topic)==case,(number,'curly apostrophe rejected')
+                assert check(number,topic.replace("'",'’'))==case,(number,'curly apostrophe topic rejected')
+                case['title']='ILGISIZ BASKA MASAL'
+                (td/filename).write_text(json.dumps(case,ensure_ascii=False),encoding='utf-8')
+                must_reject(lambda:check(number,topic),f'#{number} wrong JSON title')
+                os.chdir(ROOT)
+        print('SPECIAL_TITLE_GATE_OK; SMART_APOSTROPHE_OK; NO_PUBLISH')
+    finally:
+        os.chdir(original)
+
 if __name__=='__main__':main()
