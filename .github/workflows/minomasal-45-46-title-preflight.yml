@@ -1,0 +1,16 @@
+name: MinoMasal 10.7.2 Ozel Gun Baslik Kontrolu (NO PUBLISH)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate current special title guard and source files
+        run: python minomasal_45_46_title_preflight.py
