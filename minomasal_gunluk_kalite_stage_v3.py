@@ -29,14 +29,41 @@ def approved_special(number, topic):
     if not source.is_file():
         raise RuntimeError(f'#{number} icin onayli JSON yok: {source}')
     story = json.loads(source.read_text(encoding='utf-8'))
-    # Küyruktaki konu ve onayli hikayenin yayin basligi farkli olabilir.
+
+    # Konu ile video basligi ayridir. Sadece onceden bilinen iki olasi
+    # baslik kabul edilir; baska numara/konu ile eslesmeye izin verilmez.
     approved = {
-        45: ("Küçük Baykuş Atatürk'ü Öğreniyor", "Küçük Baykuş ve 10 Kasım Anısı"),
-        46: ("Orman Okulunda Atatürk'ü Anma Günü", "Orman Okulunda Saygı Yürüyüşü"),
-    }[number]
-    if topic != approved[0] or story.get('title') != approved[1] or len(story.get('scenes', [])) != 10:
-        raise RuntimeError(f'#{number} onayli JSON konusu/basligi/sahnesi uyusmuyor.')
+        45: (
+            "Küçük Baykuş Atatürk'ü Öğreniyor",
+            {"Küçük Baykuş Atatürk'ü Öğreniyor", "Küçük Baykuş ve 10 Kasım Anısı"},
+        ),
+        46: (
+            "Orman Okulunda Atatürk'ü Anma Günü",
+            {"Orman Okulunda Atatürk'ü Anma Günü", "Orman Okulunda Saygı Yürüyüşü"},
+        ),
+    }
+    if number not in approved:
+        raise RuntimeError(f'#{number} onayli ozel gunler arasinda degil.')
+    expected_topic, allowed_titles = approved[number]
+    scenes = story.get('scenes')
+    valid_scenes = (
+        isinstance(scenes, list)
+        and len(scenes) == 10
+        and all(
+            isinstance(s, dict)
+            and isinstance(s.get('narration'), str) and s['narration'].strip()
+            and isinstance(s.get('visual'), str) and s['visual'].strip()
+            for s in scenes
+        )
+    )
+    if topic != expected_topic or story.get('title') not in allowed_titles or not valid_scenes:
+        raise RuntimeError(
+            f'#{number} onayli JSON konusu/basligi/sahnesi uyusmuyor: '
+            f'topic={topic!r}, title={story.get("title")!r}, '
+            f'scenes={len(scenes) if isinstance(scenes, list) else "invalid"}'
+        )
     return story
+
 
 
 async def main():
