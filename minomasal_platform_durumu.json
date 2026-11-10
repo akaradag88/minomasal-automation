@@ -763,6 +763,24 @@
         "media_id": null
       },
       "video_asset": null
+    },
+    "46": {
+      "topic": "Orman Okulunda Atatürk'ü Anma Günü",
+      "title": "Orman Okulunda Atatürk'ü Anma Günü",
+      "status": "skipped",
+      "date": "2026-11-10",
+      "reason": "Adım 10.8: kullanıcı onayıyla özel içerik atlandı; normal sıra 47 ile devam edecek.",
+      "youtube": {
+        "status": "skipped",
+        "video_id": null,
+        "privacy": null
+      },
+      "instagram": {
+        "status": "skipped",
+        "container_id": null,
+        "media_id": null
+      },
+      "video_asset": null
     }
   }
 }

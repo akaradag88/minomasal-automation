@@ -45,14 +45,15 @@ class SafetyTests(unittest.TestCase):
     def test_sequence_and_skip(self):
         ledger = json.loads(Path('minomasal_platform_durumu.json').read_text())
         self.assertEqual(ledger['stories']['45']['status'], 'skipped')
-        expected = 47 if '46' in ledger['stories'] else 46
-        self.assertEqual(choose(ledger), expected)
+        self.assertEqual(ledger['stories']['46']['status'], 'skipped')
+        self.assertEqual(choose(ledger), 47)
         broken = copy.deepcopy(ledger); broken['stories']['44']['youtube']['status'] = 'ambiguous'
         with self.assertRaises(RuntimeError): choose(broken)
-        with self.assertRaises(RuntimeError): safety.ensure_allowed_topic(mm.KONULAR[44])
+        for n in (45, 46):
+            with self.assertRaises(RuntimeError): safety.ensure_allowed_topic(mm.KONULAR[n-1])
 
     def test_publisher_rejects_missing_evidence_and_skipped(self):
-        for number in (45, 47):
+        for number in (45, 46, 47):
             with tempfile.TemporaryDirectory() as tmp:
                 stage = Path(tmp)
                 (stage/'metadata.json').write_text(json.dumps({'number':number, 'topic':mm.KONULAR[number-1], 'title':'Test'}))
@@ -99,8 +100,8 @@ class SafetyTests(unittest.TestCase):
             safety.copy_receipt(video,target); safety.validate_receipt(target)
             receipt=json.loads(safety.receipt_path(target).read_text())
             (stage/receipt['assets'][1]['path']).unlink()
-            (stage/'metadata.json').write_text(json.dumps({'number':46,'topic':mm.KONULAR[45],'title':'test'}))
-            with patch('sys.argv',['pub','--number','46','--stage',str(stage)]), patch.object(pub,'upload_youtube') as upload:
+            (stage/'metadata.json').write_text(json.dumps({'number':47,'topic':mm.KONULAR[46],'title':'test'}))
+            with patch('sys.argv',['pub','--number','47','--stage',str(stage)]), patch.object(pub,'upload_youtube') as upload:
                 with self.assertRaises((RuntimeError,FileNotFoundError)): pub.main()
                 upload.assert_not_called()
 
