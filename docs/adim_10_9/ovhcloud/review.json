@@ -1,0 +1,16 @@
+{
+  "decision": "rejected_for_automation",
+  "method": "visual_review_of_both_sources_and_vertical_outputs",
+  "fixed_scarf_color": false,
+  "fixed_eye_color": false,
+  "no_extra_main_character": false,
+  "scene_one_action_and_prop_match": false,
+  "structural_image_checks_passed": true,
+  "character_bible": "Mino, a small orange fox with a white muzzle and green eyes, wearing blue overalls and a red scarf",
+  "scene_descriptions": [
+    "Mino holds a yellow watering can beside a small oak sapling in a sunny forest clearing",
+    "Mino carries a small wooden basket across a forest path beside the same oak sapling"
+  ],
+  "shared_style": "Colorful children's animated storybook illustration, emerald green, sky blue and warm coral palette; same character design, clothing, fur and body proportions in every scene; no extra main characters; full-bleed environment, no text, no border. Compose for a vertical 9:16 crop: keep all characters and important action inside the central 50 percent width.",
+  "generation_seed_sent": false
+}

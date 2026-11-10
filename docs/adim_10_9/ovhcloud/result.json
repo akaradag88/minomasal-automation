@@ -1,0 +1,37 @@
+{
+  "provider": "ovhcloud",
+  "started_at_utc": "2026-11-10T18:06:41.242938+00:00",
+  "mode": "free_image_only",
+  "scenes": [
+    {
+      "scene": 1,
+      "source_size": [
+        1024,
+        1024
+      ],
+      "output_size": [
+        1080,
+        1920
+      ],
+      "seconds": 19.1,
+      "sha256": "226d7128e251992a27de45712fe48241d3875d23b4e8eb89fa41a3542c2c2800"
+    },
+    {
+      "scene": 2,
+      "source_size": [
+        1024,
+        1024
+      ],
+      "output_size": [
+        1080,
+        1920
+      ],
+      "seconds": 24.25,
+      "sha256": "e534a3c69318ef3897b25c0b7748cf5c2e5d7bb80f20497a5fb1a133d9eaecaa"
+    }
+  ],
+  "paid_requests_allowed": false,
+  "free_policy": "anonymous_no_billing_credential",
+  "model": "stable-diffusion-xl-base-v10",
+  "status": "two_images_generated_semantic_review_required"
+}

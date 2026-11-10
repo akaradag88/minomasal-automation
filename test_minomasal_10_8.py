@@ -10,6 +10,8 @@ from pathlib import Path
 from unittest.mock import patch, Mock
 
 import minomasal as mm
+import minomasal_images as image_pipeline
+import os
 import minomasal_dual_publish as pub
 import minomasal_yayin_guvenligi as safety
 from minomasal_daily_live import choose
@@ -19,10 +21,20 @@ STORY = {'title': 'Test', 'characters': 'Fox', 'scenes':
 
 
 class SafetyTests(unittest.TestCase):
+    def setUp(self):
+        # Test transport errors independently from production free-budget policy.
+        config=image_pipeline.load_config();config['approved_for_automation']=['pollinations'];config['order']=['pollinations']
+        policy=patch.object(image_pipeline,'load_config',return_value=config)
+        policy.start();self.addCleanup(policy.stop)
+        env=patch.dict(os.environ, {'MINOMASAL_IMAGE_PROVIDERS':'pollinations'})
+        env.start(); self.addCleanup(env.stop)
+        preflight=patch.object(image_pipeline.Pollinations, 'preflight')
+        preflight.start(); self.addCleanup(preflight.stop)
+
     def test_http_errors(self):
         for status, calls in [(402, 1), (429, 3), (500, 3), (401, 1)]:
             with self.subTest(status=status), tempfile.TemporaryDirectory() as tmp:
-                with patch.object(mm.requests, 'get', return_value=Mock(status_code=status)) as get, patch.object(mm.time, 'sleep') as sleep:
+                with patch.object(mm.requests, 'request', return_value=Mock(status_code=status)) as get, patch.object(mm.time, 'sleep') as sleep:
                     with self.assertRaises(RuntimeError) as err:
                         mm.make_images(STORY, Path(tmp), 'SECRET', 'flux')
                     self.assertNotIn('SECRET', str(err.exception))
@@ -31,8 +43,8 @@ class SafetyTests(unittest.TestCase):
 
     def test_transient_recovery(self):
         from PIL import Image
-        data = io.BytesIO(); Image.new('RGB', (2, 2)).save(data, format='PNG')
-        with tempfile.TemporaryDirectory() as tmp, patch.object(mm.time, 'sleep'), patch.object(mm.requests, 'get', side_effect=[Mock(status_code=429), Mock(status_code=500)] + [Mock(status_code=200, content=data.getvalue()) for _ in range(6)]):
+        data = io.BytesIO(); Image.effect_noise((512,512),80).convert('RGB').save(data, format='PNG')
+        with tempfile.TemporaryDirectory() as tmp, patch.object(mm.time, 'sleep'), patch.object(mm.requests, 'request', side_effect=[Mock(status_code=429), Mock(status_code=500)] + [Mock(status_code=200, content=data.getvalue()) for _ in range(6)]):
             self.assertEqual(len(mm.make_images(STORY, Path(tmp), 'secret', 'flux')), 6)
 
     def test_missing_image_and_audio_stop_before_render(self):
