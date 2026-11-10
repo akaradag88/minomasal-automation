@@ -110,6 +110,8 @@ async def main():
         raise RuntimeError('Yayin defteri sahneleme sirasinda degismis; durduruldu.')
     daily.STAGING.mkdir(exist_ok=True, parents=True)
     shutil.copy2(video, daily.STAGING / 'masal_short.mp4')
+    from minomasal_yayin_guvenligi import copy_receipt
+    copy_receipt(video, daily.STAGING / 'masal_short.mp4')
     meta = {'number': number, 'topic': topic,
             'title': str(story.get('title') or topic).strip() + ' | MinoMasal',
             'video': 'masal_short.mp4', 'mode': 'quality_v3_staging'}

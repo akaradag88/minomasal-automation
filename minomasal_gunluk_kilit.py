@@ -131,7 +131,7 @@ def _check_prior_unresolved(day):
         if date_part >= day:
             continue
         info, _ = get_file(item['path'])
-        if info is None or info.get('status') != 'published':
+        if info is None or info.get('status') not in ('published', 'skipped'):
             print(f'ONCEKI KILIT BELIRSIZ: {date_part}; manuel uzlastirma gerekli.')
             return True
     return False

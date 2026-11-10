@@ -140,11 +140,19 @@ def save_json(path, data):
     tmp=Path(str(path)+'.tmp'); tmp.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf-8'); tmp.replace(path)
 
 def validate(story):
-    assert isinstance(story,dict) and story.get('title') and story.get('characters'), 'Başlık ve karakter tanımı gerekli.'
-    assert 6 <= len(story.get('scenes',[])) <= 15, '6–15 sahne kullanın.'
-    for s in story['scenes']:
-        assert s.get('narration') and s.get('visual'), 'Her sahnede narration ve visual gerekli.'
-        assert len(s['narration'].split())<=35, 'Bir sahnede en fazla 35 kelime kullanın.'
+    if not isinstance(story, dict) or not story.get('title') or not story.get('characters'):
+        raise ValueError('Başlık ve karakter tanımı gerekli.')
+    scenes = story.get('scenes')
+    if not isinstance(scenes, list) or not 6 <= len(scenes) <= 15:
+        raise ValueError('6–15 sahne kullanın.')
+    for scene in scenes:
+        if not isinstance(scene, dict) or any(
+            not isinstance(scene.get(k), str) or not scene[k].strip()
+            for k in ('narration', 'visual')
+        ):
+            raise ValueError('Her sahnede narration ve visual gerekli.')
+        if len(scene['narration'].split()) > 35:
+            raise ValueError('Bir sahnede en fazla 35 kelime kullanın.')
     return story
 
 def create_story(topic, key, model):
@@ -238,12 +246,23 @@ def make_images(story, folder, key, model, local=''):
                 for attempt in range(3):
                     try:
                         r=requests.get('https://gen.pollinations.ai/image/'+quote(prompt,safe=''),params={'model':model,'width':1080,'height':1920,'seed':SEED+i,'nologo':'true'},headers={'Authorization':'Bearer '+key},timeout=180)
-                        if r.status_code!=200: raise RuntimeError(f'Görsel servisi HTTP {r.status_code}')
-                        import io
-                        im=Image.open(io.BytesIO(r.content)); im.load(); break
-                    except Exception:
-                        if attempt==2: raise
-                        time.sleep(3*(attempt+1))
+                    except requests.RequestException:
+                        raise RuntimeError('Görsel servisine bağlantı başarısız; üretim durduruldu.') from None
+                    if r.status_code == 402:
+                        raise RuntimeError('Görsel servisi HTTP 402: bakiye/kredi yetersiz; tekrar denenmedi.')
+                    if r.status_code == 429 or r.status_code in (500, 502, 503, 504):
+                        if attempt == 2:
+                            raise RuntimeError(f'Görsel servisi HTTP {r.status_code}; tekrar deneme sınırı doldu.')
+                        time.sleep(3 * 2**attempt)
+                        continue
+                    if r.status_code != 200:
+                        raise RuntimeError(f'Görsel servisi HTTP {r.status_code}; üretim durduruldu.')
+                    import io
+                    try:
+                        im=Image.open(io.BytesIO(r.content)); im.load()
+                    except (OSError, ValueError):
+                        raise RuntimeError('Görsel servisi geçersiz görsel döndürdü.') from None
+                    break
             ImageOps.fit(im.convert('RGB'),(1080,1920),method=Image.Resampling.LANCZOS).save(path,quality=95)
         with Image.open(path) as im: im.verify()
         out.append(path); print(f'Görsel {i+1}/{len(story["scenes"])} hazır')
@@ -474,6 +493,8 @@ def make_scene_music(story, lengths, folder):
     return output
 
 def render(story,images,audios,folder):
+    from minomasal_yayin_guvenligi import validate_inputs
+    validate_inputs(story, images, audios)
     parts=[]; part_lengths=[]; all_cues=[]; offset=0
     for i,(im,(audio,dur,words),s) in enumerate(zip(images,audios,story['scenes'])):
         cues=subtitle_groups(words,s['narration'],dur)
@@ -524,6 +545,8 @@ def render(story,images,audios,folder):
 
 async def produce(topic, supplied_story=None):
     
+    from minomasal_yayin_guvenligi import ensure_allowed_topic, validate_video
+    ensure_allowed_topic(topic)
     story = validate(supplied_story) if supplied_story else create_story(topic, API_KEY, HIKAYE_MODELI)
 
     from minomasal_masalsi_kopru import prepare_story_for_render
@@ -538,10 +561,15 @@ async def produce(topic, supplied_story=None):
     save_json(folder/'hikaye.json',story)
     complete=folder/'tamam.json'; final=folder/'masal_short.mp4'
     if complete.exists() and final.exists() and duration(final)>1:
+        from minomasal_yayin_guvenligi import validate_receipt
+        validate_receipt(final)
         print('Önceden tamamlandı:',final); return final
     images=make_images(story,folder/'gorseller',API_KEY,GORSEL_MODELI,GORSel_KLASORU)
     audios=await voices(story,folder)
     final=render(story,images,audios,folder)
+    validate_video(final)
+    from minomasal_yayin_guvenligi import write_receipt
+    write_receipt(final, story, images, audios)
     save_json(complete,{'title':story['title'],'duration':duration(final),'video':str(final)})
     print('Video hazır:',final); return final
 

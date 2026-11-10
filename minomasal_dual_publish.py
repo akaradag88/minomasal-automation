@@ -65,7 +65,7 @@ def graph(method, path, params):
     except urllib.error.HTTPError as exc:
         try:
             e = json.load(exc).get('error', {})
-            raise RuntimeError(f'Instagram HTTP {exc.code}; code={e.get("code")}; subcode={e.get("error_subcode")}; message={e.get("message")}') from None
+            raise RuntimeError(f'Instagram HTTP {exc.code}; code={e.get("code")}; subcode={e.get("error_subcode")}; details=redacted') from None
         except (ValueError, KeyError):
             raise RuntimeError(f'Instagram HTTP {exc.code}') from None
 
@@ -85,7 +85,13 @@ def main():
         raise RuntimeError('Story number/topic mismatch. Stop.')
     if not video.is_file() or duration(video) <= 1:
         raise RuntimeError('Staged video missing or invalid')
+    from minomasal_yayin_guvenligi import ensure_allowed_topic, validate_receipt
+    ensure_allowed_topic(meta['topic'])
+    validate_receipt(video)
+    from minomasal_daily_live import choose
     row = ledger['stories'].get(str(n))
+    if row is None and choose(ledger) != n:
+        raise RuntimeError('Hikâye sırası atlanamaz.')
     if row is None:
         row = {'topic': meta['topic'], 'title': meta['title'], 'youtube': {'status': 'pending', 'video_id': None, 'privacy': None}, 'instagram': {'status': 'pending', 'container_id': None, 'media_id': None}, 'video_asset': None}
     elif row['topic'] != meta['topic']:
@@ -93,6 +99,9 @@ def main():
     for platform in ('youtube', 'instagram'):
         if row[platform]['status'] not in ('pending', 'published'):
             raise RuntimeError(f'{platform}: {row[platform]["status"]}; manual reconciliation required')
+    if all(row[p]['status'] == 'published' for p in ('youtube', 'instagram')):
+        print('İki platformda zaten yayımlandı; tekrar yayın yok.')
+        return
     if os.environ.get('PUBLISH_ENABLED') != 'true':
         print('DRY RUN PASS: staged video and ledger validated; no upload')
         return

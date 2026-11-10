@@ -745,6 +745,24 @@
         "url": "https://github.com/akaradag88/minomasal-video-hosting/releases/download/minomasal-story-44/minomasal-44.mp4",
         "release_tag": "minomasal-story-44"
       }
+    },
+    "45": {
+      "topic": "Küçük Baykuş Atatürk'ü Öğreniyor",
+      "title": "Küçük Baykuş Atatürk'ü Öğreniyor",
+      "status": "skipped",
+      "date": "2026-11-10",
+      "reason": "Adım 10.8: kullanıcı isteği; otomatik yeniden üretim ve yayın yasak.",
+      "youtube": {
+        "status": "skipped",
+        "video_id": null,
+        "privacy": null
+      },
+      "instagram": {
+        "status": "skipped",
+        "container_id": null,
+        "media_id": null
+      },
+      "video_asset": null
     }
   }
 }

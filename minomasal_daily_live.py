@@ -47,6 +47,11 @@ def choose(ledger):
             for p in ("youtube", "instagram")
         ]
 
+        if record.get("status") == "skipped":
+            if statuses != ["skipped", "skipped"]:
+                raise RuntimeError("Atlanan hikâyenin platform durumları tutarsız.")
+            continue
+
         if statuses == ["published", "published"]:
             continue
 
@@ -119,6 +124,8 @@ async def main():
 
     STAGING.mkdir(parents=True, exist_ok=True)
     shutil.copy2(video, STAGING / "masal_short.mp4")
+    from minomasal_yayin_guvenligi import copy_receipt
+    copy_receipt(video, STAGING / "masal_short.mp4")
 
     metadata = {
         "number": number,
