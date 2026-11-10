@@ -66,6 +66,10 @@ class NovemberReadinessTests(unittest.TestCase):
                     lock.acquire(number,self.meta)
         self.assertEqual(self.api.files,self.initial)
 
+    def test_nov11_cron_time_is_1907_istanbul(self):
+        scheduled=datetime(2026,11,11,16,7,tzinfo=timezone.utc)
+        self.assertEqual(scheduled.astimezone(lock.TZ).isoformat(),'2026-11-11T19:07:00+03:00')
+
     def test_istanbul_midnight_changes_date(self):
         for instant, expected in [('2026-11-10T20:59:59+00:00','2026-11-10'),
                                   ('2026-11-10T21:00:00+00:00','2026-11-11')]:

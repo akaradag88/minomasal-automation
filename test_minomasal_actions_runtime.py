@@ -23,7 +23,8 @@ class RuntimeConfigurationTests(unittest.TestCase):
 
     def test_live_guards_and_existing_platform_settings(self):
         workflow=yaml.load(Path('.github/workflows/minomasal-daily-live.yml').read_text(),Loader=yaml.BaseLoader)
-        self.assertEqual(set(workflow['on']),{'workflow_dispatch'})
+        self.assertEqual(set(workflow['on']),{'workflow_dispatch','schedule'})
+        self.assertEqual(workflow['on']['schedule'],[{'cron':'7 16 * * *'}])
         self.assertEqual(workflow['concurrency'],{'group':'minomasal-preview-state','cancel-in-progress':'false'})
         job=workflow['jobs']['produce-and-publish']
         self.assertEqual(job['if'],"github.ref == 'refs/heads/main'")

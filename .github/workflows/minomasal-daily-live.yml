@@ -1,7 +1,9 @@
 name: MinoMasal Daily YouTube Instagram (19 TR)
 
-# Otomatik schedule YOK. Dis cron-job.org gunde bir kez workflow_dispatch cagiracak.
+# 19:07 Europe/Istanbul = 16:07 UTC. Dis tetikleyici de gunluk kilide tabidir.
 on:
+  schedule:
+    - cron: '7 16 * * *'
   workflow_dispatch:
 
 permissions:

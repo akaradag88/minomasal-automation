@@ -21,3 +21,5 @@ __pycache__/
 .venv/
 
 .venv-readiness/
+
+pollinations-account-check.json
