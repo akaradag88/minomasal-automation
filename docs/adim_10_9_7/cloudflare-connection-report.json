@@ -1,0 +1,24 @@
+{
+  "model": "@cf/black-forest-labs/flux-1-schnell",
+  "started_at_utc": "2026-11-11T15:17:20.177737+00:00",
+  "secrets_present": {
+    "account_id": true,
+    "api_token": true
+  },
+  "connection_verified": true,
+  "free_plan_verified": false,
+  "quota_verified": false,
+  "paid_usage_allowed": false,
+  "scenes": [],
+  "quality_decision": "not_reviewed",
+  "license": {
+    "model": "Apache-2.0",
+    "commercial_model_use_permitted": true,
+    "source": "https://huggingface.co/black-forest-labs/FLUX.1-schnell",
+    "cloudflare_service_terms_also_apply": true
+  },
+  "status": "blocked_no_publish",
+  "blocked_at": "free_plan",
+  "reason": "request_failed",
+  "http_status": 403
+}

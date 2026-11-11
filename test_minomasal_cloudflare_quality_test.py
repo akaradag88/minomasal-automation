@@ -41,6 +41,7 @@ class CloudflareQualityTests(unittest.TestCase):
             result=probe.run_check(self.dest,True)
             self.assertTrue(result['connection_verified']);self.assertEqual(result['blocked_at'],'free_plan')
             self.assertFalse(result['free_plan_verified']);gen.assert_not_called()
+            self.assertEqual(result['next_action'],'check_token_billing_read_and_account_scope')
 
     def test_paid_plan_never_generates(self):
         paid=self.response({'success':True,'result':[{'price':5,'rate_plan':{'public_name':'Workers Paid'}}],'result_info':{'total_count':1}})

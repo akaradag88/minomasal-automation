@@ -127,6 +127,10 @@ def run_check(output, generate=False):
             report['status']='two_images_generated_review_required'
     except ProviderFailure as exc:
         report.update(status='blocked_no_publish',blocked_at=phase,reason=exc.reason,http_status=exc.status)
+        if phase=='free_plan' and exc.status==403:
+            report['next_action']='check_token_billing_read_and_account_scope'
+        elif phase.startswith('quota'):
+            report['next_action']='check_account_analytics_read_and_quota_availability'
     except Exception:
         # Never expose upstream bodies, sensitive exception values or local paths.
         report.update(status='blocked_no_publish',blocked_at=phase,reason='unexpected_response_or_runtime_error')
