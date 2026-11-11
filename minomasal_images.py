@@ -37,8 +37,9 @@ class ImageFailure(RuntimeError):
 
 
 class ProviderFailure(ImageFailure):
-    def __init__(self, provider, reason, status=None):
+    def __init__(self, provider, reason, status=None, api_errors=None):
         self.provider, self.reason, self.status = provider, reason, status
+        self.api_errors = api_errors or []
         detail = 'bakiye/kredi yetersiz; tekrar denenmedi' if status == 402 else reason
         super().__init__(f'{provider}: ' + (f'HTTP {status}: ' if status else '') + detail)
 
@@ -95,6 +96,38 @@ def write_json(path, value):
     tmp.replace(path)
 
 
+def cloudflare_error_details(response):
+    """Export only numeric API codes and locally defined messages, never raw text.
+
+    Even an upstream message echoing a token fragment, header, URL, account or
+    prompt cannot enter logs. Unknown messages stay redacted; field mentions
+    are selected from a fixed schema vocabulary.
+    """
+    known={10000:'Authentication error',5007:'No such model or task',
+           5004:'Invalid input data type',3003:'Request is missing headers or body',
+           5018:'Account is not allowed to access this model',5016:'Model agreement required',
+           3023:'Service unavailable for account',3041:'Account is not allowed to access this model',
+           5035:'Model requires a Workers Paid plan',3036:'Daily free allocation exhausted',
+           3040:'Capacity temporarily exceeded'}
+    try:
+        if len(response.content)>MAX_BYTES:return []
+        body=response.json()
+        if not isinstance(body,dict) or not isinstance(body.get('errors'),list):return []
+        result=[]
+        for error in body['errors'][:4]:
+            if not isinstance(error,dict):continue
+            code=error.get('code')
+            if type(code) is not int or not 0<=code<=1_000_000:continue
+            message=error.get('message')
+            mentions=[field for field in ('prompt','steps','seed','width','height')
+                      if isinstance(message,str) and re.search(r'\b'+field+r'\b',message,re.I)]
+            result.append({'code':code,'message':known.get(code,'Unrecognized API error; raw message withheld'),
+                           'message_is_canonical':True,'schema_fields_mentioned':mentions})
+        return result
+    except (ValueError,TypeError):
+        return []
+
+
 def http(provider, method, url, *, before=None, attempts=3, **kwargs):
     if type(attempts) is not int or not 1 <= attempts <= 3:
         raise ValueError("Invalid bounded retry count")
@@ -114,7 +147,8 @@ def http(provider, method, url, *, before=None, attempts=3, **kwargs):
             time.sleep(3 * 2**attempt)
             continue
         # 402/403 disable this candidate for the remainder of this entire batch.
-        raise ProviderFailure(provider,'request_failed',status)
+        details=cloudflare_error_details(response) if provider=='cloudflare' else []
+        raise ProviderFailure(provider,'request_failed',status,api_errors=details)
     raise ProviderFailure(provider,'retry_limit')
 
 
@@ -246,7 +280,7 @@ def verify_cloudflare_free_plan(data):
 
 class Cloudflare(Provider):
     name='cloudflare'
-    supports_seed=True
+    supports_seed=False  # Minimum REST schema: prompt only; no seed claim.
     def preflight(self):
         self.model=CF_MODEL
         self.account=os.environ.get('CLOUDFLARE_ACCOUNT_ID','')
@@ -269,10 +303,11 @@ class Cloudflare(Provider):
             raise ProviderFailure(self.name,'insufficient_verified_free_quota')
 
     def generate(self,prompt,index):
-        if len(prompt)>2048: raise ProviderFailure(self.name,'prompt_exceeds_documented_limit')
+        if not isinstance(prompt,str) or not 1<=len(prompt)<=2048:
+            raise ProviderFailure(self.name,'prompt_outside_documented_schema')
         response=http(self.name,'POST',f'https://api.cloudflare.com/client/v4/accounts/{self.account}/ai/run/{self.model}',
                       headers={'Authorization':'Bearer '+self.token},
-                      json={'prompt':prompt,'steps':self.config['cloudflare_steps'],'seed':self.seed},
+                      json={'prompt':prompt},
                       attempts=self.config.get('http_attempts',3))
         data=json_response(response,self.name)
         if data.get('success') is not True: raise ProviderFailure(self.name,'model_failed')

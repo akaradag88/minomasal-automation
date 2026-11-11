@@ -39,6 +39,17 @@ class CloudflareQualityTests(unittest.TestCase):
             self.assertEqual(quota.call_args.args[1],'AUDIT_SECRET')
             self.assertTrue(result['tokens_separated'])
 
+    def test_inference_400_reports_safe_api_error_and_never_starts_scene_two(self):
+        details=[{'code':10000,'message':'Authentication error','message_is_canonical':True,
+                  'schema_fields_mentioned':[]}]
+        with patch.object(probe,'http',side_effect=[self.model(),self.free()]),patch.object(probe,'query_quota',return_value=self.quota()),patch.object(probe.Cloudflare,'generate',side_effect=ProviderFailure('cloudflare','request_failed',400,api_errors=details)) as gen:
+            result=probe.run_check(self.dest,True)
+            gen.assert_called_once()
+            self.assertEqual(result['api_errors'],details)
+            self.assertEqual(result['scenes'],[])
+            self.assertEqual(result['blocked_at'],'image_1')
+            self.assertEqual(result['generation_parameters']['request_fields'],['prompt'])
+
     def test_missing_credentials_never_connects(self):
         with patch.dict(os.environ,{'CLOUDFLARE_API_TOKEN':''}),patch.object(probe,'http') as http:
             result=probe.run_check(self.dest,True)

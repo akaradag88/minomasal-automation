@@ -120,8 +120,32 @@ class ImageProviderTests(unittest.TestCase):
             self.assertEqual(provider.generate('same character in a forest',1),self.data)
             args,kwargs=request.call_args
             self.assertEqual(args[0],'POST');self.assertIn(images.CF_MODEL,args[1])
-            self.assertEqual(kwargs['json'],{'prompt':'same character in a forest','steps':4,'seed':1234})
+            self.assertEqual(kwargs['json'],{'prompt':'same character in a forest'})
+            self.assertFalse(provider.supports_seed)
             self.assertFalse(kwargs['allow_redirects']);self.assertNotIn('secret',args[1])
+
+    def test_cloudflare_400_is_not_retried_and_error_cannot_echo_secrets(self):
+        body={'errors':[{'code':10000,'message':'Authentication error Bearer SECRET_FRAGMENT account abcdef'},
+                        {'code':9999,'message':'seed rejected: secret prefix abcdef and Authorization header'},
+                        {'code':'SECRET_FRAGMENT','message':'private'}]}
+        with patch.object(images.requests,'request',return_value=response(400,body=body)) as request,patch.object(images.time,'sleep') as sleep:
+            with self.assertRaises(images.ProviderFailure) as caught:
+                images.http('cloudflare','POST','https://api.cloudflare.com/client/v4/test',json={'prompt':'fox'})
+            request.assert_called_once();sleep.assert_not_called()
+        errors=caught.exception.api_errors
+        self.assertEqual(errors[0]['code'],10000)
+        self.assertEqual(errors[0]['message'],'Authentication error')
+        self.assertEqual(errors[1]['schema_fields_mentioned'],['seed'])
+        text=json.dumps(errors)+str(caught.exception)
+        for secret in ('SECRET_FRAGMENT','abcdef','Authorization','Bearer'):
+            self.assertNotIn(secret,text)
+
+    def test_cloudflare_prompt_schema_rejected_before_request(self):
+        provider=images.Cloudflare(self.config)
+        for prompt in ('','x'*2049,None,123):
+            with self.subTest(prompt_type=type(prompt).__name__),patch.object(images,'http') as http:
+                with self.assertRaises(images.ProviderFailure):provider.generate(prompt,1)
+                http.assert_not_called()
 
     def test_ovh_checks_live_free_catalog(self):
         provider=images.OVHcloud(self.config)

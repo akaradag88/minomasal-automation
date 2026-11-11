@@ -66,7 +66,9 @@ def run_check(output, generate=False):
     report={'model':CF_MODEL,'started_at_utc':datetime.now(timezone.utc).isoformat(),
             'secrets_present':{'account_id':bool(account),'api_token':bool(token),'usage_token':bool(usage_token)},
             'tokens_separated':bool(token and usage_token and token!=usage_token),
-            'generation_parameters':{'steps':4,'seed':1234,'model':CF_MODEL,'max_image_requests':2},
+            'generation_parameters':{'request_fields':['prompt'],'steps_sent':False,
+                'documented_default_steps':4,'seed':None,'width_sent':False,'height_sent':False,
+                'model':CF_MODEL,'max_image_requests':2},
             'connection_verified':False,'free_plan_verified':False,'quota_verified':False,
             'paid_usage_allowed':False,'scenes':[], 'quality_decision':'not_reviewed',
             'license':{'model':'Apache-2.0','commercial_model_use_permitted':True,
@@ -143,6 +145,7 @@ def run_check(output, generate=False):
             report['status']='two_images_generated_review_required'
     except ProviderFailure as exc:
         report.update(status='blocked_no_publish',blocked_at=phase,reason=exc.reason,http_status=exc.status)
+        if exc.api_errors:report['api_errors']=exc.api_errors
         report.update(request_context(phase))
         if phase=='free_plan' and exc.status==403:
             report['next_action']='check_subscription_read_access_or_dashboard_plan_verification'
