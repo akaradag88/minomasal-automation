@@ -1,0 +1,39 @@
+{
+  "started_at_utc": "2026-11-11T18:47:46.599809+00:00",
+  "python": "3.11.18",
+  "cache_hit": false,
+  "pip_install_limit_seconds": 480,
+  "phases": [
+    {
+      "phase": "system-force",
+      "seconds": 29.009,
+      "exit_code": 0
+    },
+    {
+      "phase": "python",
+      "seconds": 17.112,
+      "exit_code": 0
+    },
+    {
+      "phase": "verify",
+      "seconds": 1.869,
+      "exit_code": 0
+    }
+  ],
+  "status": "passed",
+  "generation_allowed": false,
+  "publishing_allowed": false,
+  "pip_under_eight_minutes": true,
+  "packages": {
+    "pip": "26.2.2",
+    "edge-tts": "7.3.1",
+    "Pillow": "12.3.0",
+    "requests": "2.34.2",
+    "numpy": "2.4.6",
+    "google-genai": "2.34.0",
+    "google-api-python-client": "2.202.0",
+    "google-auth": "2.62.2",
+    "google-auth-httplib2": "0.4.4",
+    "faster-whisper": "1.2.1"
+  }
+}
