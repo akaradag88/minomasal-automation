@@ -93,6 +93,20 @@ def run_check(output, generate=False):
         phase='free_plan'
         subscriptions=json_response(http('cloudflare','GET',f'{ROOT}/accounts/{account}/subscriptions',
                                          headers=usage_headers),'cloudflare')
+        # Fixed structural diagnostics only: no subscription names, IDs, raw
+        # errors, response keys, credentials or account/billing values.
+        info=subscriptions.get('result_info')
+        report['subscription_response_shape']={
+            'success_is_true':subscriptions.get('success') is True,
+            'result_is_list':isinstance(subscriptions.get('result'),list),
+            'result_is_object':isinstance(subscriptions.get('result'),dict),
+            'result_count':len(subscriptions['result']) if isinstance(subscriptions.get('result'),list) else None,
+            'metadata_present':info is not None,
+            'metadata_is_object':isinstance(info,dict),
+            'total_count_is_integer':isinstance(info,dict) and type(info.get('total_count')) is int,
+            'total_count_matches':isinstance(info,dict) and isinstance(subscriptions.get('result'),list)
+                and type(info.get('total_count')) is int and info['total_count']==len(subscriptions['result']),
+        }
         report['plan_proof']=verify_cloudflare_free_plan(subscriptions)
         report['free_plan_verified']=True
         phase='quota'
