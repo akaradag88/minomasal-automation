@@ -28,7 +28,7 @@ CHARACTER=('Mino is one small orange fox cub, white muzzle, green eyes, round fa
            'yellow tipper bed, four black wheels and no writing. Keep exactly this design.')
 SCENES=(
     'Mino plays with his red-and-yellow toy truck on a forest path. The entire truck is clearly visible beside his paws.',
-    'The same Mino searches for that toy truck in the forest, looking behind a tree. The same truck is partly visible beside the tree.',
+    'The same Mino searches for the toy truck in the forest, looking behind a tree. The unchanged truck is fully visible to the viewer beside a nearby bush while the fox looks elsewhere.',
 )
 STYLE='Warm colorful storybook illustration, full body, portrait-friendly centered composition, one fox only, no text.'
 

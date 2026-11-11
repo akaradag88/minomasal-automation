@@ -28,14 +28,10 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 (Node.js 24)
         with:
           python-version: '3.11'
-      - name: Install test dependencies (no secrets)
-        run: |
-          set -euo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg
-          python -m pip install -r requirements-minomasal.txt PyYAML
-      - name: Offline safety suite before any Cloudflare call
-        run: python run_readiness_tests.py
+      - name: Install image-test dependencies (no secrets, no video tooling)
+        run: python -m pip install 'requests>=2.31,<3' 'Pillow>=10,<13' PyYAML
+      - name: Offline Cloudflare safety tests before any API call
+        run: python -m unittest -v test_minomasal_cloudflare_quality_test
       - name: Verify free access and optionally generate two scenes
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
