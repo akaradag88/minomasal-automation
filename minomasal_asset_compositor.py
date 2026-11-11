@@ -27,6 +27,18 @@ class AssetError(RuntimeError):pass
 def digest(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def record_fingerprint(record):
+    """Bind human approval to the file hash AND view/profile/transform metadata."""
+    payload={key:value for key,value in record.items() if key!='approval'}
+    return hashlib.sha256(json.dumps(payload,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+
+
+def character_profile_fingerprint(profile):
+    payload={'kind':profile['kind'],'traits':profile['traits'],
+             'reference_sha256':profile['reference']['sha256']}
+    return hashlib.sha256(json.dumps(payload,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+
+
 def local_file(root,value):
     if not isinstance(value,str) or not value or '://' in value:raise AssetError('local_asset_path_required')
     path=(root/value).resolve()
@@ -43,7 +55,7 @@ def verified_file(root,record):
     return path
 
 
-def approval(record,checks,*,test_fixtures=False,preview=False):
+def approval(record,checks,*,test_fixtures=False,preview=False,bind_record=True):
     item=record.get('approval',{})
     if not isinstance(item,dict):raise AssetError('invalid_approval')
     if item.get('scope')=='test-fixture':
@@ -54,6 +66,8 @@ def approval(record,checks,*,test_fixtures=False,preview=False):
     if item.get('status')!='approved':
         if preview:return False
         raise AssetError('asset_not_approved_no_regeneration')
+    if bind_record and item.get('reviewed_record_sha256')!=record_fingerprint(record):
+        raise AssetError('record_changed_since_manual_approval')
     if not isinstance(item.get('reviewed_by'),str) or not item['reviewed_by'].strip():
         raise AssetError('manual_reviewer_required')
     try:datetime.fromisoformat(item['reviewed_at'])
@@ -162,6 +176,8 @@ def sprite(root,catalog,asset_id,*,test_fixtures,preview,ocr):
     read_image(verified_file(root,reference))
     ref_ok=approval(reference,('identity',),test_fixtures=test_fixtures,preview=preview)
     if asset.get('reference_sha256')!=reference['sha256']:raise AssetError('reference_identity_mismatch')
+    if asset.get('profile_sha256')!=character_profile_fingerprint(profile):
+        raise AssetError('profile_changed_since_asset_approval')
     path=verified_file(root,asset)
     approved=approval(asset,('identity','single_entity','edges','no_text_logo'),test_fixtures=test_fixtures,preview=preview)
     if asset.get('view') not in VIEWS:raise AssetError('approved_view_required')
@@ -318,7 +334,7 @@ def validate_local_handoff(folder):
         if any(not isinstance(scene,dict) for scene in scenes):raise ValueError()
         if any(scene.get('production_assets_approved') is not True or scene.get('preview') is not False
                or scene.get('test_fixture_only') is not False for scene in scenes):raise ValueError()
-        approval({'approval':review},('identity','counts','text_logos','scene_action'))
+        approval({'approval':review},('identity','counts','text_logos','scene_action'),bind_record=False)
         hashes=[digest(folder/f'{i:02}.jpg') for i in range(1,len(scenes)+1)]
         if any(read_image(folder/f'{i:02}.jpg').size!=SIZE for i in range(1,len(scenes)+1)):
             raise AssetError('wrong_composition_resolution')

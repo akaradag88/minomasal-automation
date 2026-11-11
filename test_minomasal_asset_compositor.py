@@ -20,6 +20,11 @@ class AssetCompositorTests(unittest.TestCase):
     def compose(self,scene=None,**kwargs):
         return ac.compose_scene(self.root,self.catalog,scene or self.scenes[0],test_fixtures=True,**kwargs)
     def save_catalog(self):self.path.write_text(json.dumps(self.catalog))
+    def reapprove_test_record(self,record):record['approval']['reviewed_record_sha256']=ac.record_fingerprint(record)
+    def rebind_test_character(self):
+        profile=self.catalog['profiles']['character'];asset=self.catalog['assets']['character_front']
+        asset['profile_sha256']=ac.character_profile_fingerprint(profile)
+        self.reapprove_test_record(profile['reference']);self.reapprove_test_record(asset)
     def promote_test_records_for_unit_test_only(self):
         for profile in self.catalog['profiles'].values():profile['reference']['approval']['scope']='production'
         for item in [*self.catalog['assets'].values(),*self.catalog['backgrounds'].values()]:item['approval']['scope']='production'
@@ -70,6 +75,7 @@ class AssetCompositorTests(unittest.TestCase):
         self.scenes[0]['layers'][0]['view']='front';self.scenes[0]['layers'][0]['flip_x']=True
         with self.assertRaisesRegex(ac.AssetError,'mirroring_not_approved'):self.compose()
         self.catalog['assets']['character_front']['mirror_approved']=True
+        self.reapprove_test_record(self.catalog['assets']['character_front'])
         _,report=self.compose();self.assertTrue(report['layers'][0]['flip_x'])
 
     def test_missing_extra_and_hidden_layers_are_rejected(self):
@@ -86,6 +92,7 @@ class AssetCompositorTests(unittest.TestCase):
             sha=ac.digest(path);self.catalog['assets']['character_front']['sha256']=sha
             self.catalog['assets']['character_front']['reference_sha256']=sha
             self.catalog['profiles']['character']['reference']['sha256']=sha
+            self.rebind_test_character()
             with self.subTest(mode=mode,size=size),self.assertRaises(ac.AssetError):self.compose()
 
     def test_geometry_requires_finite_ints_and_zoom_safe_bounds(self):
@@ -100,6 +107,7 @@ class AssetCompositorTests(unittest.TestCase):
         image.save(self.root/'character-front.png');sha=ac.digest(self.root/'character-front.png')
         self.catalog['profiles']['character']['reference']['sha256']=sha
         self.catalog['assets']['character_front'].update(sha256=sha,reference_sha256=sha)
+        self.rebind_test_character()
         with self.assertRaisesRegex(ac.AssetError,'white_fringe_requires_manual_review'):self.compose()
 
     def test_premultiplied_scaling_does_not_add_hidden_white_rgb_halos(self):
@@ -113,8 +121,10 @@ class AssetCompositorTests(unittest.TestCase):
         ImageDraw.Draw(sprite).rectangle((50,50,200,330),fill=(255,0,0,255));sprite.save(path)
         sha=ac.digest(path);self.catalog['assets']['character_front'].update(sha256=sha,reference_sha256=sha)
         self.catalog['profiles']['character']['reference']['sha256']=sha
+        self.rebind_test_character()
         bg=self.root/'background-1.png';Image.new('RGB',(1080,1920),'black').save(bg)
         self.catalog['backgrounds']['background_1']['sha256']=ac.digest(bg)
+        self.reapprove_test_record(self.catalog['backgrounds']['background_1'])
         scene=copy.deepcopy(self.scenes[0]);scene['layers'][0]['height']=135
         image,report=self.compose(scene)
         x,y,w,h=report['layers'][0]['box'];roi=image.crop((x,y,x+w,y+h))
@@ -185,6 +195,13 @@ class AssetCompositorTests(unittest.TestCase):
         (output/'composition.json').write_text(json.dumps(manifest));ac.validate_local_handoff(output)
         (output/'01.jpg').write_bytes(b'changed')
         with self.assertRaises(ac.AssetError):ac.validate_local_handoff(output)
+
+    def test_profile_and_view_metadata_changes_invalidate_approval(self):
+        self.catalog['profiles']['character']['traits']['eyes']='different eye design'
+        with self.assertRaisesRegex(ac.AssetError,'profile_changed_since_asset_approval'):self.compose()
+        self.catalog['profiles']['character']['traits']['eyes']='synthetic test geometry only'
+        self.catalog['assets']['character_front']['mirror_approved']=True
+        with self.assertRaisesRegex(ac.AssetError,'record_changed_since_manual_approval'):self.compose()
 
 
 if __name__=='__main__':unittest.main()

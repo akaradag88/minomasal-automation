@@ -3,7 +3,7 @@ from datetime import datetime,timezone
 import json
 from pathlib import Path
 from PIL import Image,ImageDraw
-from minomasal_asset_compositor import digest
+from minomasal_asset_compositor import digest,record_fingerprint,character_profile_fingerprint
 from minomasal_visual_profile import TRAITS
 
 
@@ -24,20 +24,25 @@ def make_fixtures(root):
         image=Image.new('RGB',(1080,1920),color);draw=ImageDraw.Draw(image)
         draw.rectangle((0,1400,1080,1920),fill=(130+i*15,145,95))
         image.save(root/f'background-{i}.png')
-    def approved(checks):
+    def approved(record,checks):
         return {'status':'approved','scope':'test-fixture','reviewed_by':'synthetic-test-fixture',
-                'reviewed_at':datetime.now(timezone.utc).isoformat(),'checks':dict.fromkeys(checks,True)}
+                'reviewed_at':datetime.now(timezone.utc).isoformat(),'checks':dict.fromkeys(checks,True),
+                'reviewed_record_sha256':record_fingerprint(record)}
     catalog={'version':1,'profiles':{},'assets':{},'backgrounds':{}}
     for entity,kind,file in (('character','character','character-front.png'),('truck','object','truck-front.png')):
         sha=digest(root/file)
+        reference={'path':file,'sha256':sha};reference['approval']=approved(reference,('identity',))
         catalog['profiles'][entity]={'kind':kind,'traits':dict.fromkeys(TRAITS[kind],'synthetic test geometry only'),
-            'reference':{'path':file,'sha256':sha,'approval':approved(('identity',))}}
-        catalog['assets'][entity+'_front']={'profile':entity,'view':'front','path':file,'sha256':sha,
+            'reference':reference}
+        asset={'profile':entity,'view':'front','path':file,'sha256':sha,
             'reference_sha256':sha,'mirror_approved':False,
-            'approval':approved(('identity','single_entity','edges','no_text_logo'))}
+            'profile_sha256':character_profile_fingerprint(catalog['profiles'][entity])}
+        asset['approval']=approved(asset,('identity','single_entity','edges','no_text_logo'))
+        catalog['assets'][entity+'_front']=asset
     for i in (1,2):
-        catalog['backgrounds'][f'background_{i}']={'path':f'background-{i}.png','sha256':digest(root/f'background-{i}.png'),
-            'approval':approved(('empty_scene','no_text_logo'))}
+        background={'path':f'background-{i}.png','sha256':digest(root/f'background-{i}.png')}
+        background['approval']=approved(background,('empty_scene','no_text_logo'))
+        catalog['backgrounds'][f'background_{i}']=background
     scenes=[]
     for i in (1,2):
         scenes.append({'background':f'background_{i}','inventory':{'character':1,'truck':1},'layers':[
