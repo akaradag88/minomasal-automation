@@ -18,12 +18,26 @@ class CloudflareQualityTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
         self.dest=Path(self.tmp.name)/'output'
-        self.env=patch.dict(os.environ,{'CLOUDFLARE_ACCOUNT_ID':'a'*32,'CLOUDFLARE_API_TOKEN':'TOP_SECRET'},clear=True)
+        self.env=patch.dict(os.environ,{'CLOUDFLARE_ACCOUNT_ID':'a'*32,'CLOUDFLARE_API_TOKEN':'TOP_SECRET','CLOUDFLARE_USAGE_TOKEN':'AUDIT_SECRET'},clear=True)
         self.env.start();self.addCleanup(self.env.stop)
     def response(self,data):return Mock(json=Mock(return_value=data))
     def model(self):return self.response({'success':True,'result':[{'name':CF_MODEL}]})
     def free(self):return self.response({'success':True,'result':[],'result_info':{'total_count':0}})
     def quota(self,used=0):return {'utc_day':'2026-11-11','used_neurons_reported':used,'remaining_neurons_reported':10000-used}
+
+    def test_usage_token_is_required_and_cannot_reuse_inference_token(self):
+        for token in ('','TOP_SECRET'):
+            with self.subTest(token_present=bool(token)),tempfile.TemporaryDirectory() as tmp,patch.dict(os.environ,{'CLOUDFLARE_USAGE_TOKEN':token}),patch.object(probe,'http') as http:
+                result=probe.run_check(Path(tmp)/'output',True)
+                http.assert_not_called();self.assertEqual(result['status'],'blocked_no_publish')
+
+    def test_model_and_audit_calls_use_different_tokens(self):
+        with patch.object(probe,'http',side_effect=[self.model(),self.free()]) as http,patch.object(probe,'query_quota',return_value=self.quota()) as quota:
+            result=probe.run_check(self.dest)
+            self.assertEqual(http.call_args_list[0].kwargs['headers']['Authorization'],'Bearer TOP_SECRET')
+            self.assertEqual(http.call_args_list[1].kwargs['headers']['Authorization'],'Bearer AUDIT_SECRET')
+            self.assertEqual(quota.call_args.args[1],'AUDIT_SECRET')
+            self.assertTrue(result['tokens_separated'])
 
     def test_missing_credentials_never_connects(self):
         with patch.dict(os.environ,{'CLOUDFLARE_API_TOKEN':''}),patch.object(probe,'http') as http:
@@ -80,7 +94,7 @@ class CloudflareQualityTests(unittest.TestCase):
             self.assertEqual(len(result['scenes']),2)
             self.assertEqual(len(list(self.dest.glob('*.original.png'))),2)
             text=(self.dest/'report.json').read_text()
-            self.assertNotIn('TOP_SECRET',text);self.assertNotIn('a'*32,text)
+            self.assertNotIn('TOP_SECRET',text);self.assertNotIn('AUDIT_SECRET',text);self.assertNotIn('a'*32,text)
 
     def test_quota_change_before_second_image_stops(self):
         data=io.BytesIO();Image.effect_noise((512,512),70).convert('RGB').save(data,format='PNG')

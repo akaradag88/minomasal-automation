@@ -24,10 +24,10 @@ BRANCH='refs/heads/feat/adim-10-9-free-image-providers'
 FREE_NEURONS=10_000
 RESERVED_NEURONS=1_000  # Conservative buffer; two single-attempt image POSTs only.
 CHARACTER=('Mino is one small orange fox cub, white muzzle, green eyes, round face, '
-           'blue dungarees, a plain red scarf. His only toy truck has a red cab, '
-           'yellow tipper bed, four black wheels and no writing. Keep exactly this design.')
+           'only a plain blue scarf, no other clothes. His only toy truck has a bright red cab, '
+           'bright red tipper bed, four black wheels and no writing. Keep exactly this design.')
 SCENES=(
-    'Mino plays with his red-and-yellow toy truck on a forest path. The entire truck is clearly visible beside his paws.',
+    'Mino plays with his red toy truck on a forest path. The entire truck is clearly visible beside his paws.',
     'The same Mino searches for the toy truck in the forest, looking behind a tree. The unchanged truck is fully visible to the viewer beside a nearby bush while the fox looks elsewhere.',
 )
 STYLE='Warm colorful storybook illustration, full body, portrait-friendly centered composition, one fox only, no text.'
@@ -38,31 +38,8 @@ def number(value):
 
 
 def query_quota(account,token):
-    now=datetime.now(timezone.utc)
-    start=now.replace(hour=0,minute=0,second=0,microsecond=0).isoformat().replace('+00:00','Z')
-    end=now.isoformat().replace('+00:00','Z')
-    # Account is validated hex and timestamps are generated locally. No arbitrary
-    # queries/URLs/user input, model filter or dimensions that could omit usage.
-    query=('query { viewer { accounts(filter: {accountTag: "'+account+'"}) { '
-           'aiInferenceAdaptiveGroups(limit: 1, filter: {datetime_geq: "'+start+'", datetime_lt: "'+end+'"}) '
-           '{ sum { totalNeurons } } } } }')
-    payload=json_response(http('cloudflare','POST',ROOT+'/graphql',
-                              headers={'Authorization':'Bearer '+token},json={'query':query}), 'cloudflare')
-    if payload.get('errors'):
-        raise ProviderFailure('cloudflare','quota_query_denied_or_unsupported')
-    try:
-        accounts=payload['data']['viewer']['accounts']
-        if not isinstance(accounts,list) or len(accounts)!=1:raise ValueError()
-        groups=accounts[0]['aiInferenceAdaptiveGroups']
-        if not isinstance(groups,list) or len(groups)>1:raise ValueError()
-        used=groups[0]['sum']['totalNeurons'] if groups else 0
-        if not number(used):raise ValueError()
-    except (KeyError,TypeError,ValueError):
-        raise ProviderFailure('cloudflare','quota_response_unverified') from None
-    return {'utc_day':now.date().isoformat(),'used_neurons_reported':used,
-            'free_daily_neurons':FREE_NEURONS,'remaining_neurons_reported':max(0,FREE_NEURONS-used),
-            'source':'account_all_models_graphql','analytics_may_lag':True,
-            'authoritative_remaining_quota':False}
+    from minomasal_cloudflare_usage import query_quota as read_usage
+    return read_usage(account,token,transport=http)
 
 
 def request_context(phase):
@@ -85,8 +62,11 @@ def run_check(output, generate=False):
     output=Path(output);output.mkdir(parents=True,exist_ok=False)
     account=os.environ.get('CLOUDFLARE_ACCOUNT_ID','').strip()
     token=os.environ.get('CLOUDFLARE_API_TOKEN','').strip()
+    usage_token=os.environ.get('CLOUDFLARE_USAGE_TOKEN','').strip()
     report={'model':CF_MODEL,'started_at_utc':datetime.now(timezone.utc).isoformat(),
-            'secrets_present':{'account_id':bool(account),'api_token':bool(token)},
+            'secrets_present':{'account_id':bool(account),'api_token':bool(token),'usage_token':bool(usage_token)},
+            'tokens_separated':bool(token and usage_token and token!=usage_token),
+            'generation_parameters':{'steps':4,'seed':1234,'model':CF_MODEL,'max_image_requests':2},
             'connection_verified':False,'free_plan_verified':False,'quota_verified':False,
             'paid_usage_allowed':False,'scenes':[], 'quality_decision':'not_reviewed',
             'license':{'model':'Apache-2.0','commercial_model_use_permitted':True,
@@ -96,7 +76,12 @@ def run_check(output, generate=False):
     try:
         if not re.fullmatch('[a-fA-F0-9]{32}',account) or not token:
             raise ProviderFailure('cloudflare','credentials_missing_or_invalid')
+        if not usage_token:
+            raise ProviderFailure('cloudflare','usage_token_missing')
+        if usage_token==token:
+            raise ProviderFailure('cloudflare','usage_token_must_be_distinct')
         headers={'Authorization':'Bearer '+token}
+        usage_headers={'Authorization':'Bearer '+usage_token}
         phase='model_connection'
         models=json_response(http('cloudflare','GET',f'{ROOT}/accounts/{account}/ai/models/search',
                                   headers=headers,params={'search':CF_MODEL}),'cloudflare')
@@ -107,11 +92,11 @@ def run_check(output, generate=False):
         report['connection_verified']=True
         phase='free_plan'
         subscriptions=json_response(http('cloudflare','GET',f'{ROOT}/accounts/{account}/subscriptions',
-                                         headers=headers),'cloudflare')
+                                         headers=usage_headers),'cloudflare')
         report['plan_proof']=verify_cloudflare_free_plan(subscriptions)
         report['free_plan_verified']=True
         phase='quota'
-        report['quota']=query_quota(account,token)
+        report['quota']=query_quota(account,usage_token)
         if report['quota']['remaining_neurons_reported']<RESERVED_NEURONS:
             raise ProviderFailure('cloudflare','insufficient_verified_free_quota')
         report['quota_verified']=True
@@ -124,7 +109,7 @@ def run_check(output, generate=False):
             for i,scene in enumerate(SCENES,1):
                 # Re-read the quota and do not cross the UTC reset boundary silently.
                 phase=f'quota_before_scene_{i}'
-                fresh=query_quota(account,token)
+                fresh=query_quota(account,usage_token)
                 if (fresh['utc_day']!=report['quota']['utc_day']
                         or fresh['remaining_neurons_reported']<RESERVED_NEURONS):
                     raise ProviderFailure('cloudflare','free_quota_changed')

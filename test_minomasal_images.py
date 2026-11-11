@@ -86,28 +86,33 @@ class ImageProviderTests(unittest.TestCase):
             self.assertEqual(request.call_count,2)
             self.assertTrue(all('/image/' not in c.args[1] for c in request.call_args_list))
 
-    def test_cloudflare_requires_free_plan_confirmation(self):
+    def test_documented_single_page_subscriptions_can_omit_optional_metadata(self):
+        self.assertEqual(images.verify_cloudflare_free_plan({'success':True,'result':[]}), 'unbilled_account')
+        with self.assertRaises(images.ProviderFailure):
+            images.verify_cloudflare_free_plan({'success':True,'result':[], 'result_info':{'total_count':5}})
+
+    def test_cloudflare_requires_separate_usage_token(self):
         with patch.dict(os.environ,{'CLOUDFLARE_ACCOUNT_ID':'a'*32,'CLOUDFLARE_API_TOKEN':'secret'}),patch.object(images.requests,'request') as request:
-            with self.assertRaisesRegex(images.ProviderFailure,'confirmation'):
+            with self.assertRaisesRegex(images.ProviderFailure,'usage_token_missing'):
                 images.Cloudflare(self.config).preflight()
             request.assert_not_called()
 
     def test_cloudflare_flag_cannot_bypass_paid_or_unverifiable_plan(self):
-        for data in ({'success':True,'result':[]},
+        for data in ({'success':True,'result':None},
                      {'success':True,'result':[],'result_info':{'total_count':2}},
                      {'success':True,'result':[{'price':5,'rate_plan':{'public_name':'Workers Paid'}}],'result_info':{'total_count':1}}):
-            with patch.dict(os.environ,{'CLOUDFLARE_ACCOUNT_ID':'a'*32,'CLOUDFLARE_API_TOKEN':'secret','MINOMASAL_CLOUDFLARE_FREE_PLAN_CONFIRMED':'true'}),patch.object(images,'http',return_value=response(body=data)):
+            with patch.dict(os.environ,{'CLOUDFLARE_ACCOUNT_ID':'a'*32,'CLOUDFLARE_API_TOKEN':'secret','MINOMASAL_CLOUDFLARE_FREE_PLAN_CONFIRMED':'true','CLOUDFLARE_USAGE_TOKEN':'audit-secret'}),patch.object(images,'http',return_value=response(body=data)):
                 with self.assertRaises(images.ProviderFailure):images.Cloudflare(self.config).preflight()
 
     def test_cloudflare_documented_api_and_base64(self):
         provider=images.Cloudflare(self.config)
-        with patch.dict(os.environ,{'CLOUDFLARE_ACCOUNT_ID':'a'*32,'CLOUDFLARE_API_TOKEN':'secret','MINOMASAL_CLOUDFLARE_FREE_PLAN_CONFIRMED':'true'}), patch.object(images,'http',return_value=response(body={'success':True,'result':[],'result_info':{'total_count':0}})):
+        with patch.dict(os.environ,{'CLOUDFLARE_ACCOUNT_ID':'a'*32,'CLOUDFLARE_API_TOKEN':'secret','CLOUDFLARE_USAGE_TOKEN':'audit-secret'}), patch.object(images,'http',return_value=response(body={'success':True,'result':[],'result_info':{'total_count':0}})),patch('minomasal_cloudflare_usage.query_quota',return_value={'remaining_neurons_reported':10000}):
             provider.preflight()
         with patch.object(images.requests,'request',return_value=response(body={'success':True,'result':{'image':base64.b64encode(self.data).decode()}})) as request:
             self.assertEqual(provider.generate('same character in a forest',1),self.data)
             args,kwargs=request.call_args
             self.assertEqual(args[0],'POST');self.assertIn(images.CF_MODEL,args[1])
-            self.assertEqual(kwargs['json'],{'prompt':'same character in a forest','steps':4})
+            self.assertEqual(kwargs['json'],{'prompt':'same character in a forest','steps':4,'seed':1234})
             self.assertFalse(kwargs['allow_redirects']);self.assertNotIn('secret',args[1])
 
     def test_ovh_checks_live_free_catalog(self):

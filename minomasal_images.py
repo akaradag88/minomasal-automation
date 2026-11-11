@@ -218,8 +218,12 @@ class OVHcloud(Provider):
 def verify_cloudflare_free_plan(data):
     subscriptions=data.get('result')
     info=data.get('result_info')
-    if (data.get('success') is not True or not isinstance(subscriptions,list) or not isinstance(info,dict)
-            or type(info.get('total_count')) is not int or info['total_count']!=len(subscriptions)):
+    if data.get('success') is not True or not isinstance(subscriptions,list):
+        raise ProviderFailure('cloudflare','complete_free_plan_proof_required')
+    # The documented single-page endpoint lists all subscriptions. result_info
+    # is optional. When supplied, its count must still prove a complete list.
+    if info is not None and (not isinstance(info,dict) or type(info.get('total_count')) is not int
+                             or info['total_count']!=len(subscriptions)):
         raise ProviderFailure('cloudflare','complete_free_plan_proof_required')
     for subscription in subscriptions:
         if not isinstance(subscription,dict): raise ProviderFailure('cloudflare','unbilled_account_required')
@@ -234,26 +238,33 @@ def verify_cloudflare_free_plan(data):
 
 class Cloudflare(Provider):
     name='cloudflare'
+    supports_seed=True
     def preflight(self):
         self.model=CF_MODEL
         self.account=os.environ.get('CLOUDFLARE_ACCOUNT_ID','')
         self.token=os.environ.get('CLOUDFLARE_API_TOKEN','')
         if not re.fullmatch(r'[a-fA-F0-9]{32}',self.account) or not self.token:
             raise ProviderFailure(self.name,'credentials_missing')
-        # Never silently use a Workers Paid account: it can bill overages.
-        if os.environ.get('MINOMASAL_CLOUDFLARE_FREE_PLAN_CONFIRMED')!='true':
-            raise ProviderFailure(self.name,'workers_free_plan_confirmation_required')
-        # The confirmation flag is not sufficient: verify a fully enumerated,
-        # unbilled account. Billing Read is required; unknown plans fail closed.
+        usage_token=os.environ.get('CLOUDFLARE_USAGE_TOKEN','').strip()
+        if not usage_token:
+            raise ProviderFailure(self.name,'usage_token_missing')
+        if usage_token==self.token:
+            raise ProviderFailure(self.name,'usage_token_must_be_distinct')
+        # The inference token is never sent to billing/analytics endpoints.
         data=json_response(http(self.name,'GET',f'https://api.cloudflare.com/client/v4/accounts/{self.account}/subscriptions',
-                                headers={'Authorization':'Bearer '+self.token}),self.name)
+                                headers={'Authorization':'Bearer '+usage_token}),self.name)
         verify_cloudflare_free_plan(data)
+        from minomasal_cloudflare_usage import query_quota
+        self.quota=query_quota(self.account,usage_token)
+        reserve=max(1000,self.config.get('scene_count',10)*3*2*(19.2+9.6*self.config['cloudflare_steps']))
+        if self.quota['remaining_neurons_reported']<reserve:
+            raise ProviderFailure(self.name,'insufficient_verified_free_quota')
 
     def generate(self,prompt,index):
         if len(prompt)>2048: raise ProviderFailure(self.name,'prompt_exceeds_documented_limit')
         response=http(self.name,'POST',f'https://api.cloudflare.com/client/v4/accounts/{self.account}/ai/run/{self.model}',
                       headers={'Authorization':'Bearer '+self.token},
-                      json={'prompt':prompt,'steps':self.config['cloudflare_steps']},
+                      json={'prompt':prompt,'steps':self.config['cloudflare_steps'],'seed':self.seed},
                       attempts=self.config.get('http_attempts',3))
         data=json_response(response,self.name)
         if data.get('success') is not True: raise ProviderFailure(self.name,'model_failed')
