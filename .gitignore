@@ -25,3 +25,5 @@ __pycache__/
 pollinations-account-check.json
 
 image_comparison/
+
+cloudflare_test_output/

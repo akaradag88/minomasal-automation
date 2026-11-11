@@ -95,8 +95,10 @@ def write_json(path, value):
     tmp.replace(path)
 
 
-def http(provider, method, url, *, before=None, **kwargs):
-    for attempt in range(3):
+def http(provider, method, url, *, before=None, attempts=3, **kwargs):
+    if type(attempts) is not int or not 1 <= attempts <= 3:
+        raise ValueError("Invalid bounded retry count")
+    for attempt in range(attempts):
         if before: before()
         try:
             # Redirects may forward credentials or reach unapproved services.
@@ -108,7 +110,7 @@ def http(provider, method, url, *, before=None, **kwargs):
             if len(response.content)>MAX_BYTES:
                 raise ProviderFailure(provider,'response_too_large')
             return response
-        if status in (429,500,502,503,504) and attempt<2:
+        if status in (429,500,502,503,504) and attempt<attempts-1:
             time.sleep(3 * 2**attempt)
             continue
         # 402/403 disable this candidate for the remainder of this entire batch.
@@ -213,6 +215,23 @@ class OVHcloud(Provider):
                     json={'prompt':prompt,'negative_prompt':'text, watermark, border, extra limbs, duplicate main character'}).content
 
 
+def verify_cloudflare_free_plan(data):
+    subscriptions=data.get('result')
+    info=data.get('result_info')
+    if (data.get('success') is not True or not isinstance(subscriptions,list) or not isinstance(info,dict)
+            or type(info.get('total_count')) is not int or info['total_count']!=len(subscriptions)):
+        raise ProviderFailure('cloudflare','complete_free_plan_proof_required')
+    for subscription in subscriptions:
+        if not isinstance(subscription,dict): raise ProviderFailure('cloudflare','unbilled_account_required')
+        plan=subscription.get('rate_plan',{})
+        if (not isinstance(plan,dict) or plan.get('id')!='free' or plan.get('public_name')!='Workers Free'
+                or plan.get('scope')!='account' or type(subscription.get('price')) not in (int,float)
+                or subscription['price']!=0 or plan.get('externally_managed') is not False
+                or plan.get('is_contract') is not False or subscription.get('state')!='Provisioned'):
+            raise ProviderFailure('cloudflare','paid_or_unknown_subscription_blocked')
+    return 'unbilled_account' if not subscriptions else 'workers_free'
+
+
 class Cloudflare(Provider):
     name='cloudflare'
     def preflight(self):
@@ -228,25 +247,14 @@ class Cloudflare(Provider):
         # unbilled account. Billing Read is required; unknown plans fail closed.
         data=json_response(http(self.name,'GET',f'https://api.cloudflare.com/client/v4/accounts/{self.account}/subscriptions',
                                 headers={'Authorization':'Bearer '+self.token}),self.name)
-        subscriptions=data.get('result')
-        info=data.get('result_info')
-        if (data.get('success') is not True or not isinstance(subscriptions,list) or not isinstance(info,dict)
-                or type(info.get('total_count')) is not int or info['total_count']!=len(subscriptions)):
-            raise ProviderFailure(self.name,'complete_free_plan_proof_required')
-        for subscription in subscriptions:
-            if not isinstance(subscription,dict): raise ProviderFailure(self.name,'unbilled_account_required')
-            plan=subscription.get('rate_plan',{})
-            if (not isinstance(plan,dict) or plan.get('id')!='free' or plan.get('public_name')!='Workers Free'
-                    or plan.get('scope')!='account' or type(subscription.get('price')) not in (int,float)
-                    or subscription['price']!=0 or plan.get('externally_managed') is not False
-                    or plan.get('is_contract') is not False or subscription.get('state')!='Provisioned'):
-                raise ProviderFailure(self.name,'paid_or_unknown_subscription_blocked')
+        verify_cloudflare_free_plan(data)
 
     def generate(self,prompt,index):
         if len(prompt)>2048: raise ProviderFailure(self.name,'prompt_exceeds_documented_limit')
         response=http(self.name,'POST',f'https://api.cloudflare.com/client/v4/accounts/{self.account}/ai/run/{self.model}',
                       headers={'Authorization':'Bearer '+self.token},
-                      json={'prompt':prompt,'steps':self.config['cloudflare_steps']})
+                      json={'prompt':prompt,'steps':self.config['cloudflare_steps']},
+                      attempts=self.config.get('http_attempts',3))
         data=json_response(response,self.name)
         if data.get('success') is not True: raise ProviderFailure(self.name,'model_failed')
         result=data.get('result')

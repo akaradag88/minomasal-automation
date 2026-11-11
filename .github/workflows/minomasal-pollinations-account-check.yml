@@ -2,13 +2,28 @@ name: MinoMasal Pollinations Account Check (NO GENERATION NO PUBLISH)
 
 on:
   workflow_dispatch:
+    inputs:
+      cloudflare_test:
+        description: 'PR #4 manual Cloudflare test only; Pollinations check will not run'
+        type: boolean
+        required: false
+        default: false
+      generate_images:
+        description: 'Generate two scenes only if free-plan and quota checks pass'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
 
+concurrency:
+  group: minomasal-cloudflare-free-test
+  cancel-in-progress: false
+
 jobs:
   account-check:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && !inputs.cloudflare_test
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -22,3 +37,40 @@ jobs:
         env:
           POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
         run: python minomasal_pollinations_check.py
+
+  cloudflare-quality-test:
+    if: github.event_name == 'workflow_dispatch' && inputs.cloudflare_test && github.ref == 'refs/heads/feat/adim-10-9-free-image-providers'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (Node.js 24)
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 (Node.js 24)
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies (no secrets)
+        run: python -m pip install -r requirements-minomasal.txt PyYAML
+      - name: Offline safety suite before any Cloudflare call
+        run: python run_readiness_tests.py
+      - name: Verify free access and optionally generate two scenes
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          GENERATE: ${{ inputs.generate_images }}
+        run: |
+          set -euo pipefail
+          if [ "$GENERATE" = 'true' ]; then
+            python minomasal_cloudflare_quality_test.py --generate-two-scenes
+          else
+            python minomasal_cloudflare_quality_test.py
+          fi
+      - name: Save sanitized report and any test images
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cloudflare-flux-test-${{ github.run_id }}
+          path: cloudflare_test_output/
+          if-no-files-found: warn
+          include-hidden-files: false
+          retention-days: 14
