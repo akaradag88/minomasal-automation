@@ -155,7 +155,9 @@ class DependencyBenchmarkTests(unittest.TestCase):
         bridge=yaml.load((ROOT/'.github/workflows/minomasal-pollinations-account-check.yml').read_text(),Loader=yaml.BaseLoader)
         self.assertIn('!inputs.dependency_test',bridge['jobs']['account-check']['if'])
         self.assertIn('!inputs.dependency_test',bridge['jobs']['cloudflare-quality-test']['if'])
-        self.assertEqual(bridge['jobs']['dependency-test']['uses'],'./.github/workflows/minomasal-dependencies-test.yml')
+        self.assertNotIn('uses',bridge['jobs']['dependency-test'])
+        self.assertEqual(bridge['jobs']['dependency-test']['steps'],job['steps'])
+        self.assertIn('!inputs.asset_test',bridge['jobs']['cloudflare-quality-test']['if'])
 
 
 if __name__=='__main__':unittest.main()
