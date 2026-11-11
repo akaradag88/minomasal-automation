@@ -1,0 +1,28 @@
+{
+  "exact_historical_cause_proven": false,
+  "previous_runs": [
+    43095434289,
+    43097046412
+  ],
+  "previous_status": "startup_failure",
+  "previous_job_count": 0,
+  "old_referenced_workflow": ".github/workflows/minomasal-dependencies-test.yml",
+  "admin_actions_policy_read": "403 Resource not accessible by integration",
+  "changes": [
+    "removed reusable workflow resolution from registered manual bridge",
+    "direct isolated jobs",
+    "mode/ref-specific test concurrency",
+    "explicit asset_test mode"
+  ],
+  "syntax_lint": "actionlint 1.7.7 passed",
+  "runner_preserved": "ubuntu-24.04 / Python 3.11 / pinned Node24 actions",
+  "successful_runs": [
+    43099587171,
+    43101448456,
+    43101897788,
+    43103986524
+  ],
+  "new_inference_calls_across_all_runs": 2,
+  "new_model_character_images": 0,
+  "paid_plan_upgrade": false
+}

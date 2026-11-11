@@ -1,0 +1,14 @@
+{
+  "baseline": "4dc2966",
+  "unchanged": [
+    ".github/workflows/minomasal-daily-live.yml",
+    "minomasal.py",
+    "minomasal_gunluk_kilit.py",
+    "minomasal_ledger.py",
+    "minomasal_dual_publish.py",
+    "minomasal_platform_durumu.json",
+    "minomasal_images.json",
+    "requirements-minomasal.txt",
+    "requirements-minomasal-daily.txt"
+  ]
+}

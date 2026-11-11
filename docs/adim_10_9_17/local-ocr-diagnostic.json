@@ -1,0 +1,53 @@
+[
+  {
+    "scene": 1,
+    "ocr": {
+      "status": "completed",
+      "detections": [
+        {
+          "confidence": 61.7,
+          "box": [
+            939,
+            593,
+            55,
+            30
+          ]
+        },
+        {
+          "confidence": 67.4,
+          "box": [
+            3,
+            1423,
+            40,
+            30
+          ]
+        }
+      ],
+      "logo_detection": "manual_required"
+    },
+    "diagnostic_only": true,
+    "local_full_composition_accepted": false,
+    "requires_manual_review": true
+  },
+  {
+    "scene": 2,
+    "ocr": {
+      "status": "completed",
+      "detections": [
+        {
+          "confidence": 66.8,
+          "box": [
+            954,
+            1724,
+            86,
+            77
+          ]
+        }
+      ],
+      "logo_detection": "manual_required"
+    },
+    "diagnostic_only": true,
+    "local_full_composition_accepted": false,
+    "requires_manual_review": true
+  }
+]

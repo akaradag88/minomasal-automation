@@ -1,0 +1,56 @@
+[
+  {
+    "background": "background_1",
+    "inventory": {
+      "character": 1,
+      "truck": 1
+    },
+    "layers": [
+      {
+        "profile": "character",
+        "asset": "character_front",
+        "view": "front",
+        "x": 160,
+        "y": 950,
+        "height": 480,
+        "flip_x": false
+      },
+      {
+        "profile": "truck",
+        "asset": "truck_front",
+        "view": "front",
+        "x": 600,
+        "y": 1280,
+        "height": 180,
+        "flip_x": false
+      }
+    ]
+  },
+  {
+    "background": "background_2",
+    "inventory": {
+      "character": 1,
+      "truck": 1
+    },
+    "layers": [
+      {
+        "profile": "character",
+        "asset": "character_front",
+        "view": "front",
+        "x": 560,
+        "y": 950,
+        "height": 480,
+        "flip_x": false
+      },
+      {
+        "profile": "truck",
+        "asset": "truck_front",
+        "view": "front",
+        "x": 140,
+        "y": 1280,
+        "height": 180,
+        "flip_x": false
+      }
+    ]
+  }
+]

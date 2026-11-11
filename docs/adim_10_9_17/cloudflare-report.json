@@ -1,0 +1,136 @@
+{
+  "model": "@cf/black-forest-labs/flux-1-schnell",
+  "started_at_utc": "2026-11-11T21:16:29.321201+00:00",
+  "secrets_present": {
+    "account_id": true,
+    "api_token": true,
+    "usage_token": true
+  },
+  "tokens_separated": true,
+  "generation_parameters": {
+    "request_fields": [
+      "prompt"
+    ],
+    "steps_sent": false,
+    "documented_default_steps": 4,
+    "seed": null,
+    "width_sent": false,
+    "height_sent": false,
+    "model": "@cf/black-forest-labs/flux-1-schnell",
+    "max_image_requests": 2
+  },
+  "mode": "backgrounds_only",
+  "connection_verified": true,
+  "free_plan_verified": true,
+  "quota_verified": true,
+  "paid_usage_allowed": false,
+  "scenes": [
+    {
+      "scene": 1,
+      "description": "An empty woodland path in a sunny forest clearing, low bushes on the right, soft daylight.",
+      "original": "scene-1.original.jpg",
+      "vertical": "scene-1.vertical.jpg",
+      "source_size": [
+        1024,
+        1024
+      ],
+      "output_size": [
+        1080,
+        1920
+      ],
+      "framing": "contain",
+      "content_box": [
+        54,
+        474,
+        972,
+        972
+      ],
+      "planned_inventory": {
+        "characters": 0,
+        "vehicles": 0
+      },
+      "seconds": 2.14,
+      "sha256": "d73eb448facf7b6c170ec78f854057c4b3fae9f27d98fd4201461458a0f3e7d8"
+    },
+    {
+      "scene": 2,
+      "description": "A different empty woodland path beside a large tree on the left, low bushes on the right, soft daylight.",
+      "original": "scene-2.original.jpg",
+      "vertical": "scene-2.vertical.jpg",
+      "source_size": [
+        1024,
+        1024
+      ],
+      "output_size": [
+        1080,
+        1920
+      ],
+      "framing": "contain",
+      "content_box": [
+        54,
+        474,
+        972,
+        972
+      ],
+      "planned_inventory": {
+        "characters": 0,
+        "vehicles": 0
+      },
+      "seconds": 1.71,
+      "sha256": "aacd80a0ab294fad19b05bdce69343c81ffc811065b76c15ca57a12097adcc37"
+    }
+  ],
+  "quality_decision": "not_reviewed",
+  "license": {
+    "model": "Apache-2.0",
+    "commercial_model_use_permitted": true,
+    "source": "https://huggingface.co/black-forest-labs/FLUX.1-schnell",
+    "cloudflare_service_terms_also_apply": true
+  },
+  "visual_profile_sha256": null,
+  "quality_review": {
+    "automatic_checks": [
+      "profile_schema",
+      "planned_inventory",
+      "prompt_length",
+      "image_integrity",
+      "dimensions",
+      "nonuniform_pixels",
+      "no_crop_geometry"
+    ],
+    "human_review_required": [
+      "character_identity",
+      "actual_entity_counts",
+      "object_identity",
+      "unwanted_text_logos_watermarks",
+      "scene_action",
+      "source_composition"
+    ],
+    "semantic_checks_automated": false,
+    "automation_quality_approved": false
+  },
+  "subscription_response_shape": {
+    "success_is_true": true,
+    "result_is_list": true,
+    "result_is_object": false,
+    "result_count": 0,
+    "metadata_present": true,
+    "metadata_is_object": true,
+    "total_count_is_integer": false,
+    "total_count_matches": false
+  },
+  "plan_proof": "unbilled_account",
+  "quota": {
+    "utc_day": "2026-11-11",
+    "used_neurons_reported": 691.2000122070312,
+    "free_daily_neurons": 10000,
+    "remaining_neurons_reported": 9308.799987792969,
+    "source": "account_all_models_graphql",
+    "analytics_may_lag": true,
+    "authoritative_remaining_quota": false
+  },
+  "reserved_neurons": 1000,
+  "character_bible": null,
+  "background_semantics_approved": false,
+  "status": "two_images_generated_review_required"
+}

@@ -1,0 +1,5 @@
+Latest local offline suite: 168 tests passed.
+Latest GitHub runner: 168 tests passed (including real Tesseract test, not skipped).
+Generative runner: 165 tests passed before exactly two background-only requests.
+actionlint 1.7.7: passed.
+No video, social upload or daily workflow dispatch.

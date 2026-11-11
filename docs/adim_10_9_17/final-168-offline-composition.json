@@ -1,0 +1,214 @@
+{
+  "version": 1,
+  "scenes": [
+    {
+      "inventory": {
+        "character": 1,
+        "truck": 1
+      },
+      "layer_counts_verified": true,
+      "background_ocr": {
+        "status": "completed",
+        "detections": [],
+        "uncertain_detections": [],
+        "manual_review_required": false,
+        "logo_detection": "manual_required"
+      },
+      "layers": [
+        {
+          "profile": "character",
+          "asset": "character_front",
+          "view": "front",
+          "asset_sha256": "906d2326b48c5d1d85e8c1f9527890f958b6461b0d3b2a6ca2413eafed9021d6",
+          "reference_sha256": "906d2326b48c5d1d85e8c1f9527890f958b6461b0d3b2a6ca2413eafed9021d6",
+          "transformed_rgba_sha256": "49bf2e3af3d29634787fc06a5b30a4ed22ccd8106427fa56e3392475ab5b042b",
+          "box": [
+            160,
+            950,
+            320,
+            480
+          ],
+          "flip_x": false,
+          "quality": {
+            "alpha_bbox": [
+              35,
+              20,
+              221,
+              341
+            ],
+            "alpha_fraction": 0.46501,
+            "significant_alpha_components": 1,
+            "white_fringe_suspected": false,
+            "ocr": {
+              "status": "completed",
+              "detections": [],
+              "uncertain_detections": [],
+              "manual_review_required": false,
+              "logo_detection": "manual_required"
+            }
+          },
+          "visible_fraction": 1.0
+        },
+        {
+          "profile": "truck",
+          "asset": "truck_front",
+          "view": "front",
+          "asset_sha256": "056c47ac6c4ca67c9efd917f00e09e01265241e8eaefcbd2b1c0be7b2a646819",
+          "reference_sha256": "056c47ac6c4ca67c9efd917f00e09e01265241e8eaefcbd2b1c0be7b2a646819",
+          "transformed_rgba_sha256": "b2b2cb3f7d8b14a7222af9a2410da737ef1860b12af59728dffc7bcaf4e402e9",
+          "box": [
+            600,
+            1280,
+            288,
+            180
+          ],
+          "flip_x": false,
+          "quality": {
+            "alpha_bbox": [
+              15,
+              10,
+              236,
+              146
+            ],
+            "alpha_fraction": 0.55447,
+            "significant_alpha_components": 1,
+            "white_fringe_suspected": false,
+            "ocr": {
+              "status": "completed",
+              "detections": [],
+              "uncertain_detections": [],
+              "manual_review_required": false,
+              "logo_detection": "manual_required"
+            }
+          },
+          "visible_fraction": 1.0
+        }
+      ],
+      "final_ocr": {
+        "status": "completed",
+        "detections": [],
+        "uncertain_detections": [],
+        "manual_review_required": false,
+        "logo_detection": "manual_required"
+      },
+      "production_assets_approved": false,
+      "manual_ocr_review_required": false,
+      "semantic_counts_basis": "manual single-entity/empty-background approvals plus explicit layers",
+      "manual_scene_review_required": true,
+      "automation_quality_approved": false,
+      "test_fixture_only": true,
+      "preview": true,
+      "output_size": [
+        1080,
+        1920
+      ],
+      "sha256": "5d1b1caca3efd6c5e7ecea34cf5255372e0b353a9ccc08d15a9fc72abc976c26"
+    },
+    {
+      "inventory": {
+        "character": 1,
+        "truck": 1
+      },
+      "layer_counts_verified": true,
+      "background_ocr": {
+        "status": "completed",
+        "detections": [],
+        "uncertain_detections": [],
+        "manual_review_required": false,
+        "logo_detection": "manual_required"
+      },
+      "layers": [
+        {
+          "profile": "character",
+          "asset": "character_front",
+          "view": "front",
+          "asset_sha256": "906d2326b48c5d1d85e8c1f9527890f958b6461b0d3b2a6ca2413eafed9021d6",
+          "reference_sha256": "906d2326b48c5d1d85e8c1f9527890f958b6461b0d3b2a6ca2413eafed9021d6",
+          "transformed_rgba_sha256": "49bf2e3af3d29634787fc06a5b30a4ed22ccd8106427fa56e3392475ab5b042b",
+          "box": [
+            560,
+            950,
+            320,
+            480
+          ],
+          "flip_x": false,
+          "quality": {
+            "alpha_bbox": [
+              35,
+              20,
+              221,
+              341
+            ],
+            "alpha_fraction": 0.46501,
+            "significant_alpha_components": 1,
+            "white_fringe_suspected": false,
+            "ocr": {
+              "status": "completed",
+              "detections": [],
+              "uncertain_detections": [],
+              "manual_review_required": false,
+              "logo_detection": "manual_required"
+            }
+          },
+          "visible_fraction": 1.0
+        },
+        {
+          "profile": "truck",
+          "asset": "truck_front",
+          "view": "front",
+          "asset_sha256": "056c47ac6c4ca67c9efd917f00e09e01265241e8eaefcbd2b1c0be7b2a646819",
+          "reference_sha256": "056c47ac6c4ca67c9efd917f00e09e01265241e8eaefcbd2b1c0be7b2a646819",
+          "transformed_rgba_sha256": "b2b2cb3f7d8b14a7222af9a2410da737ef1860b12af59728dffc7bcaf4e402e9",
+          "box": [
+            140,
+            1280,
+            288,
+            180
+          ],
+          "flip_x": false,
+          "quality": {
+            "alpha_bbox": [
+              15,
+              10,
+              236,
+              146
+            ],
+            "alpha_fraction": 0.55447,
+            "significant_alpha_components": 1,
+            "white_fringe_suspected": false,
+            "ocr": {
+              "status": "completed",
+              "detections": [],
+              "uncertain_detections": [],
+              "manual_review_required": false,
+              "logo_detection": "manual_required"
+            }
+          },
+          "visible_fraction": 1.0
+        }
+      ],
+      "final_ocr": {
+        "status": "completed",
+        "detections": [],
+        "uncertain_detections": [],
+        "manual_review_required": false,
+        "logo_detection": "manual_required"
+      },
+      "production_assets_approved": false,
+      "manual_ocr_review_required": false,
+      "semantic_counts_basis": "manual single-entity/empty-background approvals plus explicit layers",
+      "manual_scene_review_required": true,
+      "automation_quality_approved": false,
+      "test_fixture_only": true,
+      "preview": true,
+      "output_size": [
+        1080,
+        1920
+      ],
+      "sha256": "573e98e6af91131d9bb227eef3758ed0e62c26d2edb85d454ddfc0b1bda82465"
+    }
+  ],
+  "source_catalog_sha256": "ed164bc3ecae417f01b343245b3535d7165da160d377b403a0184742515cc565",
+  "automation_quality_approved": false,
+  "manual_scene_review_required": true
+}
