@@ -1,11 +1,12 @@
 import copy
 import io
 import json
+import shutil
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import Mock,patch
-from PIL import Image,ImageDraw
+from PIL import Image,ImageDraw,ImageFont
 import minomasal_asset_compositor as ac
 from minomasal_asset_test_fixtures import make_fixtures
 
@@ -202,6 +203,28 @@ class AssetCompositorTests(unittest.TestCase):
         self.catalog['profiles']['character']['traits']['eyes']='synthetic test geometry only'
         self.catalog['assets']['character_front']['mirror_approved']=True
         with self.assertRaisesRegex(ac.AssetError,'record_changed_since_manual_approval'):self.compose()
+
+    def test_uncertain_ocr_needs_manual_scene_review_not_automatic_acceptance(self):
+        self.promote_test_records_for_unit_test_only()
+        with patch.object(ac,'scan_text',return_value={'status':'completed','detections':[],
+                'uncertain_detections':[{'confidence':67,'box':[10,20,30,40]}]}):
+            output=Path(self.tmp.name)/'uncertain'
+            _,manifest=ac.compose_story(self.path,self.scenes,output)
+            self.assertTrue(manifest['scenes'][0]['manual_ocr_review_required'])
+            with self.assertRaisesRegex(ac.AssetError,'hash_bound_manual_scene_approval'):
+                ac.validate_local_handoff(output)
+
+
+class RealLocalOCRTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('tesseract') and Path('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf').exists(),
+                         'Local Tesseract/font unavailable; never claim automatic text verification')
+    def test_real_ocr_detects_clear_unwanted_text_without_logging_word(self):
+        image=Image.new('RGB',(1000,240),'white')
+        font=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',100)
+        ImageDraw.Draw(image).text((30,35),'MINOMASAL',font=font,fill='black')
+        report=ac.scan_text(image)
+        self.assertEqual(report['status'],'completed');self.assertTrue(report['detections'])
+        self.assertNotIn('MINOMASAL',json.dumps(report))
 
 
 if __name__=='__main__':unittest.main()

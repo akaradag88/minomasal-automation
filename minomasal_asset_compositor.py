@@ -144,14 +144,16 @@ def scan_text(image):
             result=subprocess.run([executable,str(path),'stdout','--psm','11','tsv'],
                 capture_output=True,text=True,timeout=20,check=False)
         if result.returncode:return {'status':'failed','detections':[],'logo_detection':'manual_required'}
-        boxes=[]
+        boxes=[];uncertain=[]
         for line in result.stdout.splitlines()[1:]:
             cells=line.split('\t')
             if len(cells)!=12:continue
             confidence=float(cells[10]);word=cells[11].strip()
             if confidence>=60 and sum(c.isalnum() for c in word)>=2:
-                boxes.append({'confidence':round(confidence,1),'box':[int(c) for c in cells[6:10]]})
-        return {'status':'completed','detections':boxes,'logo_detection':'manual_required'}
+                box={'confidence':round(confidence,1),'box':[int(c) for c in cells[6:10]]}
+                (boxes if confidence>=85 else uncertain).append(box)
+        return {'status':'completed','detections':boxes,'uncertain_detections':uncertain,
+                'manual_review_required':bool(uncertain),'logo_detection':'manual_required'}
     except (OSError,ValueError,subprocess.TimeoutExpired):
         return {'status':'failed','detections':[],'logo_detection':'manual_required'}
 
@@ -257,6 +259,8 @@ def compose_scene(root,catalog,scene,*,test_fixtures=False,preview=False,ocr=Tru
     final_ocr=require_no_text(canvas,ocr)
     report={'inventory':actual,'layer_counts_verified':True,'background_ocr':bg_ocr,'layers':items,
         'final_ocr':final_ocr,'production_assets_approved':all_approved,
+        'manual_ocr_review_required':any(item.get('status')!='completed' or item.get('uncertain_detections')
+            for item in [bg_ocr,final_ocr,*[layer['quality']['ocr'] for layer in items]]),
         'semantic_counts_basis':'manual single-entity/empty-background approvals plus explicit layers',
         'manual_scene_review_required':True,'automation_quality_approved':False,
         'test_fixture_only':test_fixtures,'preview':preview,'output_size':list(SIZE)}
