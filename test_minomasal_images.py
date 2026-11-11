@@ -147,6 +147,12 @@ class ImageProviderTests(unittest.TestCase):
                 with self.assertRaises(images.ProviderFailure):provider.generate(prompt,1)
                 http.assert_not_called()
 
+    def test_cloudflare_quota_reserve_uses_actual_default_not_unsent_steps(self):
+        self.config['cloudflare_steps']=1
+        with patch.dict(os.environ,{'CLOUDFLARE_ACCOUNT_ID':'a'*32,'CLOUDFLARE_API_TOKEN':'inference','CLOUDFLARE_USAGE_TOKEN':'audit'}),patch.object(images,'http',return_value=response(body={'success':True,'result':[]})),patch('minomasal_cloudflare_usage.query_quota',return_value={'remaining_neurons_reported':1500}):
+            with self.assertRaisesRegex(images.ProviderFailure,'insufficient_verified_free_quota'):
+                images.Cloudflare(self.config).preflight()
+
     def test_ovh_checks_live_free_catalog(self):
         provider=images.OVHcloud(self.config)
         for html,allowed in [('<h1>stable-diffusion-xl-base-v10</h1><div>Pricing</div><b>Free</b>',True),('<h1>stable-diffusion-xl-base-v10</h1><div>Pricing</div><b>Paid</b>',False),('<script>stable-diffusion-xl-base-v10 Pricing Free</script>',False),('<head>stable-diffusion-xl-base-v10</head>'+('menu '*1000)+'<h1>stable-diffusion-xl-base-v10</h1><div>Pricing Free</div>',True)]:

@@ -1,0 +1,29 @@
+{
+  "reviewed_at_utc": "2026-11-11",
+  "method": "human_visual_review_of_both_originals_and_vertical_outputs",
+  "images_generated": 2,
+  "inference_requests": 2,
+  "extra_characters_observed": false,
+  "orange_fur": "pass",
+  "green_eyes": "pass",
+  "blue_scarf_color": "pass",
+  "red_truck_color": "pass",
+  "face_identity": "partial: face proportions, cheeks and illustration rendering differ",
+  "scarf_design": "fail: plain in scene 1, patterned in scene 2",
+  "truck_identity": "fail: cab, grille, bed, wheel hubs and proportions differ",
+  "portrait_crop": "fail: truck and ear edges are cropped",
+  "automation_quality_approved": false,
+  "decision": "successful_api_integration_requires_character_and_portrait_composition_improvement",
+  "cost_estimate": {
+    "source_dimensions": [
+      1024,
+      1024
+    ],
+    "default_steps": 4,
+    "neurons_per_image": 57.6,
+    "neurons_two_images": 115.2,
+    "neurons_ten_images": 576,
+    "remaining_after_two_estimate": 9884.8,
+    "actual_billing_measurement": false
+  }
+}

@@ -15,7 +15,7 @@ import time
 
 from PIL import Image
 from minomasal_images import (
-    CF_MODEL, Cloudflare, ProviderFailure, http, json_response, load_config,
+    CF_MODEL, CF_DEFAULT_STEPS, Cloudflare, ProviderFailure, http, json_response, load_config,
     normalize, sha, verify_cloudflare_free_plan, write_json,
 )
 
@@ -67,7 +67,7 @@ def run_check(output, generate=False):
             'secrets_present':{'account_id':bool(account),'api_token':bool(token),'usage_token':bool(usage_token)},
             'tokens_separated':bool(token and usage_token and token!=usage_token),
             'generation_parameters':{'request_fields':['prompt'],'steps_sent':False,
-                'documented_default_steps':4,'seed':None,'width_sent':False,'height_sent':False,
+                'documented_default_steps':CF_DEFAULT_STEPS,'seed':None,'width_sent':False,'height_sent':False,
                 'model':CF_MODEL,'max_image_requests':2},
             'connection_verified':False,'free_plan_verified':False,'quota_verified':False,
             'paid_usage_allowed':False,'scenes':[], 'quality_decision':'not_reviewed',
@@ -120,7 +120,7 @@ def run_check(output, generate=False):
         if not generate:
             report['status']='preflight_passed_generation_not_requested'
         else:
-            config=load_config();config['cloudflare_steps']=4;config['http_attempts']=1
+            config=load_config();config['http_attempts']=1
             provider=Cloudflare(config);provider.account=account;provider.token=token;provider.model=CF_MODEL
             for i,scene in enumerate(SCENES,1):
                 # Re-read the quota and do not cross the UTC reset boundary silently.

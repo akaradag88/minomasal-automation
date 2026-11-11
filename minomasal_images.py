@@ -25,6 +25,7 @@ CONFIG = Path(__file__).with_name('minomasal_images.json')
 OVH_CATALOG = 'https://www.ovhcloud.com/en/public-cloud/ai-endpoints/catalog/stable-diffusion-xl/'
 OVH_URL = 'https://stable-diffusion-xl.endpoints.kepler.ai.cloud.ovh.net/api/text2image'
 CF_MODEL = '@cf/black-forest-labs/flux-1-schnell'
+CF_DEFAULT_STEPS = 4  # Minimum prompt-only request uses the documented model default.
 MAX_BYTES = 20 * 1024 * 1024
 STYLE = ("Colorful children's animated storybook illustration, emerald green, sky blue and warm coral palette; "
          "same character design, clothing, fur and body proportions in every scene; no extra main characters; "
@@ -298,7 +299,7 @@ class Cloudflare(Provider):
         verify_cloudflare_free_plan(data)
         from minomasal_cloudflare_usage import query_quota
         self.quota=query_quota(self.account,usage_token)
-        reserve=max(1000,self.config.get('scene_count',10)*3*2*(19.2+9.6*self.config['cloudflare_steps']))
+        reserve=max(1000,self.config.get('scene_count',10)*3*2*(19.2+9.6*CF_DEFAULT_STEPS))
         if self.quota['remaining_neurons_reported']<reserve:
             raise ProviderFailure(self.name,'insufficient_verified_free_quota')
 
