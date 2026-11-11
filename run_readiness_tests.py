@@ -10,6 +10,7 @@ import unittest
 from unittest.mock import patch
 
 MODULES = (
+    'test_minomasal_visual_profile',
     'test_minomasal_dependencies',
     'test_minomasal_cloudflare_quality_test',
     'test_minomasal_images',

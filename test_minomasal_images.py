@@ -230,6 +230,30 @@ class ImageProviderTests(unittest.TestCase):
             with self.assertRaises(images.ImageFailure):images.make_images(STORY,self.folder,'secret','flux')
             self.assertEqual(len(fake.calls),6)
 
+    def test_structured_profile_reaches_provider_with_no_crop_and_manual_review(self):
+        from minomasal_visual_profile import identity_text
+        plan=json.loads(Path('minomasal_flux_quality_profile.json').read_text())
+        story=json.loads(json.dumps(STORY));story['visual_profile']=plan['profile']
+        story['characters']='Small orange fox, emerald green eyes, plain blue scarf.'
+        for i,scene in enumerate(story['scenes']):
+            source=plan['scenes'][i%2]
+            scene['visual']=source['action'];scene['visual_inventory']=source['inventory']
+        fake=self.fake('cloudflare')
+        config={**self.config,'order':['cloudflare'],'approved_for_automation':['cloudflare']}
+        with patch.object(images,'load_config',return_value=config),patch.dict(images.PROVIDERS,{'cloudflare':fake}):
+            paths=images.make_images(story,self.folder,'secret','flux')
+        manifest=json.loads((self.folder/'images.json').read_text())
+        self.assertEqual(len(paths),6);self.assertEqual(manifest['framing'],'contain')
+        self.assertFalse(manifest['character_bible']['quality_review']['semantic_checks_automated'])
+        for prompt,index in fake.calls:self.assertIn(identity_text(plan['profile']),prompt)
+
+    def test_invalid_structured_inventory_never_reaches_provider(self):
+        plan=json.loads(Path('minomasal_flux_quality_profile.json').read_text())
+        story=json.loads(json.dumps(STORY));story['visual_profile']=plan['profile']
+        with patch.object(images.requests,'request') as request:
+            with self.assertRaises(images.ImageFailure):images.make_images(story,self.folder,'secret','flux')
+            request.assert_not_called()
+
     def test_all_candidates_fail_no_complete_manifest(self):
         fake=self.fake('ovhcloud',2)
         with patch.object(images,'load_config',return_value={**self.config,'order':['ovhcloud'],'approved_for_automation':['ovhcloud']}), patch.dict(os.environ,{'MINOMASAL_IMAGE_PROVIDERS':'ovhcloud'}),patch.dict(images.PROVIDERS,{'ovhcloud':fake}):

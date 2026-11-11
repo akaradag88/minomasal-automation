@@ -16,21 +16,17 @@ import time
 from PIL import Image
 from minomasal_images import (
     CF_MODEL, CF_DEFAULT_STEPS, Cloudflare, ProviderFailure, http, json_response, load_config,
-    normalize, sha, verify_cloudflare_free_plan, write_json,
+    normalize, contain_box, sha, verify_cloudflare_free_plan, write_json,
 )
+from minomasal_visual_profile import build_prompt, identity_text, profile_digest, review_contract
 
 ROOT='https://api.cloudflare.com/client/v4'
 BRANCH='refs/heads/feat/adim-10-9-free-image-providers'
 FREE_NEURONS=10_000
 RESERVED_NEURONS=1_000  # Conservative buffer; two single-attempt image POSTs only.
-CHARACTER=('Mino is one small orange fox cub, white muzzle, green eyes, round face, '
-           'only a plain blue scarf, no other clothes. His only toy truck has a bright red cab, '
-           'bright red tipper bed, four black wheels and no writing. Keep exactly this design.')
-SCENES=(
-    'Mino plays with his red toy truck on a forest path. The entire truck is clearly visible beside his paws.',
-    'The same Mino searches for the toy truck in the forest, looking behind a tree. The unchanged truck is fully visible to the viewer beside a nearby bush while the fox looks elsewhere.',
-)
-STYLE='Warm colorful storybook illustration, full body, portrait-friendly centered composition, one fox only, no text.'
+PLAN=json.loads(Path(__file__).with_name('minomasal_flux_quality_profile.json').read_text())
+CHARACTER=identity_text(PLAN['profile'])
+SCENES=tuple(scene['action'] for scene in PLAN['scenes'])
 
 
 def number(value):
@@ -76,6 +72,12 @@ def run_check(output, generate=False):
                        'cloudflare_service_terms_also_apply':True}}
     phase='credentials'
     try:
+        # Validate both plans before any metadata or inference request.
+        if len(PLAN['scenes'])!=2:raise ValueError('exactly_two_test_scenes_required')
+        prompts=[build_prompt(PLAN['profile'],scene) for scene in PLAN['scenes']]
+        report['visual_profile_sha256']=profile_digest(PLAN['profile'])
+        report['quality_review']=review_contract()
+        write_json(output/'visual-plan.json',PLAN)
         if not re.fullmatch('[a-fA-F0-9]{32}',account) or not token:
             raise ProviderFailure('cloudflare','credentials_missing_or_invalid')
         if not usage_token:
@@ -130,16 +132,19 @@ def run_check(output, generate=False):
                         or fresh['remaining_neurons_reported']<RESERVED_NEURONS):
                     raise ProviderFailure('cloudflare','free_quota_changed')
                 phase=f'image_{i}'
-                prompt=f'{CHARACTER} Scene: {scene} {STYLE}'
+                prompt=prompts[i-1]
+                (output/f'scene-{i}.prompt.txt').write_text(prompt+'\n')
                 started=time.monotonic();data=provider.generate(prompt,i)
                 vertical=output/f'scene-{i}.vertical.jpg'
-                size=normalize(data,vertical)
+                size=normalize(data,vertical,framing='contain')
                 with Image.open(io.BytesIO(data)) as image:
                     extension='png' if image.format=='PNG' else 'jpg' if image.format=='JPEG' else None
                 if not extension:raise ProviderFailure('cloudflare','unexpected_image_format')
                 original=output/f'scene-{i}.original.{extension}';original.write_bytes(data)
                 report['scenes'].append({'scene':i,'description':scene,'original':original.name,
                     'vertical':vertical.name,'source_size':size,'output_size':[1080,1920],
+                    'framing':'contain','content_box':contain_box(size),
+                    'planned_inventory':PLAN['scenes'][i-1]['inventory'],
                     'seconds':round(time.monotonic()-started,2),'sha256':sha(original)})
             report['character_bible']=CHARACTER
             report['status']='two_images_generated_review_required'

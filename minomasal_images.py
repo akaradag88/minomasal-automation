@@ -82,7 +82,7 @@ def ensure_production_config(local=''):
 def identity():
     """Cache identity intentionally contains no API keys or hashes of keys."""
     config=load_config()
-    return {'engine':1,'config':config,'style':STYLE,
+    return {'engine':2,'config':config,'style':STYLE,'cloudflare_framing':'contain',
             'comfy_checkpoint':os.environ.get('COMFYUI_CHECKPOINT',''),
             'cloudflare_free_confirmed':os.environ.get('MINOMASAL_CLOUDFLARE_FREE_PLAN_CONFIRMED')=='true'}
 
@@ -170,8 +170,19 @@ def decode64(value, provider):
         raise ProviderFailure(provider,'invalid_image_encoding') from None
 
 
-def normalize(data, path):
+def contain_box(size):
+    """Content rectangle on 1080x1920 canvas, preserving all source pixels."""
+    if (len(size)!=2 or any(type(side) is not int or side<=0 for side in size)):
+        raise ImageFailure('Geçersiz kaynak ölçüsü.')
+    scale=min(1080/size[0],1920/size[1])
+    width=max(1,min(1080,round(size[0]*scale)))
+    height=max(1,min(1920,round(size[1]*scale)))
+    return [(1080-width)//2,(1920-height)//2,width,height]
+
+
+def normalize(data, path, *, framing='crop'):
     """Structural quality checks, not a claim of semantic character validation."""
+    if framing not in ('crop','contain'):raise ImageFailure('Bilinmeyen kadraj yöntemi.')
     if not data or len(data)>MAX_BYTES: raise ImageFailure('Görsel boş veya çok büyük.')
     try:
         with Image.open(io.BytesIO(data)) as image:
@@ -184,7 +195,14 @@ def normalize(data, path):
             if max(ImageStat.Stat(image.resize((64,64))).stddev)<1:
                 raise ImageFailure('Boş/tek renk görsel; yayın engellendi.')
             size=list(image.size)
-            vertical=ImageOps.fit(image,(1080,1920),method=Image.Resampling.LANCZOS)
+            if framing=='contain':
+                left,top,width,height=contain_box(size)
+                # Solid matte avoids generating duplicate blurred characters
+                # in a background layer. Nothing from the source is cropped.
+                vertical=Image.new('RGB',(1080,1920),(24,45,38))
+                vertical.paste(image.resize((width,height),Image.Resampling.LANCZOS),(left,top))
+            else:
+                vertical=ImageOps.fit(image,(1080,1920),method=Image.Resampling.LANCZOS)
             tmp=path.with_suffix('.tmp.jpg');vertical.save(tmp,quality=95);tmp.replace(path)
         validate_file(path)
         return size
@@ -414,6 +432,17 @@ def make_images(story,folder,key,model,local='',seed=1234):
     config=load_config();config['scene_count']=len(story['scenes'])
     characters=story['characters'] if isinstance(story['characters'],str) else json.dumps(story['characters'],ensure_ascii=False,sort_keys=True)
     bible={'characters':characters,'style':STYLE,'seed':seed}
+    visual_profile=story.get('visual_profile')
+    planned_prompts=None
+    if visual_profile is not None:
+        from minomasal_visual_profile import build_prompt, profile_digest, review_contract
+        try:
+            planned_prompts=[build_prompt(visual_profile,{'action':scene['visual'],
+                'inventory':scene.get('visual_inventory')}) for scene in story['scenes']]
+            bible.update(visual_profile=visual_profile,profile_sha256=profile_digest(visual_profile),
+                         quality_review=review_contract())
+        except ValueError:
+            raise ImageFailure('Görsel profili veya açık sahne envanteri geçersiz.') from None
     request={'story':story,'bible':bible,'pipeline':identity(),'pollinations_model':model}
     if local:
         supplied=sorted(p for p in Path(local).glob('*') if p.suffix.lower() in ('.png','.jpg','.jpeg','.webp'))
@@ -447,14 +476,14 @@ def make_images(story,folder,key,model,local='',seed=1234):
             write_json(attempt/'character_bible.json',bible)
             images=[]
             for i,scene in enumerate(story['scenes'],1):
-                prompt=f'CHARACTER BIBLE (unchanged): {characters}. SCENE: {scene["visual"]}. {STYLE}'
+                prompt=planned_prompts[i-1] if planned_prompts else f'CHARACTER BIBLE (unchanged): {characters}. SCENE: {scene["visual"]}. {STYLE}'
                 if provider:
                     data=provider.generate(prompt,i)
                 else:
                     data=supplied[i-1].read_bytes()
                 raw=attempt/f'{i:02}.source';raw.write_bytes(data)
                 path=attempt/f'{i:02}.jpg'
-                source_size=normalize(data,path)
+                source_size=normalize(data,path,framing='contain' if name=='cloudflare' else 'crop')
                 images.append({'path':path,'source_size':source_size})
             # Never expose a half batch to render. Prior provider attempts are retained.
             result=[];records=[]
@@ -465,6 +494,7 @@ def make_images(story,folder,key,model,local='',seed=1234):
             write_json(manifest,{'schema_version':1,'signature':signature,'provider':name,
                 'model':provider.model if provider else 'local','character_bible':bible,
                 'generation_seed':seed if provider and provider.supports_seed else None,
+                'framing':'contain' if name=='cloudflare' else 'crop',
                 'attempt':str(attempt.relative_to(folder)),'images':records,
                 'created_at_utc':datetime.now(timezone.utc).isoformat()})
             print(f'Görsel paketi hazır: {name}, {len(result)} sahne; sağlayıcı karışımı yok.')
