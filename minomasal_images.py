@@ -171,12 +171,12 @@ def decode64(value, provider):
 
 
 def contain_box(size):
-    """Content rectangle on 1080x1920 canvas, preserving all source pixels."""
+    """Full source inside a 5% inset, safe for the existing <=1.08 render zoom."""
     if (len(size)!=2 or any(type(side) is not int or side<=0 for side in size)):
         raise ImageFailure('Geçersiz kaynak ölçüsü.')
-    scale=min(1080/size[0],1920/size[1])
-    width=max(1,min(1080,round(size[0]*scale)))
-    height=max(1,min(1920,round(size[1]*scale)))
+    scale=min(972/size[0],1728/size[1])
+    width=max(1,min(972,round(size[0]*scale)))
+    height=max(1,min(1728,round(size[1]*scale)))
     return [(1080-width)//2,(1920-height)//2,width,height]
 
 

@@ -82,8 +82,8 @@ class VisualProfileTests(unittest.TestCase):
             self.assertEqual(images.normalize(data.getvalue(),dest,framing='contain'),[640,640])
             with Image.open(dest) as output:
                 self.assertEqual(output.size,(1080,1920))
-                for point,expected in (((30,450),(255,0,0)),((1050,450),(0,128,0)),
-                                       ((30,1470),(0,0,255)),((1050,1470),(255,255,0)),
+                for point,expected in (((80,500),(255,0,0)),((1000,500),(0,128,0)),
+                                       ((80,1420),(0,0,255)),((1000,1420),(255,255,0)),
                                        ((500,20),(24,45,38))):
                     self.assertLess(max(abs(a-b) for a,b in zip(output.getpixel(point),expected)),10)
 
@@ -93,7 +93,22 @@ class VisualProfileTests(unittest.TestCase):
             self.assertGreaterEqual(left,0);self.assertGreaterEqual(top,0)
             self.assertLessEqual(left+width,1080);self.assertLessEqual(top+height,1920)
             self.assertAlmostEqual(width/height,size[0]/size[1],delta=.005)
-        self.assertEqual(images.contain_box((1024,1024)),[0,420,1080,1080])
+        self.assertEqual(images.contain_box((1024,1024)),[54,474,972,972])
+
+    def test_content_survives_existing_maximum_video_zoom(self):
+        # Renderer code/settings are unchanged. Validate the actual declared
+        # upper zoom (1.02 + 0.06) and viewport containment without making MP4.
+        source=Path('minomasal.py').read_text()
+        self.assertIn('1.02+0.06*on/',source)
+        zoom=1.08
+        xmargin=1080*(1-1/zoom)/2
+        ymargin=1920*(1-1/zoom)/2
+        for size in ((1024,1024),(512,2048),(2048,512),(1080,1920)):
+            left,top,width,height=images.contain_box(size)
+            self.assertGreater(left,xmargin+1)
+            self.assertGreater(top,ymargin+1)
+            self.assertLess(left+width,1080-xmargin-1)
+            self.assertLess(top+height,1920-ymargin-1)
 
     def test_unknown_framing_rejected_before_file_write(self):
         with self.assertRaises(images.ImageFailure):images.normalize(b'bad',Path('never-created.jpg'),framing='unknown')
