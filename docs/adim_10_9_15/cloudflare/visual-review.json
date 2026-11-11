@@ -1,0 +1,22 @@
+{
+  "reviewed_at_utc": "2026-11-11",
+  "method": "visual_review_of_both_originals_and_vertical_outputs",
+  "images_generated": 2,
+  "inference_requests": 2,
+  "additional_inference_requests": 0,
+  "orange_fur": "pass",
+  "green_eyes": "pass",
+  "blue_scarf_color": "pass",
+  "face_and_scarf_identity": "fail: head shape, proportions and scarf construction differ",
+  "truck_identity": "fail: different cab, bed, wheel and grille designs; orange-red in second scene",
+  "extra_characters_observed": false,
+  "extra_trucks_observed": true,
+  "truck_count_per_scene": [
+    1,
+    2
+  ],
+  "unwanted_text": "Mino appears on first truck",
+  "portrait_composition": "fail: central crop clips trucks and character edges",
+  "automation_quality_approved": false,
+  "decision": "keep_automation_disabled_until_identity_and_composition_improve"
+}

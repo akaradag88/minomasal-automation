@@ -60,6 +60,9 @@ def write_receipt(video, story, images, audios):
     validate_inputs(story, images, audios)
     assets = [Path(video).parent / 'hikaye.json', *map(Path, images),
               *(Path(a[0]) for a in audios)]
+    provenance = Path(images[0]).parent / 'images.json'
+    if provenance.is_file():
+        assets.append(provenance)
     data = {'video_sha256': digest(video),
             'assets': [{'path': str(p.resolve().relative_to(Path(video).parent.resolve())), 'sha256': digest(p)} for p in assets]}
     receipt_path(video).write_text(json.dumps(data), encoding='utf-8')

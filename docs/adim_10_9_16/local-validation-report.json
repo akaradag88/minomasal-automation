@@ -1,0 +1,70 @@
+{
+  "checked_at_turkey": "2026-11-11T23:43:48.995645+03:00",
+  "full_offline_tests_passed": 137,
+  "focused_offline_tests_passed": 29,
+  "workflow_linter": {
+    "tool": "actionlint",
+    "version": "1.7.7",
+    "upstream_checksum_verified": true,
+    "result": "passed"
+  },
+  "visual_profile_sha256": "5a9b4fafc69a5488d1aacb78c2ad6e7e7eca18c165fc7b2cdee0920e2834aff7",
+  "prompt_lengths": [
+    1439,
+    1508
+  ],
+  "planned_inventory": [
+    {
+      "fox": 1,
+      "truck": 1
+    },
+    {
+      "fox": 1,
+      "truck": 1
+    }
+  ],
+  "framing": {
+    "output_size": [
+      1080,
+      1920
+    ],
+    "content_box_for_1024_square": [
+      54,
+      474,
+      972,
+      972
+    ],
+    "inset_fraction": 0.05,
+    "existing_max_render_zoom": 1.08,
+    "video_settings_changed": false
+  },
+  "review_contract": {
+    "automatic_checks": [
+      "profile_schema",
+      "planned_inventory",
+      "prompt_length",
+      "image_integrity",
+      "dimensions",
+      "nonuniform_pixels",
+      "no_crop_geometry"
+    ],
+    "human_review_required": [
+      "character_identity",
+      "actual_entity_counts",
+      "object_identity",
+      "unwanted_text_logos_watermarks",
+      "scene_action",
+      "source_composition"
+    ],
+    "semantic_checks_automated": false,
+    "automation_quality_approved": false
+  },
+  "new_inference_requests": 0,
+  "new_model_images": 0,
+  "new_neuron_usage": 0,
+  "current_account_quota_verified": false,
+  "current_remaining_neurons": null,
+  "real_test_status": "blocked_before_jobs_by_github_startup_failure",
+  "new_actions_artifacts_created": false,
+  "framing_previews_are_old_sources": true
+}

@@ -1,0 +1,91 @@
+{
+  "method": "assistant_visual_inspection_and_mechanical_checks_not_production_approval",
+  "characters_are_synthetic_proxies": true,
+  "approved_real_story_character_available": false,
+  "layer_counts_per_frame": [
+    {
+      "character": 1,
+      "truck": 1
+    },
+    {
+      "character": 1,
+      "truck": 1
+    }
+  ],
+  "canonical_rgba_identity_equal": {
+    "character": true,
+    "truck": true
+  },
+  "visible_fraction_per_frame": [
+    [
+      1.0,
+      1.0
+    ],
+    [
+      1.0,
+      1.0
+    ]
+  ],
+  "ocr_per_frame": [
+    {
+      "status": "completed",
+      "detections": [],
+      "uncertain_detections": [
+        {
+          "confidence": 61.7,
+          "box": [
+            939,
+            593,
+            55,
+            30
+          ]
+        },
+        {
+          "confidence": 67.4,
+          "box": [
+            3,
+            1423,
+            40,
+            30
+          ]
+        }
+      ],
+      "manual_review_required": true,
+      "logo_detection": "manual_required"
+    },
+    {
+      "status": "completed",
+      "detections": [],
+      "uncertain_detections": [
+        {
+          "confidence": 66.8,
+          "box": [
+            954,
+            1724,
+            86,
+            77
+          ]
+        }
+      ],
+      "manual_review_required": true,
+      "logo_detection": "manual_required"
+    }
+  ],
+  "manual_ocr_review_per_frame": [
+    true,
+    true
+  ],
+  "visual_observations": [
+    "one geometric proxy and one truck proxy per frame",
+    "no extra character, vehicle, literal text or logo observed",
+    "proxy style is not production illustration quality",
+    "shadow, ground contact and narrative pose require manual review"
+  ],
+  "new_model_requests": 2,
+  "new_generated_characters": 0,
+  "generated_backgrounds": 2,
+  "estimated_neurons": 115.2,
+  "measured_post_generation_balance": null,
+  "local_replay_uses_same_backgrounds_no_additional_model_requests": true,
+  "automation_quality_approved": false
+}

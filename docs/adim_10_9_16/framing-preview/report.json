@@ -1,0 +1,49 @@
+{
+  "purpose": "framing_only_preview_of_old_sources_not_new_FLUX_samples",
+  "inference_requests": 0,
+  "video_settings_changed": false,
+  "frames": [
+    {
+      "source": "docs/adim_10_9_15/cloudflare/scene-1.original.jpg",
+      "source_sha256": "824250bdbccfc015e25ab24bb7323947f3796e2c27007a4b51f45e531cd70e16",
+      "preview": "scene-1.contain.jpg",
+      "source_size": [
+        1024,
+        1024
+      ],
+      "content_box": [
+        54,
+        474,
+        972,
+        972
+      ],
+      "output_size": [
+        1080,
+        1920
+      ],
+      "new_model_inference": false,
+      "characters_and_objects_unchanged": true
+    },
+    {
+      "source": "docs/adim_10_9_15/cloudflare/scene-2.original.jpg",
+      "source_sha256": "38e0b80053929726c9cbe260dc23121a0ec9c9787f156e9e8e362b4888e503fa",
+      "preview": "scene-2.contain.jpg",
+      "source_size": [
+        1024,
+        1024
+      ],
+      "content_box": [
+        54,
+        474,
+        972,
+        972
+      ],
+      "output_size": [
+        1080,
+        1920
+      ],
+      "new_model_inference": false,
+      "characters_and_objects_unchanged": true
+    }
+  ]
+}

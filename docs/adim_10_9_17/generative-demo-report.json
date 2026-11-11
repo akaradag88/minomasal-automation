@@ -1,0 +1,25 @@
+{
+  "status": "passed_preview_only",
+  "assets_are_synthetic_test_fixtures": true,
+  "real_story_character_approved": false,
+  "real_story_character_identity_validated": false,
+  "automation_quality_approved": false,
+  "publishing_allowed": false,
+  "new_inference_requests": 2,
+  "generated_characters": 0,
+  "baseline_layers_checked": true,
+  "cloudflare_report": "cloudflare/report.json",
+  "mechanical_asset_reuse_verified": {
+    "character": true,
+    "truck": true
+  },
+  "output_frames": [
+    "scenes/01.jpg",
+    "scenes/02.jpg"
+  ],
+  "quality_report": "scenes/composition.json",
+  "production_blockers": [
+    "no_approved_story_character_assets",
+    "manual_background_and_scene_review_required"
+  ]
+}

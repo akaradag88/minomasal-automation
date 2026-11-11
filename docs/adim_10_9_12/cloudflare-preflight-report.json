@@ -1,0 +1,50 @@
+{
+  "model": "@cf/black-forest-labs/flux-1-schnell",
+  "started_at_utc": "2026-11-11T16:34:20.123942+00:00",
+  "secrets_present": {
+    "account_id": true,
+    "api_token": true,
+    "usage_token": true
+  },
+  "tokens_separated": true,
+  "generation_parameters": {
+    "steps": 4,
+    "seed": 1234,
+    "model": "@cf/black-forest-labs/flux-1-schnell",
+    "max_image_requests": 2
+  },
+  "connection_verified": true,
+  "free_plan_verified": true,
+  "quota_verified": true,
+  "paid_usage_allowed": false,
+  "scenes": [],
+  "quality_decision": "not_reviewed",
+  "license": {
+    "model": "Apache-2.0",
+    "commercial_model_use_permitted": true,
+    "source": "https://huggingface.co/black-forest-labs/FLUX.1-schnell",
+    "cloudflare_service_terms_also_apply": true
+  },
+  "subscription_response_shape": {
+    "success_is_true": true,
+    "result_is_list": true,
+    "result_is_object": false,
+    "result_count": 0,
+    "metadata_present": true,
+    "metadata_is_object": true,
+    "total_count_is_integer": false,
+    "total_count_matches": false
+  },
+  "plan_proof": "unbilled_account",
+  "quota": {
+    "utc_day": "2026-11-11",
+    "used_neurons_reported": 0,
+    "free_daily_neurons": 10000,
+    "remaining_neurons_reported": 10000,
+    "source": "account_all_models_graphql",
+    "analytics_may_lag": true,
+    "authoritative_remaining_quota": false
+  },
+  "reserved_neurons": 1000,
+  "status": "preflight_passed_generation_not_requested"
+}

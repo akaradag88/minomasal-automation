@@ -1,0 +1,44 @@
+{
+  "profile": {
+    "version": 1,
+    "style": "Flat hand-painted children's picture-book illustration, clean rounded outlines, matte colors, soft daylight. Consistent illustration style.",
+    "entities": {
+      "fox": {
+        "kind": "character",
+        "label": "small fox cub",
+        "max_count": 1,
+        "traits": {
+          "color": "bright orange fur, white cheeks, chest and tail tip, dark brown ear tips",
+          "face": "round head, short white oval muzzle, tiny black button nose",
+          "eyes": "large almond-shaped emerald green eyes",
+          "clothing": "one plain cobalt-blue scarf, simple knot and two short flat ends, solid unpatterned fabric",
+          "proportions": "short rounded body, head half the body height, small orange paws",
+          "accessories": "no other clothing or accessories"
+        }
+      },
+      "truck": {
+        "kind": "object",
+        "label": "toy truck",
+        "max_count": 1,
+        "traits": {
+          "color": "bright red cab, red rectangular tipper bed and flat red roof",
+          "shape": "compact boxy toy dump truck, pale blue windows",
+          "parts": "two round yellow headlights, grey grille with two horizontal bars, four black wheels with dark grey hubs",
+          "scale": "truck height one third of the fox height, blank smooth unmarked surfaces"
+        }
+      }
+    },
+    "composition": "Full fox from ear tips to paws and complete vehicle inside a generous 12 percent margin on every edge. Both on the ground in a compact central group. Forest surroundings, no foreground occlusion.",
+    "exclusions": "Only the listed character and vehicle. No duplicates, other animals, other vehicles, text, letters, names, logos, labels, symbols, watermarks, borders or collages. All surfaces blank."
+  },
+  "scenes": [
+    {
+      "inventory": {"fox": 1, "truck": 1},
+      "action": "On a forest path, the fox gently pushes the sole vehicle with its right paw, looking down at it happily. Both are fully visible."
+    },
+    {
+      "inventory": {"fox": 1, "truck": 1},
+      "action": "On a forest path, the fox stands beside a tree and looks left with a searching expression. The sole vehicle rests on the right beside a low bush. The fox looks away from it. Both are fully visible."
+    }
+  ]
+}

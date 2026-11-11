@@ -1,0 +1,125 @@
+{
+  "version": 1,
+  "profiles": {
+    "character": {
+      "kind": "character",
+      "traits": {
+        "color": "synthetic test geometry only",
+        "face": "synthetic test geometry only",
+        "eyes": "synthetic test geometry only",
+        "clothing": "synthetic test geometry only",
+        "proportions": "synthetic test geometry only",
+        "accessories": "synthetic test geometry only"
+      },
+      "reference": {
+        "path": "character-front.png",
+        "sha256": "906d2326b48c5d1d85e8c1f9527890f958b6461b0d3b2a6ca2413eafed9021d6",
+        "approval": {
+          "status": "approved",
+          "scope": "test-fixture",
+          "reviewed_by": "synthetic-test-fixture",
+          "reviewed_at": "2026-11-11T21:27:18.472119+00:00",
+          "checks": {
+            "identity": true
+          },
+          "reviewed_record_sha256": "5da717dc306553176f119512a7e60cf1f7d9d0d356f56acbafd05aaf336d2685"
+        }
+      }
+    },
+    "truck": {
+      "kind": "object",
+      "traits": {
+        "color": "synthetic test geometry only",
+        "shape": "synthetic test geometry only",
+        "parts": "synthetic test geometry only",
+        "scale": "synthetic test geometry only"
+      },
+      "reference": {
+        "path": "truck-front.png",
+        "sha256": "056c47ac6c4ca67c9efd917f00e09e01265241e8eaefcbd2b1c0be7b2a646819",
+        "approval": {
+          "status": "approved",
+          "scope": "test-fixture",
+          "reviewed_by": "synthetic-test-fixture",
+          "reviewed_at": "2026-11-11T21:27:18.472292+00:00",
+          "checks": {
+            "identity": true
+          },
+          "reviewed_record_sha256": "a5fdfc31cc848cb3deb88268cf05b3350a9c6e8435f5c2e08f7e8d92fbe1fb86"
+        }
+      }
+    }
+  },
+  "assets": {
+    "character_front": {
+      "profile": "character",
+      "view": "front",
+      "path": "character-front.png",
+      "sha256": "906d2326b48c5d1d85e8c1f9527890f958b6461b0d3b2a6ca2413eafed9021d6",
+      "reference_sha256": "906d2326b48c5d1d85e8c1f9527890f958b6461b0d3b2a6ca2413eafed9021d6",
+      "mirror_approved": false,
+      "profile_sha256": "4868ab744e2ed0cffa6d03c03838e7c7f0b9fd730b1c4fa51c479c0c50377af7",
+      "approval": {
+        "status": "approved",
+        "scope": "test-fixture",
+        "reviewed_by": "synthetic-test-fixture",
+        "reviewed_at": "2026-11-11T21:27:18.472247+00:00",
+        "checks": {
+          "identity": true,
+          "single_entity": true,
+          "edges": true,
+          "no_text_logo": true
+        },
+        "reviewed_record_sha256": "ac870bfbd0d5e769642b15fd5f9b6a0b3ab58e1c67fbe3d89ee0332ef91a0739"
+      }
+    },
+    "truck_front": {
+      "profile": "truck",
+      "view": "front",
+      "path": "truck-front.png",
+      "sha256": "056c47ac6c4ca67c9efd917f00e09e01265241e8eaefcbd2b1c0be7b2a646819",
+      "reference_sha256": "056c47ac6c4ca67c9efd917f00e09e01265241e8eaefcbd2b1c0be7b2a646819",
+      "mirror_approved": false,
+      "profile_sha256": "5fdd395500ae8c4f2560e6af2195c1b9bbd04a9857635c5fddb1af8ef7fdec3e",
+      "approval": {
+        "status": "approved",
+        "scope": "test-fixture",
+        "reviewed_by": "synthetic-test-fixture",
+        "reviewed_at": "2026-11-11T21:27:18.472330+00:00",
+        "checks": {
+          "identity": true,
+          "single_entity": true,
+          "edges": true,
+          "no_text_logo": true
+        },
+        "reviewed_record_sha256": "2bc87a4a696d12ba9367ca17d7d80173abbe78819e253f355ae3d9220e987e20"
+      }
+    }
+  },
+  "backgrounds": {
+    "background_1": {
+      "path": "background-replay-1.jpg",
+      "sha256": "d73eb448facf7b6c170ec78f854057c4b3fae9f27d98fd4201461458a0f3e7d8",
+      "approval": {
+        "status": "pending",
+        "scope": "production"
+      },
+      "semantic_review_required": [
+        "empty_scene",
+        "no_text_logo"
+      ]
+    },
+    "background_2": {
+      "path": "background-replay-2.jpg",
+      "sha256": "aacd80a0ab294fad19b05bdce69343c81ffc811065b76c15ca57a12097adcc37",
+      "approval": {
+        "status": "pending",
+        "scope": "production"
+      },
+      "semantic_review_required": [
+        "empty_scene",
+        "no_text_logo"
+      ]
+    }
+  }
+}
