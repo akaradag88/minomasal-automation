@@ -1,5 +1,9 @@
 # Adım 10.9 — Ücretsiz görsel sistemi, 10 Kasım 2026
 
+> 11 Kasım güncellemesi: minimum token izinleri ve 403 ayrımı için
+> [Adım 10.9.8 analizini](ADIM_10_9_8_REVIEW.md) esas alın. Önceki toplu izin önerisi
+> üretim endpoint’inin minimum izni olarak değerlendirilmemelidir.
+
 **Sonuç:** Modüler sağlayıcılar ve sıfır ücret politikası hazırlandı. OVH SDXL ile
 iki gerçek görsel ücretsiz üretildi; ancak karakter/sahne tutarlılığı kalite
 onayını geçmedi. Yeni sağlayıcılar otomatik yayın için onaylanmadı. Bu dalı

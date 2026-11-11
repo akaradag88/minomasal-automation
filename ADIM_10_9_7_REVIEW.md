@@ -1,5 +1,9 @@
 # Adım 10.9.7 — Cloudflare bağlantı ve kalite testi
 
+> 11 Kasım güncellemesi: minimum token izinleri ve 403 ayrımı için
+> [Adım 10.9.8 analizini](ADIM_10_9_8_REVIEW.md) esas alın. Önceki toplu izin önerisi
+> üretim endpoint’inin minimum izni olarak değerlendirilmemelidir.
+
 11 Kasım 2026, mevcut PR #4 dalı üzerinde. Main birleştirilmez.
 
 ## Yeni manuel test

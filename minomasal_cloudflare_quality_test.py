@@ -61,7 +61,24 @@ def query_quota(account,token):
         raise ProviderFailure('cloudflare','quota_response_unverified') from None
     return {'utc_day':now.date().isoformat(),'used_neurons_reported':used,
             'free_daily_neurons':FREE_NEURONS,'remaining_neurons_reported':max(0,FREE_NEURONS-used),
-            'source':'account_all_models_graphql','analytics_may_lag':True}
+            'source':'account_all_models_graphql','analytics_may_lag':True,
+            'authoritative_remaining_quota':False}
+
+
+def request_context(phase):
+    """Only static route templates: never put a real account ID in diagnostics."""
+    if phase=='model_connection':
+        method,path,permission='GET','/accounts/{account_id}/ai/models/search','Workers AI Read'
+    elif phase=='free_plan':
+        method,path,permission='GET','/accounts/{account_id}/subscriptions','Billing Read'
+    elif phase.startswith('quota'):
+        method,path,permission='POST','/graphql','Account Analytics Read'
+    elif phase.startswith('image_'):
+        method,path,permission='POST','/accounts/{account_id}/ai/run/{model_name}','Workers AI Read'
+    else:
+        return {}
+    return {'request_method':method,'endpoint_template':path,
+            'documented_minimum_permission':permission}
 
 
 def run_check(output, generate=False):
@@ -127,8 +144,9 @@ def run_check(output, generate=False):
             report['status']='two_images_generated_review_required'
     except ProviderFailure as exc:
         report.update(status='blocked_no_publish',blocked_at=phase,reason=exc.reason,http_status=exc.status)
+        report.update(request_context(phase))
         if phase=='free_plan' and exc.status==403:
-            report['next_action']='check_token_billing_read_and_account_scope'
+            report['next_action']='check_subscription_read_access_or_dashboard_plan_verification'
         elif phase.startswith('quota'):
             report['next_action']='check_account_analytics_read_and_quota_availability'
     except Exception:

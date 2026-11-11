@@ -41,7 +41,11 @@ class CloudflareQualityTests(unittest.TestCase):
             result=probe.run_check(self.dest,True)
             self.assertTrue(result['connection_verified']);self.assertEqual(result['blocked_at'],'free_plan')
             self.assertFalse(result['free_plan_verified']);gen.assert_not_called()
-            self.assertEqual(result['next_action'],'check_token_billing_read_and_account_scope')
+            self.assertEqual(result['next_action'],'check_subscription_read_access_or_dashboard_plan_verification')
+            self.assertEqual(result['request_method'],'GET')
+            self.assertEqual(result['endpoint_template'],'/accounts/{account_id}/subscriptions')
+            self.assertEqual(result['documented_minimum_permission'],'Billing Read')
+            self.assertNotIn('a'*32,json.dumps(result))
 
     def test_paid_plan_never_generates(self):
         paid=self.response({'success':True,'result':[{'price':5,'rate_plan':{'public_name':'Workers Paid'}}],'result_info':{'total_count':1}})
@@ -53,6 +57,8 @@ class CloudflareQualityTests(unittest.TestCase):
         with patch.object(probe,'http',side_effect=[self.model(),self.free()]),patch.object(probe,'query_quota',side_effect=ProviderFailure('cloudflare','quota_query_denied_or_unsupported')),patch.object(probe.Cloudflare,'generate') as gen:
             result=probe.run_check(self.dest,True)
             self.assertTrue(result['free_plan_verified']);self.assertFalse(result['quota_verified']);gen.assert_not_called()
+            self.assertEqual(result['request_method'],'POST')
+            self.assertEqual(result['endpoint_template'],'/graphql')
 
     def test_insufficient_quota_never_generates(self):
         with patch.object(probe,'http',side_effect=[self.model(),self.free()]),patch.object(probe,'query_quota',return_value=self.quota(9500)),patch.object(probe.Cloudflare,'generate') as gen:
@@ -92,6 +98,7 @@ class CloudflareQualityTests(unittest.TestCase):
         with patch.object(probe,'http',return_value=self.response(body)) as http:
             quota=probe.query_quota('a'*32,'TOP_SECRET')
             self.assertEqual(quota['remaining_neurons_reported'],9850)
+            self.assertFalse(quota['authoritative_remaining_quota'])
             query=http.call_args.kwargs['json']['query'];self.assertNotIn('model',query)
         body['data']['viewer']['accounts'][0]['aiInferenceAdaptiveGroups'][0]['sum']['totalNeurons']=True
         with patch.object(probe,'http',return_value=self.response(body)):
