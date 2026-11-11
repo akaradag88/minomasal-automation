@@ -16,7 +16,7 @@ concurrency:
 jobs:
   produce-and-publish:
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 90
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout latest ledger
@@ -25,16 +25,28 @@ jobs:
           persist-credentials: true
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 (Node.js 24)
+        timeout-minutes: 5
         with:
           python-version: '3.11'
-      - name: Install dependencies
+          cache: pip
+          cache-dependency-path: |
+            requirements-minomasal.txt
+            requirements-minomasal-daily.txt
+      - name: Runner resource diagnostics (no environment or secrets)
         run: |
           set -euo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
-          python -m pip install --disable-pip-version-check -r requirements-minomasal.txt
-          python -m pip install --disable-pip-version-check google-api-python-client google-auth google-auth-httplib2 'faster-whisper>=1.1,<2'
-          ffmpeg -filters | grep -E '(^| )ass( |$)' || { echo 'FFmpeg ass filtresi bulunamadi'; exit 1; }
+          df -h /
+          free -h
+        timeout-minutes: 1
+      - name: Install system dependencies (bounded APT)
+        timeout-minutes: 8
+        run: bash scripts/install-minomasal-dependencies.sh system
+      - name: Install Python dependencies (cached, bounded pip)
+        timeout-minutes: 10
+        run: bash scripts/install-minomasal-dependencies.sh python
+      - name: Verify installed dependencies (no generation)
+        timeout-minutes: 2
+        run: bash scripts/install-minomasal-dependencies.sh verify
       - name: Check daily slot (read only)
         id: daycheck
         env:
