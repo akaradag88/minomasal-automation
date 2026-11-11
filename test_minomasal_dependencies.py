@@ -7,8 +7,10 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import Mock,patch
 
 import yaml
+import minomasal_dependency_benchmark as benchmark
 
 ROOT=Path(__file__).resolve().parent
 SCRIPT=ROOT/'scripts/install-minomasal-dependencies.sh'
@@ -111,6 +113,49 @@ if os.environ.get('TEST_FAIL_APT')=='1':sys.exit(7)
         packages=[line for line in lines if line and not line.startswith('#')]
         self.assertEqual(packages,['-r requirements-minomasal.txt','google-api-python-client',
             'google-auth','google-auth-httplib2','faster-whisper>=1.1,<2'])
+
+
+class DependencyBenchmarkTests(unittest.TestCase):
+    def test_success_records_real_phase_timings_without_generation(self):
+        with tempfile.TemporaryDirectory() as tmp,patch.object(benchmark.subprocess,'run',return_value=Mock(returncode=0)) as run,patch.object(benchmark.time,'monotonic',side_effect=[0,2,2,42,42,43]):
+            report=benchmark.run_benchmark(Path(tmp)/'output')
+            self.assertEqual(report['status'],'passed')
+            self.assertEqual([p['seconds'] for p in report['phases']],[2,40,1])
+            self.assertTrue(report['pip_under_eight_minutes'])
+            self.assertFalse(report['generation_allowed']);self.assertFalse(report['publishing_allowed'])
+            self.assertEqual([c.args[0][-1] for c in run.call_args_list],['system-force','python','verify'])
+
+    def test_apt_failure_stops_benchmark_and_saves_report(self):
+        with tempfile.TemporaryDirectory() as tmp,patch.object(benchmark.subprocess,'run',return_value=Mock(returncode=124)) as run:
+            folder=Path(tmp)/'output';report=benchmark.run_benchmark(folder)
+            run.assert_called_once();self.assertEqual(report['blocked_at'],'system-force')
+            self.assertEqual(json.loads((folder/'report.json').read_text())['status'],'failed')
+
+    def test_slow_python_phase_cannot_be_reported_as_under_budget(self):
+        with tempfile.TemporaryDirectory() as tmp,patch.object(benchmark.subprocess,'run',return_value=Mock(returncode=0)) as run,patch.object(benchmark.time,'monotonic',side_effect=[0,1,1,482]):
+            report=benchmark.run_benchmark(Path(tmp)/'output')
+            self.assertFalse(report['pip_under_eight_minutes'])
+            self.assertEqual(report['status'],'failed');self.assertEqual(run.call_count,2)
+
+    def test_benchmark_cannot_run_outside_manual_pr_context(self):
+        with patch.dict(os.environ,{},clear=True),patch.object(benchmark,'run_benchmark') as run:
+            with self.assertRaises(SystemExit):benchmark.main()
+            run.assert_not_called()
+
+    def test_isolated_workflow_has_no_secrets_or_publish_steps(self):
+        data=yaml.load((ROOT/'.github/workflows/minomasal-dependencies-test.yml').read_text(),Loader=yaml.BaseLoader)
+        self.assertEqual(set(data['on']),{'workflow_dispatch','workflow_call'})
+        self.assertEqual(data['permissions'],{'contents':'read'})
+        job=data['jobs']['dependencies'];self.assertIn(benchmark.BRANCH,job['if'])
+        self.assertIn('workflow_dispatch',job['if'])
+        for step in job['steps']:
+            self.assertNotIn('secrets.',json.dumps(step))
+            self.assertNotIn('minomasal_dual_publish.py',step.get('run',''))
+        self.assertTrue(any(s.get('run')=='python run_readiness_tests.py' for s in job['steps']))
+        bridge=yaml.load((ROOT/'.github/workflows/minomasal-pollinations-account-check.yml').read_text(),Loader=yaml.BaseLoader)
+        self.assertIn('!inputs.dependency_test',bridge['jobs']['account-check']['if'])
+        self.assertIn('!inputs.dependency_test',bridge['jobs']['cloudflare-quality-test']['if'])
+        self.assertEqual(bridge['jobs']['dependency-test']['uses'],'./.github/workflows/minomasal-dependencies-test.yml')
 
 
 if __name__=='__main__':unittest.main()

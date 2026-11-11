@@ -3,10 +3,10 @@
 set -euo pipefail
 
 case "${1:-}" in
-  system)
+  system|system-force)
     # Hosted images often already contain both. Avoid unrelated APT mirrors when
     # the required tools are available; retain the fallback for image changes.
-    if command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null &&
+    if [[ "$1" == system ]] && command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null &&
        test -r /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf; then
       printf '%s\n' '[dependencies] Existing FFmpeg, ffprobe and DejaVu font found.'
       exit 0
@@ -40,5 +40,5 @@ case "${1:-}" in
       grep -E '(^| )ass( |$)' || { printf '%s\n' 'FFmpeg ass filter check failed'; exit 1; }
     test -r /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
     ;;
-  *) printf '%s\n' 'Usage: install-minomasal-dependencies.sh system|python|verify' >&2; exit 2 ;;
+  *) printf '%s\n' 'Usage: install-minomasal-dependencies.sh system|system-force|python|verify' >&2; exit 2 ;;
 esac

@@ -1,9 +1,14 @@
 name: MinoMasal Pollinations Account Check (NO GENERATION NO PUBLISH)
-run-name: ${{ inputs.cloudflare_test && 'Cloudflare FLUX manual test - PR 4 (NO PUBLISH)' || 'Pollinations read-only account check' }}
+run-name: ${{ inputs.dependency_test && 'Dependency benchmark - PR 4 (NO PUBLISH)' || inputs.cloudflare_test && 'Cloudflare FLUX manual test - PR 4 (NO PUBLISH)' || 'Pollinations read-only account check' }}
 
 on:
   workflow_dispatch:
     inputs:
+      dependency_test:
+        description: 'Run isolated APT/pip benchmark only; no API secrets or publishing'
+        type: boolean
+        required: false
+        default: false
       cloudflare_test:
         description: 'PR #4 manual Cloudflare test only; Pollinations check will not run'
         type: boolean
@@ -24,7 +29,7 @@ concurrency:
 
 jobs:
   account-check:
-    if: github.ref == 'refs/heads/main' && !inputs.cloudflare_test
+    if: github.ref == 'refs/heads/main' && !inputs.cloudflare_test && !inputs.dependency_test
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -40,7 +45,7 @@ jobs:
         run: python minomasal_pollinations_check.py
 
   cloudflare-quality-test:
-    if: github.event_name == 'workflow_dispatch' && inputs.cloudflare_test && github.ref == 'refs/heads/feat/adim-10-9-free-image-providers'
+    if: github.event_name == 'workflow_dispatch' && inputs.cloudflare_test && !inputs.dependency_test && github.ref == 'refs/heads/feat/adim-10-9-free-image-providers'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -76,3 +81,7 @@ jobs:
           if-no-files-found: warn
           include-hidden-files: false
           retention-days: 14
+
+  dependency-test:
+    if: github.event_name == 'workflow_dispatch' && inputs.dependency_test && github.ref == 'refs/heads/feat/adim-10-9-free-image-providers'
+    uses: ./.github/workflows/minomasal-dependencies-test.yml

@@ -1,0 +1,56 @@
+name: MinoMasal dependency benchmark (NO PUBLISH)
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: minomasal-dependency-test-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  dependencies:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/feat/adim-10-9-free-image-providers'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (Node.js 24)
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 (Node.js 24)
+        id: python
+        timeout-minutes: 5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements-minomasal.txt
+            requirements-minomasal-daily.txt
+      - name: Runner resources (no secrets)
+        timeout-minutes: 1
+        run: |
+          df -h /
+          free -h
+      - name: Measure real APT and pip, verify imports (no model downloads)
+        timeout-minutes: 18
+        env:
+          DEPENDENCY_CACHE_HIT: ${{ steps.python.outputs.cache-hit }}
+        run: python minomasal_dependency_benchmark.py
+      - name: Install offline-test tooling only
+        timeout-minutes: 2
+        run: timeout --signal=TERM --kill-after=15s 90s python -m pip install --disable-pip-version-check --no-input --timeout 30 --retries 2 PyYAML
+      - name: Full offline suite (network and rendering blocked)
+        timeout-minutes: 5
+        run: python run_readiness_tests.py
+      - name: Save sanitized dependency timing report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: minomasal-dependencies-${{ github.run_id }}
+          path: dependency_test_output/
+          if-no-files-found: warn
+          include-hidden-files: false
+          retention-days: 14
