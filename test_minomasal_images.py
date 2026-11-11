@@ -91,6 +91,14 @@ class ImageProviderTests(unittest.TestCase):
         with self.assertRaises(images.ProviderFailure):
             images.verify_cloudflare_free_plan({'success':True,'result':[], 'result_info':{'total_count':5}})
 
+    def test_optional_subscription_metadata_fields_and_partial_pages(self):
+        for info in ({},{'count':0},{'count':0,'page':1}):
+            self.assertEqual(images.verify_cloudflare_free_plan(
+                {'success':True,'result':[],'result_info':info}),'unbilled_account')
+        for info in ({'count':1},{'page':2},{'total_count':None},{'total_count':False},[]):
+            with self.subTest(info=info),self.assertRaises(images.ProviderFailure):
+                images.verify_cloudflare_free_plan({'success':True,'result':[],'result_info':info})
+
     def test_cloudflare_requires_separate_usage_token(self):
         with patch.dict(os.environ,{'CLOUDFLARE_ACCOUNT_ID':'a'*32,'CLOUDFLARE_API_TOKEN':'secret'}),patch.object(images.requests,'request') as request:
             with self.assertRaisesRegex(images.ProviderFailure,'usage_token_missing'):

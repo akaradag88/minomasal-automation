@@ -222,9 +222,17 @@ def verify_cloudflare_free_plan(data):
         raise ProviderFailure('cloudflare','complete_free_plan_proof_required')
     # The documented single-page endpoint lists all subscriptions. result_info
     # is optional. When supplied, its count must still prove a complete list.
-    if info is not None and (not isinstance(info,dict) or type(info.get('total_count')) is not int
-                             or info['total_count']!=len(subscriptions)):
-        raise ProviderFailure('cloudflare','complete_free_plan_proof_required')
+    if info is not None:
+        if not isinstance(info,dict):
+            raise ProviderFailure('cloudflare','complete_free_plan_proof_required')
+        # All metadata properties are optional in the single-page API schema.
+        # An empty metadata object is equivalent to omitted metadata, not a
+        # partial page. Supplied counts/pages must nevertheless be consistent.
+        for field in ('total_count','count'):
+            if field in info and (type(info[field]) is not int or info[field]!=len(subscriptions)):
+                raise ProviderFailure('cloudflare','complete_free_plan_proof_required')
+        if 'page' in info and (type(info['page']) is not int or info['page']!=1):
+            raise ProviderFailure('cloudflare','complete_free_plan_proof_required')
     for subscription in subscriptions:
         if not isinstance(subscription,dict): raise ProviderFailure('cloudflare','unbilled_account_required')
         plan=subscription.get('rate_plan',{})
