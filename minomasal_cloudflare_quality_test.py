@@ -27,6 +27,14 @@ RESERVED_NEURONS=1_000  # Conservative buffer; two single-attempt image POSTs on
 PLAN=json.loads(Path(__file__).with_name('minomasal_flux_quality_profile.json').read_text())
 CHARACTER=identity_text(PLAN['profile'])
 SCENES=tuple(scene['action'] for scene in PLAN['scenes'])
+BACKGROUND_SCENES=(
+    'An empty woodland path in a sunny forest clearing, low bushes on the right, soft daylight.',
+    'A different empty woodland path beside a large tree on the left, low bushes on the right, soft daylight.',
+)
+BACKGROUND_STYLE=('Flat hand-painted children\'s picture-book background, matte colors, clean rounded outlines. '
+                  'Unoccupied scenery only: zero animals, zero people, zero vehicles, zero toys. '
+                  'Blank unmarked surfaces, no words, letters, signs, logos or watermarks. '
+                  'Keep the central ground clear for later local sprite placement.')
 
 
 def number(value):
@@ -54,7 +62,7 @@ def request_context(phase):
             'documented_minimum_permission':permission}
 
 
-def run_check(output, generate=False):
+def run_check(output, generate=False, *, backgrounds_only=False):
     output=Path(output);output.mkdir(parents=True,exist_ok=False)
     account=os.environ.get('CLOUDFLARE_ACCOUNT_ID','').strip()
     token=os.environ.get('CLOUDFLARE_API_TOKEN','').strip()
@@ -65,6 +73,7 @@ def run_check(output, generate=False):
             'generation_parameters':{'request_fields':['prompt'],'steps_sent':False,
                 'documented_default_steps':CF_DEFAULT_STEPS,'seed':None,'width_sent':False,'height_sent':False,
                 'model':CF_MODEL,'max_image_requests':2},
+            'mode':'backgrounds_only' if backgrounds_only else 'character_prompt_trial',
             'connection_verified':False,'free_plan_verified':False,'quota_verified':False,
             'paid_usage_allowed':False,'scenes':[], 'quality_decision':'not_reviewed',
             'license':{'model':'Apache-2.0','commercial_model_use_permitted':True,
@@ -74,10 +83,11 @@ def run_check(output, generate=False):
     try:
         # Validate both plans before any metadata or inference request.
         if len(PLAN['scenes'])!=2:raise ValueError('exactly_two_test_scenes_required')
-        prompts=[build_prompt(PLAN['profile'],scene) for scene in PLAN['scenes']]
-        report['visual_profile_sha256']=profile_digest(PLAN['profile'])
+        descriptions=BACKGROUND_SCENES if backgrounds_only else SCENES
+        prompts=[f'{BACKGROUND_STYLE} {scene}' for scene in descriptions] if backgrounds_only else [build_prompt(PLAN['profile'],scene) for scene in PLAN['scenes']]
+        report['visual_profile_sha256']=None if backgrounds_only else profile_digest(PLAN['profile'])
         report['quality_review']=review_contract()
-        write_json(output/'visual-plan.json',PLAN)
+        write_json(output/'visual-plan.json',{'mode':'backgrounds_only','prompts':prompts} if backgrounds_only else PLAN)
         if not re.fullmatch('[a-fA-F0-9]{32}',account) or not token:
             raise ProviderFailure('cloudflare','credentials_missing_or_invalid')
         if not usage_token:
@@ -124,7 +134,7 @@ def run_check(output, generate=False):
         else:
             config=load_config();config['http_attempts']=1
             provider=Cloudflare(config);provider.account=account;provider.token=token;provider.model=CF_MODEL
-            for i,scene in enumerate(SCENES,1):
+            for i,scene in enumerate(descriptions,1):
                 # Re-read the quota and do not cross the UTC reset boundary silently.
                 phase=f'quota_before_scene_{i}'
                 fresh=query_quota(account,usage_token)
@@ -144,9 +154,10 @@ def run_check(output, generate=False):
                 report['scenes'].append({'scene':i,'description':scene,'original':original.name,
                     'vertical':vertical.name,'source_size':size,'output_size':[1080,1920],
                     'framing':'contain','content_box':contain_box(size),
-                    'planned_inventory':PLAN['scenes'][i-1]['inventory'],
+                    'planned_inventory':{'characters':0,'vehicles':0} if backgrounds_only else PLAN['scenes'][i-1]['inventory'],
                     'seconds':round(time.monotonic()-started,2),'sha256':sha(original)})
-            report['character_bible']=CHARACTER
+            report['character_bible']=None if backgrounds_only else CHARACTER
+            if backgrounds_only:report['background_semantics_approved']=False
             report['status']='two_images_generated_review_required'
     except ProviderFailure as exc:
         report.update(status='blocked_no_publish',blocked_at=phase,reason=exc.reason,http_status=exc.status)
@@ -166,12 +177,13 @@ def run_check(output, generate=False):
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--generate-two-scenes',action='store_true')
+    parser.add_argument('--backgrounds-only',action='store_true')
     args=parser.parse_args()
     if not (os.environ.get('GITHUB_ACTIONS')=='true' and os.environ.get('GITHUB_EVENT_NAME')=='workflow_dispatch'
             and os.environ.get('GITHUB_REPOSITORY')=='akaradag88/minomasal-automation'
             and os.environ.get('GITHUB_REF')==BRANCH):
         raise SystemExit('Only the manually dispatched PR #4 branch test may execute this probe.')
-    report=run_check('cloudflare_test_output',args.generate_two_scenes)
+    report=run_check('cloudflare_test_output',args.generate_two_scenes,backgrounds_only=args.backgrounds_only)
     text=json.dumps(report,ensure_ascii=False,indent=2,allow_nan=False)
     print(text)
     summary=os.environ.get('GITHUB_STEP_SUMMARY')

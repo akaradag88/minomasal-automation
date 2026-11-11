@@ -152,3 +152,19 @@ class CloudflareQualityTests(unittest.TestCase):
             artifact=steps[-1]
             self.assertEqual(artifact['if'],'always()');self.assertEqual(artifact['with']['path'],'cloudflare_test_output/')
             self.assertEqual(artifact['with']['include-hidden-files'],'false')
+
+    def test_background_only_mode_generates_no_characters_and_reuses_free_gate(self):
+        data=io.BytesIO();Image.effect_noise((1024,1024),80).convert('RGB').save(data,format='JPEG')
+        with patch.object(probe,'http',side_effect=[self.model(),self.free()]),patch.object(probe,'query_quota',return_value=self.quota()),patch.object(probe.Cloudflare,'generate',return_value=data.getvalue()) as gen:
+            report=probe.run_check(self.dest,True,backgrounds_only=True)
+            self.assertEqual(gen.call_count,2)
+            self.assertEqual(report['mode'],'backgrounds_only');self.assertIsNone(report['character_bible'])
+            self.assertFalse(report['background_semantics_approved'])
+            for call in gen.call_args_list:
+                self.assertIn('zero animals',call.args[0]);self.assertNotIn('emerald green eyes',call.args[0])
+            for scene in report['scenes']:self.assertEqual(scene['planned_inventory'],{'characters':0,'vehicles':0})
+
+    def test_unverified_background_quota_never_generates(self):
+        with patch.object(probe,'http',side_effect=[self.model(),self.free()]),patch.object(probe,'query_quota',side_effect=ProviderFailure('cloudflare','unverified')),patch.object(probe.Cloudflare,'generate') as gen:
+            report=probe.run_check(self.dest,True,backgrounds_only=True)
+            gen.assert_not_called();self.assertEqual(report['status'],'blocked_no_publish')

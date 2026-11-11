@@ -445,6 +445,10 @@ def make_images(story,folder,key,model,local='',seed=1234):
             raise ImageFailure('Görsel profili veya açık sahne envanteri geçersiz.') from None
     request={'story':story,'bible':bible,'pipeline':identity(),'pollinations_model':model}
     if local:
+        from minomasal_asset_compositor import AssetError, validate_local_handoff
+        try:validate_local_handoff(local)
+        except AssetError:
+            raise ImageFailure('Kompozisyon için hash bağlı manuel sahne onayı gerekli; yayın engellendi.') from None
         supplied=sorted(p for p in Path(local).glob('*') if p.suffix.lower() in ('.png','.jpg','.jpeg','.webp'))
         if len(supplied)!=len(story['scenes']): raise ImageFailure('Yerel görsel/sahne sayısı eşleşmiyor.')
         request['local_hashes']=[sha(p) for p in supplied]
