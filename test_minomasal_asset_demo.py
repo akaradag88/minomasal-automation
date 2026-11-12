@@ -35,7 +35,16 @@ class AssetDemoTests(unittest.TestCase):
         dedicated=yaml.load(Path('.github/workflows/minomasal-assets-test.yml').read_text(),Loader=yaml.BaseLoader)
         self.assertEqual(set(dedicated['on']),{'workflow_dispatch'})
         self.assertEqual(dedicated['permissions'],{'contents':'read'})
-        self.assertEqual(bridge['jobs']['asset-test']['steps'],dedicated['jobs']['asset-test']['steps'])
+        bridge_steps=bridge['jobs']['asset-test']['steps']
+        audit=next(step for step in bridge_steps if step.get('run')=='python minomasal_recovery_audit.py')
+        self.assertEqual(audit['if'],'${{ inputs.rescue_audit }}')
+        normalized=[]
+        for step in bridge_steps:
+            if step is audit: continue
+            step=dict(step)
+            if 'if' in step: step['if']=step['if'].replace(' && !inputs.rescue_audit','')
+            normalized.append(step)
+        self.assertEqual(normalized,dedicated['jobs']['asset-test']['steps'])
         self.assertFalse(any('uses' in job for job in bridge['jobs'].values()))
         steps=dedicated['jobs']['asset-test']['steps']
         offline=next(i for i,s in enumerate(steps) if s.get('run')=='python run_readiness_tests.py')

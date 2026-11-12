@@ -166,7 +166,6 @@ jobs:
         timeout-minutes: 2
         run: timeout --signal=TERM --kill-after=15s 90s python -m pip install --disable-pip-version-check --no-input --timeout 30 --retries 2 PyYAML
       - name: Full offline suite before any optional API call
-        if: ${{ !inputs.rescue_audit }}
         timeout-minutes: 5
         run: python run_readiness_tests.py
       - name: Compose synthetic proxies with offline backgrounds
