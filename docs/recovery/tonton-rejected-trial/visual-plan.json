@@ -1,0 +1,35 @@
+{
+  "profile": {
+    "version": 1,
+    "style": "Polished 3D preschool storybook toy render. One isolated toy vehicle, not a collage. Pure flat solid magenta RGB 255,0,255 background, including every corner and edge. No ground or cast shadow.",
+    "entities": {
+      "tonton": {
+        "kind": "object",
+        "label": "single small sky-blue toy dump truck",
+        "max_count": 1,
+        "traits": {
+          "color": "bright sky-blue cab and matching blue open dump bed; orange wheel rims; black tires; silver rectangular front bumper",
+          "shape": "short square friendly cab, green windshield eyes with white sclera, horizontal dark grille, three small yellow-orange roof lamps",
+          "parts": "exactly four chunky tires in total, round orange rims, two round headlights, one blue cab, one hinged blue cargo bed",
+          "scale": "entire truck fits inside central 65 percent of canvas; generous 15 percent blank margin above roof, below wheels, and beyond front bumper and tailgate"
+        }
+      }
+    },
+    "composition": "Three-quarter front view facing left, eye-level camera. Full vehicle, every wheel, bumper and tailgate visible within generous magenta margins. Magenta is background only, never on truck.",
+    "exclusions": "Exactly one truck. No duplicates, spare wheels, humans, animals, forest, trees, floor, scenery, text, writing, letters, labels, logos, watermark, border or panels. Blank unmarked surfaces."
+  },
+  "scenes": [
+    {
+      "inventory": {
+        "tonton": 1
+      },
+      "action": "Truck stands still, dump bed lowered and visibly filled with a modest mound of bright yellow toy sand inside the blue bed. Only truck and its contained sand on magenta."
+    },
+    {
+      "inventory": {
+        "tonton": 1
+      },
+      "action": "Truck stands still on all four tires; its own blue dump bed is tilted upward to unload, no separate or detached bed. A short narrow stream of yellow toy sand falls from its tailgate. Keep the whole truck, raised bed and stream inside the central blank margins."
+    }
+  ]
+}

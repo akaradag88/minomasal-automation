@@ -1,0 +1,35 @@
+{
+  "status": "rejected_not_for_production",
+  "method": "assistant_visual_inspection_not_user_approval",
+  "reference": "tonton_referans.png",
+  "reference_sha256": "2c78b485ddf1299999fc4bc906d94fc5720226b41653d2da82130dface2a6de6",
+  "workflow_run": 43299090697,
+  "artifact_id": 13980816542,
+  "free_plan_verified_before_generation": true,
+  "free_quota_verified_before_each_request": true,
+  "new_image_requests": 2,
+  "estimated_neurons": 115.2,
+  "actual_post_generation_usage_verified": false,
+  "observations": {
+    "scene_1": [
+      "cab, grille, bumper and lamp design differ from canonical reference",
+      "not an approved Tonton identity",
+      "background is shaded pink rather than requested flat chroma key"
+    ],
+    "scene_2": [
+      "canonical green windshield eyes are missing",
+      "sand incorrectly pours from front bumper area instead of raised bed tailgate",
+      "cab, grille and bumper differ from first candidate and reference",
+      "background is not requested flat chroma key"
+    ]
+  },
+  "masks": [
+    "blocked_manual_mask_required",
+    "blocked_manual_mask_required"
+  ],
+  "character_consistency_passed": false,
+  "scene_action_passed": false,
+  "production_approved": false,
+  "automatic_publication_approved": false,
+  "decision": "Stop after two requests. No regeneration loop, manual publication request, ledger reservation, voice or MP4 generation."
+}

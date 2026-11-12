@@ -1,0 +1,154 @@
+{
+  "model": "@cf/black-forest-labs/flux-1-schnell",
+  "started_at_utc": "2026-11-12T20:19:18.317989+00:00",
+  "secrets_present": {
+    "account_id": true,
+    "api_token": true,
+    "usage_token": true
+  },
+  "tokens_separated": true,
+  "generation_parameters": {
+    "request_fields": [
+      "prompt"
+    ],
+    "steps_sent": false,
+    "documented_default_steps": 4,
+    "seed": null,
+    "width_sent": false,
+    "height_sent": false,
+    "model": "@cf/black-forest-labs/flux-1-schnell",
+    "max_image_requests": 2
+  },
+  "mode": "tonton_text_only_asset_candidates",
+  "connection_verified": true,
+  "free_plan_verified": true,
+  "quota_verified": true,
+  "paid_usage_allowed": false,
+  "scenes": [
+    {
+      "scene": 1,
+      "description": "Truck stands still, dump bed lowered and visibly filled with a modest mound of bright yellow toy sand inside the blue bed. Only truck and its contained sand on magenta.",
+      "original": "scene-1.original.jpg",
+      "vertical": "scene-1.vertical.jpg",
+      "source_size": [
+        1024,
+        1024
+      ],
+      "output_size": [
+        1080,
+        1920
+      ],
+      "framing": "contain",
+      "content_box": [
+        54,
+        474,
+        972,
+        972
+      ],
+      "planned_inventory": {
+        "tonton": 1
+      },
+      "seconds": 1.77,
+      "sha256": "cdef71909f9bcb6f338879e760a6dcc701ac92b008111baf7e65f6098b5cf094"
+    },
+    {
+      "scene": 2,
+      "description": "Truck stands still on all four tires; its own blue dump bed is tilted upward to unload, no separate or detached bed. A short narrow stream of yellow toy sand falls from its tailgate. Keep the whole truck, raised bed and stream inside the central blank margins.",
+      "original": "scene-2.original.jpg",
+      "vertical": "scene-2.vertical.jpg",
+      "source_size": [
+        1024,
+        1024
+      ],
+      "output_size": [
+        1080,
+        1920
+      ],
+      "framing": "contain",
+      "content_box": [
+        54,
+        474,
+        972,
+        972
+      ],
+      "planned_inventory": {
+        "tonton": 1
+      },
+      "seconds": 3.1,
+      "sha256": "ed59e6886120b64166fbc7e5030354ca97ca736c997ebd8b49a758e5d570a775"
+    }
+  ],
+  "quality_decision": "not_reviewed",
+  "license": {
+    "model": "Apache-2.0",
+    "commercial_model_use_permitted": true,
+    "source": "https://huggingface.co/black-forest-labs/FLUX.1-schnell",
+    "cloudflare_service_terms_also_apply": true
+  },
+  "visual_profile_sha256": "06702f5d0dc798a161bf87e6d2afbb1bcaa57abffb71a61ea384fcd13a71d9f6",
+  "quality_review": {
+    "automatic_checks": [
+      "profile_schema",
+      "planned_inventory",
+      "prompt_length",
+      "image_integrity",
+      "dimensions",
+      "nonuniform_pixels",
+      "no_crop_geometry"
+    ],
+    "human_review_required": [
+      "character_identity",
+      "actual_entity_counts",
+      "object_identity",
+      "unwanted_text_logos_watermarks",
+      "scene_action",
+      "source_composition"
+    ],
+    "semantic_checks_automated": false,
+    "automation_quality_approved": false
+  },
+  "subscription_response_shape": {
+    "success_is_true": true,
+    "result_is_list": true,
+    "result_is_object": false,
+    "result_count": 0,
+    "metadata_present": true,
+    "metadata_is_object": true,
+    "total_count_is_integer": false,
+    "total_count_matches": false
+  },
+  "plan_proof": "unbilled_account",
+  "quota": {
+    "utc_day": "2026-11-12",
+    "used_neurons_reported": 0,
+    "free_daily_neurons": 10000,
+    "remaining_neurons_reported": 10000,
+    "source": "account_all_models_graphql",
+    "analytics_may_lag": true,
+    "authoritative_remaining_quota": false
+  },
+  "reserved_neurons": 1000,
+  "character_bible": "single small sky-blue toy dump truck: bright sky-blue cab and matching blue open dump bed; orange wheel rims; black tires; silver rectangular front bumper; short square friendly cab, green windshield eyes with white sclera, horizontal dark grille, three small yellow-orange roof lamps; exactly four chunky tires in total, round orange rims, two round headlights, one blue cab, one hinged blue cargo bed; entire truck fits inside central 65 percent of canvas; generous 15 percent blank margin above roof, below wheels, and beyond front bumper and tailgate.",
+  "status": "two_images_generated_review_required",
+  "reference_image_sent": false,
+  "matches_existing_reference_verified": false,
+  "production_approved": false,
+  "source_reference": "tonton_referans.png",
+  "warning": "Text-only approximation; different poses may redesign the character. Human reference comparison is mandatory.",
+  "sprite_candidates": [
+    {
+      "scene": 1,
+      "approval": "pending",
+      "source": "scene-1.original.jpg",
+      "mask_status": "blocked_manual_mask_required",
+      "reason": "nonuniform_background_requires_manual_mask"
+    },
+    {
+      "scene": 2,
+      "approval": "pending",
+      "source": "scene-2.original.jpg",
+      "mask_status": "blocked_manual_mask_required",
+      "reason": "nonuniform_background_requires_manual_mask"
+    }
+  ]
+}
