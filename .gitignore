@@ -23,3 +23,14 @@ __pycache__/
 .venv-readiness/
 
 pollinations-account-check.json
+
+image_comparison/
+
+cloudflare_test_output/
+dependency_test_output/
+asset_test_output/
+
+# Local OAuth reauthorization outputs (never commit credentials)
+*.private
+client_secret*.json
+recovery_package/
