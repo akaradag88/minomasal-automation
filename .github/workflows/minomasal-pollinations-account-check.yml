@@ -4,6 +4,10 @@ run-name: ${{ inputs.asset_test && 'Approved asset tests - PR 4 (NO PUBLISH)' ||
 on:
   workflow_dispatch:
     inputs:
+      rescue_audit:
+        description: Read-only platform and free-quota recovery audit
+        type: boolean
+        default: false
       asset_test:
         description: 'Run isolated sprite composition tests; no publishing'
         type: boolean
@@ -162,20 +166,37 @@ jobs:
         timeout-minutes: 2
         run: timeout --signal=TERM --kill-after=15s 90s python -m pip install --disable-pip-version-check --no-input --timeout 30 --retries 2 PyYAML
       - name: Full offline suite before any optional API call
+        if: ${{ !inputs.rescue_audit }}
         timeout-minutes: 5
         run: python run_readiness_tests.py
       - name: Compose synthetic proxies with offline backgrounds
-        if: ${{ !inputs.generate_images }}
+        if: ${{ !inputs.generate_images && !inputs.rescue_audit }}
         timeout-minutes: 3
         run: python minomasal_asset_demo.py
       - name: Optional two free backgrounds and preview composition (never character generation)
-        if: ${{ inputs.generate_images }}
+        if: ${{ inputs.generate_images && !inputs.rescue_audit }}
         timeout-minutes: 10
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_USAGE_TOKEN: ${{ secrets.CLOUDFLARE_USAGE_TOKEN }}
         run: python minomasal_asset_demo.py --generate-backgrounds
+      - name: Read-only recovery audit (no generation or publishing)
+        if: ${{ inputs.rescue_audit }}
+        timeout-minutes: 5
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_USAGE_TOKEN: ${{ secrets.CLOUDFLARE_USAGE_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          MINOMASAL_HOSTING_TOKEN: ${{ secrets.MINOMASAL_HOSTING_TOKEN }}
+        run: python minomasal_recovery_audit.py
       - name: Save asset test report and preview frames
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
