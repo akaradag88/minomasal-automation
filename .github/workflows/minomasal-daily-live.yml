@@ -53,6 +53,10 @@ jobs:
           MINOMASAL_LOCK_TOKEN: ${{ github.token }}
           MINOMASAL_LOCK_START_DATE: '2026-11-04'
         run: python minomasal_gunluk_kilit.py preflight
+      - name: Prepare existing canonical story review packet (offline, never a video)
+        if: steps.daycheck.outputs.eligible == 'true'
+        timeout-minutes: 1
+        run: python minomasal_recovery_package.py
       - name: Generate next video from ledger (Quality V3)
         id: stage
         # Recovery hold: paid text generation and unapproved visuals must not run.
@@ -125,6 +129,7 @@ jobs:
         with:
           name: minomasal-preparation-${{ github.run_id }}
           path: |
+            recovery_package/
             staging/
             minomasal_kalite_v3_daily_data/
           if-no-files-found: warn

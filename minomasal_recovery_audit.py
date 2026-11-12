@@ -61,6 +61,8 @@ def main():
         if r.status_code==200:
             report['speech']['configured_model_listed']=any(m.get('name')=='models/gemini-3.8-flash-tts' for m in r.json().get('models',[]))
     except Exception: report['speech']={'error':'metadata_check_failed_raw_details_withheld','generation_tested':False}
+    from minomasal_recovery_package import build_package
+    report['review_package']=build_package(out/'review_package')
     (out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps({'audit_saved':True,'secrets_present':report['secrets_present'],'youtube_status':report.get('youtube',{}).get('channel_http_status'),
                      'instagram_status':report.get('instagram',{}).get('http_status'),'number':number,'publishing_allowed':False}))

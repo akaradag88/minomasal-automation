@@ -10,6 +10,7 @@ import unittest
 from unittest.mock import patch
 
 MODULES = (
+    'test_minomasal_recovery_preparation',
     'test_minomasal_recovery_workflow',
     'test_minomasal_recovery_audit',
     'test_minomasal_asset_demo',
