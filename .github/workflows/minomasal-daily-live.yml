@@ -16,7 +16,7 @@ concurrency:
 jobs:
   produce-and-publish:
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 90
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout latest ledger
@@ -25,16 +25,28 @@ jobs:
           persist-credentials: true
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 (Node.js 24)
+        timeout-minutes: 5
         with:
           python-version: '3.11'
-      - name: Install dependencies
+          cache: pip
+          cache-dependency-path: |
+            requirements-minomasal.txt
+            requirements-minomasal-daily.txt
+      - name: Runner resource diagnostics (no environment or secrets)
         run: |
           set -euo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
-          python -m pip install --disable-pip-version-check -r requirements-minomasal.txt
-          python -m pip install --disable-pip-version-check google-api-python-client google-auth google-auth-httplib2 'faster-whisper>=1.1,<2'
-          ffmpeg -filters | grep -E '(^| )ass( |$)' || { echo 'FFmpeg ass filtresi bulunamadi'; exit 1; }
+          df -h /
+          free -h
+        timeout-minutes: 1
+      - name: Install system dependencies (bounded APT)
+        timeout-minutes: 8
+        run: bash scripts/install-minomasal-dependencies.sh system
+      - name: Install Python dependencies (cached, bounded pip)
+        timeout-minutes: 10
+        run: bash scripts/install-minomasal-dependencies.sh python
+      - name: Verify installed dependencies (no generation)
+        timeout-minutes: 2
+        run: bash scripts/install-minomasal-dependencies.sh verify
       - name: Check daily slot (read only)
         id: daycheck
         env:
@@ -43,7 +55,9 @@ jobs:
         run: python minomasal_gunluk_kilit.py preflight
       - name: Generate next video from ledger (Quality V3)
         id: stage
-        if: steps.daycheck.outputs.eligible == 'true'
+        # Recovery hold: paid text generation and unapproved visuals must not run.
+        # Remove only after a tested free pipeline and reviewed real assets exist.
+        if: ${{ false }}
         env:
           POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -51,31 +65,31 @@ jobs:
         run: python minomasal_v4_gunluk_stage.py
       - name: Reserve daily publication slot (atomic)
         id: daylock
-        if: steps.stage.outputs.number != ''
+        if: ${{ false }}
         env:
           MINOMASAL_LOCK_TOKEN: ${{ github.token }}
           MINOMASAL_LOCK_START_DATE: '2026-11-04'
         run: python minomasal_gunluk_kilit.py acquire --number '${{ steps.stage.outputs.number }}'
       - name: Sync latest GitHub state after reservation
-        if: steps.daylock.outputs.acquired == 'true'
+        if: ${{ false }}
         run: |
           set -euo pipefail
           git fetch origin main
           git merge --ff-only origin/main
       - name: Check lock ownership before publish
-        if: steps.daylock.outputs.acquired == 'true'
+        if: ${{ false }}
         env:
           MINOMASAL_LOCK_TOKEN: ${{ github.token }}
         run: python minomasal_gunluk_kilit.py verify --number '${{ steps.stage.outputs.number }}' --day '${{ steps.daylock.outputs.day }}'
       - name: Configure Git identity
-        if: steps.daylock.outputs.acquired == 'true'
+        if: ${{ false }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
       - name: Publish same video to YouTube and Instagram
-        if: steps.daylock.outputs.acquired == 'true'
+        if: ${{ false }}
         env:
-          PUBLISH_ENABLED: 'true'
+          PUBLISH_ENABLED: 'false'
           MINOMASAL_ENFORCE_DAILY_LOCK: 'true'
           MINOMASAL_LOCK_DAY: ${{ steps.daylock.outputs.day }}
           MINOMASAL_LOCK_TOKEN: ${{ github.token }}
@@ -88,7 +102,24 @@ jobs:
           MINOMASAL_HOSTING_TOKEN: ${{ secrets.MINOMASAL_HOSTING_TOKEN }}
         run: python minomasal_dual_publish.py --stage staging --number '${{ steps.stage.outputs.number }}'
       - name: Mark daily lock as published
-        if: steps.daylock.outputs.acquired == 'true'
+        if: ${{ false }}
         env:
           MINOMASAL_LOCK_TOKEN: ${{ github.token }}
         run: python minomasal_gunluk_kilit.py finish --number '${{ steps.stage.outputs.number }}' --day '${{ steps.daylock.outputs.day }}'
+      - name: Explain recovery hold (no generation, reservation or publishing)
+        if: always()
+        run: |
+          echo '## Publication blocked safely' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The schedule is healthy. Production is held for Pollinations HTTP 402, unapproved character assets, and incomplete YouTube read verification. No video has been approved.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'See docs/recovery-2026-11-12.md. A successful preflight is not a successful production or publication.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Save preparation outputs for manual review (never publish)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: minomasal-preparation-${{ github.run_id }}
+          path: |
+            staging/
+            minomasal_kalite_v3_daily_data/
+          if-no-files-found: warn
+          include-hidden-files: false
+          retention-days: 14

@@ -10,6 +10,7 @@ import unittest
 from unittest.mock import patch
 
 MODULES = (
+    'test_minomasal_recovery_workflow',
     'test_minomasal_pollinations_check', 'test_minomasal_actions_runtime', 'test_minomasal_11_kasim', 'test_minomasal_10_8',
     'test_minomasal_gunluk_kilit', 'test_minomasal_v4',
     'test_minomasal_v4_47_revize', 'test_minomasal_v4_47_sureklilik',

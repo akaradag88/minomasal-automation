@@ -14,6 +14,9 @@ concurrency:
 
 jobs:
   public-upload:
+    # Legacy direct uploader bypasses the daily dual-platform lock and review.
+    # Retired during recovery; do not re-enable as an alternative schedule.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
