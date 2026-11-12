@@ -146,7 +146,7 @@ class CloudflareQualityTests(unittest.TestCase):
             self.assertEqual(workflow['permissions'],{'contents':'read'})
             job=workflow['jobs']['cloudflare-quality-test']
             self.assertIn('workflow_dispatch',job['if']);self.assertIn(probe.BRANCH,job['if'])
-            steps=job['steps'];offline=next(i for i,s in enumerate(steps) if s.get('run')=='python -m unittest -v test_minomasal_cloudflare_quality_test test_minomasal_visual_profile')
+            steps=job['steps'];offline=next(i for i,s in enumerate(steps) if s.get('run','').startswith('python -m unittest -v test_minomasal_cloudflare_quality_test test_minomasal_visual_profile'))
             live=next(i for i,s in enumerate(steps) if 'CLOUDFLARE_API_TOKEN' in s.get('env',{}))
             self.assertLess(offline,live)
             artifact=steps[-1]

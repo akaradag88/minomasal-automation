@@ -62,7 +62,8 @@ def request_context(phase):
             'documented_minimum_permission':permission}
 
 
-def run_check(output, generate=False, *, backgrounds_only=False):
+def run_check(output, generate=False, *, backgrounds_only=False, plan=None):
+    plan=PLAN if plan is None else plan
     output=Path(output);output.mkdir(parents=True,exist_ok=False)
     account=os.environ.get('CLOUDFLARE_ACCOUNT_ID','').strip()
     token=os.environ.get('CLOUDFLARE_API_TOKEN','').strip()
@@ -82,12 +83,12 @@ def run_check(output, generate=False, *, backgrounds_only=False):
     phase='credentials'
     try:
         # Validate both plans before any metadata or inference request.
-        if len(PLAN['scenes'])!=2:raise ValueError('exactly_two_test_scenes_required')
-        descriptions=BACKGROUND_SCENES if backgrounds_only else SCENES
-        prompts=[f'{BACKGROUND_STYLE} {scene}' for scene in descriptions] if backgrounds_only else [build_prompt(PLAN['profile'],scene) for scene in PLAN['scenes']]
-        report['visual_profile_sha256']=None if backgrounds_only else profile_digest(PLAN['profile'])
+        if len(plan['scenes'])!=2:raise ValueError('exactly_two_test_scenes_required')
+        descriptions=BACKGROUND_SCENES if backgrounds_only else tuple(scene['action'] for scene in plan['scenes'])
+        prompts=[f'{BACKGROUND_STYLE} {scene}' for scene in descriptions] if backgrounds_only else [build_prompt(plan['profile'],scene) for scene in plan['scenes']]
+        report['visual_profile_sha256']=None if backgrounds_only else profile_digest(plan['profile'])
         report['quality_review']=review_contract()
-        write_json(output/'visual-plan.json',{'mode':'backgrounds_only','prompts':prompts} if backgrounds_only else PLAN)
+        write_json(output/'visual-plan.json',{'mode':'backgrounds_only','prompts':prompts} if backgrounds_only else plan)
         if not re.fullmatch('[a-fA-F0-9]{32}',account) or not token:
             raise ProviderFailure('cloudflare','credentials_missing_or_invalid')
         if not usage_token:
@@ -154,9 +155,9 @@ def run_check(output, generate=False, *, backgrounds_only=False):
                 report['scenes'].append({'scene':i,'description':scene,'original':original.name,
                     'vertical':vertical.name,'source_size':size,'output_size':[1080,1920],
                     'framing':'contain','content_box':contain_box(size),
-                    'planned_inventory':{'characters':0,'vehicles':0} if backgrounds_only else PLAN['scenes'][i-1]['inventory'],
+                    'planned_inventory':{'characters':0,'vehicles':0} if backgrounds_only else plan['scenes'][i-1]['inventory'],
                     'seconds':round(time.monotonic()-started,2),'sha256':sha(original)})
-            report['character_bible']=None if backgrounds_only else CHARACTER
+            report['character_bible']=None if backgrounds_only else identity_text(plan['profile'])
             if backgrounds_only:report['background_semantics_approved']=False
             report['status']='two_images_generated_review_required'
     except ProviderFailure as exc:
