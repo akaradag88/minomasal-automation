@@ -29,10 +29,11 @@ class RuntimeConfigurationTests(unittest.TestCase):
         job=workflow['jobs']['produce-and-publish']
         self.assertEqual(job['if'],"github.ref == 'refs/heads/main'")
         stage=next(s for s in job['steps'] if s.get('id')=='stage')
-        self.assertEqual(stage['if'],"steps.daycheck.outputs.eligible == 'true'")
+        self.assertEqual(stage['if'],'${{ false }}')
         self.assertEqual(stage['env']['MINOMASAL_YOUTUBE_UPLOAD'],'false')
         publish=next(s for s in job['steps'] if s.get('name')=='Publish same video to YouTube and Instagram')
-        self.assertEqual(publish['if'],"steps.daylock.outputs.acquired == 'true'")
+        self.assertEqual(publish['if'],'${{ false }}')
+        self.assertEqual(publish['env']['PUBLISH_ENABLED'],'false')
         self.assertEqual(publish['env']['MINOMASAL_ENFORCE_DAILY_LOCK'],'true')
         self.assertEqual(publish['env']['MINOMASAL_YOUTUBE_PRIVACY'],'public')
         self.assertIn('minomasal_dual_publish.py',publish['run'])
