@@ -37,4 +37,3 @@ def query_quota(account,token,transport=None):
             'free_daily_neurons':FREE_NEURONS,'remaining_neurons_reported':max(0,FREE_NEURONS-used),
             'source':'account_all_models_graphql','analytics_may_lag':True,
             'authoritative_remaining_quota':False}
-
