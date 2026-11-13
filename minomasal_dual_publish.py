@@ -98,6 +98,16 @@ def verify_youtube(video_id):
     raise RuntimeError('YouTube processing not verified within bounded wait; preserve ID.')
 
 
+def verified_instagram_permalink(confirmed,media_id):
+    link=confirmed.get('permalink','')
+    parsed=urllib.parse.urlsplit(link)
+    if (confirmed.get('id')!=media_id or confirmed.get('media_type')!='VIDEO'
+            or confirmed.get('media_product_type')!='REELS' or parsed.scheme!='https'
+            or parsed.hostname not in ('www.instagram.com','instagram.com')):
+        raise RuntimeError('Instagram Reel not verified; preserve ID and reconcile, never republish blindly.')
+    return link
+
+
 def verified_host_asset(url,video):
     expected=hashlib.sha256(Path(video).read_bytes()).hexdigest();size=Path(video).stat().st_size
     try:
@@ -238,11 +248,8 @@ def main():
     if not re.fullmatch('[0-9]+',str(published.get('id',''))):raise RuntimeError('Instagram media ID invalid; ambiguous state retained.')
     ig['media_id']=str(published['id'])
     save(ledger, f'Record Instagram accepted ID {n}; verification pending')
-    confirmed=graph('GET',ig['media_id'],{**auth,'fields':'id,permalink,media_type'})
-    link=confirmed.get('permalink','')
-    parsed=urllib.parse.urlsplit(link)
-    if confirmed.get('id')!=ig['media_id'] or confirmed.get('media_type')!='VIDEO' or parsed.scheme!='https' or parsed.hostname not in ('www.instagram.com','instagram.com'):
-        raise RuntimeError('Instagram publication not verified; preserve ID and reconcile, never republish blindly.')
+    confirmed=graph('GET',ig['media_id'],{**auth,'fields':'id,permalink,media_type,media_product_type'})
+    link=verified_instagram_permalink(confirmed,ig['media_id'])
     ig.update(status='published',url=link,verified_at_utc=datetime.now(timezone.utc).isoformat())
     save(ledger, f'Record verified Instagram publication {n}')
     print('Instagram published:', published['id'])

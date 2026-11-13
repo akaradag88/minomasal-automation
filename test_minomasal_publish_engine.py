@@ -291,4 +291,14 @@ class SceneNarrationBindingTests(unittest.TestCase):
                 handoff.assert_not_called();inference.assert_not_called()
                 self.assertFalse((Path(tmp)/'output/staging').exists())
 
+
+class InstagramReelVerificationTests(unittest.TestCase):
+    def test_normal_video_or_wrong_link_cannot_be_recorded_as_verified_reel(self):
+        for product,link in [('FEED','https://www.instagram.com/p/test/'),('REELS','https://example.invalid/reel/test/')]:
+            item={'id':'123','media_type':'VIDEO','media_product_type':product,'permalink':link}
+            with self.assertRaises(RuntimeError):publisher.verified_instagram_permalink(item,'123')
+    def test_api_verified_reel_permalink_is_retained(self):
+        link='https://www.instagram.com/reel/test/'
+        self.assertEqual(publisher.verified_instagram_permalink({'id':'123','media_type':'VIDEO','media_product_type':'REELS','permalink':link},'123'),link)
+
 if __name__=='__main__':unittest.main()
