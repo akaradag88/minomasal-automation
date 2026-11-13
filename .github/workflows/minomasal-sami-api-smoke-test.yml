@@ -20,6 +20,7 @@ jobs:
       - name: Short Sami test (NO PUBLISH)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MINOMASAL_GEMINI_FREE_TIER_CONFIRMED: ${{ vars.MINOMASAL_GEMINI_FREE_TIER_CONFIRMED || 'false' }}
         run: |
           python - <<'PY'
           import wave
@@ -31,7 +32,7 @@ jobs:
           PY
       - name: Save private test WAV artifact
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2 (Node.js 24)
         with:
           name: sami-tts-9-12-smoke-test
           path: sami_api_test.wav

@@ -18,7 +18,8 @@ metadata cannot establish these pixel semantics: an actual human must review
 all ten composed frames.
 
 After visual review put the compositor's documented `manual_scene_review`
-object in `47.review.json`, including reviewer, date, identity/count/text/action
+object in `47.review.json`, including `story_number: 47`, the exact
+`narration_sha256` from the engine report, reviewer, date, identity/count/text/action
 checks and the exact ten rendered JPEG hashes. Missing or altered approval
 blocks TTS/rendering. The engine neither invents the approval nor generates a
 replacement character when an input is missing.

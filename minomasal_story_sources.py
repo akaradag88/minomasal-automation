@@ -84,8 +84,9 @@ def select_story(ledger,root=ROOT):
     if number is None:raise StoryBlocked('queue_complete')
     from minomasal import KONULAR
     topic=KONULAR[number-1];fallback=None
-    if number==47:
-        story=local_story(number,topic,root);provider='canonical_local_queue'
+    approved_entry=json.loads((Path(root)/'story_queue/catalog.json').read_text()).get('stories',{}).get(str(number),{})
+    if number==47 or approved_entry.get('approved') is True:
+        story=local_story(number,topic,root);provider='canonical_local_queue' if number==47 else 'approved_local_queue'
     else:
         try:
             story=validate_story(gemini_story(topic),number,topic);provider='gemini_free_attested'

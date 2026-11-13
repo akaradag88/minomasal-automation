@@ -30,4 +30,5 @@ jobs:
       - name: Test Sami voice
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MINOMASAL_GEMINI_FREE_TIER_CONFIRMED: ${{ vars.MINOMASAL_GEMINI_FREE_TIER_CONFIRMED || 'false' }}
         run: python test_sami_integration.py

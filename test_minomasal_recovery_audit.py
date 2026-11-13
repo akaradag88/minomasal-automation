@@ -27,3 +27,5 @@ class SpeechCostGuardTests(unittest.TestCase):
             audit.main();report=json.loads((Path(tmp)/'audit/report.json').read_text())
             self.assertFalse(report['speech']['generation_tested']);self.assertFalse(report['speech']['free_generation_verified']);speech.assert_not_called()
             self.assertFalse(report['candidate_47_history']['both_platforms_verified'])
+
+if __name__=='__main__':unittest.main()

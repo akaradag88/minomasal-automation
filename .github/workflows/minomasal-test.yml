@@ -72,7 +72,7 @@ jobs:
 
 
       - name: Save Facebook cover test video
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2 (Node.js 24)
         with:
           name: minomasal-facebook-cover-test
           path: cover_test/facebook.mp4
@@ -110,7 +110,7 @@ jobs:
             -of csv=p=0 cover_test/real/facebook.mp4
 
       - name: Save real Facebook cover test
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2 (Node.js 24)
         with:
           name: minomasal-facebook-real-cover-test
           path: cover_test/real/facebook.mp4

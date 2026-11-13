@@ -24,6 +24,8 @@ def create_sami_wav(transcript: str, output_path: str | Path) -> Path:
 
     İstek tek sefer yapılır. Kota veya ses adı hatasında otomatik farklı sese geçilmez.
     """
+    if os.environ.get("MINOMASAL_GEMINI_FREE_TIER_CONFIRMED") != "true":
+        raise RuntimeError("Gemini hesabının ücretsiz kullanım/kota onayı yok; TTS isteği yapılmadı.")
     if not os.environ.get("GEMINI_API_KEY"):
         raise RuntimeError("GEMINI_API_KEY secret eksik.")
     if not isinstance(transcript, str) or not transcript.strip():
@@ -31,7 +33,7 @@ def create_sami_wav(transcript: str, output_path: str | Path) -> Path:
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"], http_options={"timeout": 90000, "retry_options": {"attempts": 1}})
     interaction = client.interactions.create(
         model=MODEL,
         input=[{

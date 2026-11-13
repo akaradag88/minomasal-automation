@@ -253,6 +253,8 @@ async def voices(story, folder):
     full_wav = folder / "sami_tam_masal.wav"
 
     if not full_wav.exists():
+        if os.environ.get("MINOMASAL_GEMINI_FREE_TIER_CONFIRMED") != "true":
+            raise RuntimeError("Gemini ücretsiz hesap onayı yok; yeni ses isteği yapılmadı.")
         style = (
             "Türkçe bir çocuk masalı anlatıcısı gibi konuş. "
             "Sıcak, samimi, neşeli ve enerjik ol. "
@@ -264,7 +266,8 @@ async def voices(story, folder):
 
         def generate():
             client = genai.Client(
-                api_key=os.environ["GEMINI_API_KEY"]
+                api_key=os.environ["GEMINI_API_KEY"],
+                http_options={"timeout":90000,"retry_options":{"attempts":1}}
             )
             response = client.models.generate_content(
                 model="gemini-3.8-flash-tts",

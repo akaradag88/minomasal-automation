@@ -224,4 +224,71 @@ class WorkflowSafetyTests(unittest.TestCase):
         self.assertTrue(all(re.match(r'[a-zA-Z0-9_.-]+==[^ ]+',line) for line in packages))
         self.assertIn('--hash=sha256:',Path('requirements-minomasal-engine.lock.txt').read_text())
 
+
+class SharedTTSCostTests(unittest.TestCase):
+    def test_direct_tts_helper_cannot_bypass_free_account_gate(self):
+        import minomasal_sami_tts_interactions as speech
+        with tempfile.TemporaryDirectory() as tmp,patch.dict(os.environ,{'MINOMASAL_GEMINI_FREE_TIER_CONFIRMED':'false','GEMINI_API_KEY':'test-only'}),patch.object(speech.genai,'Client') as client:
+            with self.assertRaisesRegex(RuntimeError,'TTS isteği yapılmadı'):speech.create_sami_wav('Türkçe test.',Path(tmp)/'test.wav')
+            client.assert_not_called()
+    def test_speech_keeps_sami_and_uses_one_bounded_request(self):
+        import wave
+        import minomasal_sami_tts_interactions as speech
+        data=io.BytesIO()
+        with wave.open(data,'wb') as sound:
+            sound.setnchannels(1);sound.setsampwidth(2);sound.setframerate(24000);sound.writeframes(b'\x00\x00'*2400)
+        client=Mock();client.interactions.create.return_value=SimpleNamespace(output_audio=SimpleNamespace(data=data.getvalue()))
+        with tempfile.TemporaryDirectory() as tmp,patch.dict(os.environ,{'MINOMASAL_GEMINI_FREE_TIER_CONFIRMED':'true','GEMINI_API_KEY':'test-only'}),patch.object(speech.genai,'Client',return_value=client) as factory:
+            speech.create_sami_wav('Türkçe test.',Path(tmp)/'test.wav')
+        self.assertEqual(factory.call_args.kwargs['http_options'],{'timeout':90000,'retry_options':{'attempts':1}})
+        client.interactions.create.assert_called_once()
+        self.assertEqual(client.interactions.create.call_args.kwargs['model'],'gemini-3.8-flash-tts')
+        self.assertEqual(client.interactions.create.call_args.kwargs['generation_config']['speech_config'],[{'voice':'Sami'}])
+
+class FullActionPinningTests(unittest.TestCase):
+    def test_every_remote_action_is_pinned(self):
+        from minomasal_engine_inventory import inspect
+        for workflow in inspect()['workflows']:
+            for job in workflow['jobs']:
+                self.assertEqual(job['unpinned_actions'],[],workflow['path'])
+
+
+class AdditionalSafetyTests(unittest.TestCase):
+    def test_importing_live_voice_smokes_never_requests_audio(self):
+        import importlib.util
+        with patch('google.genai.Client') as client:
+            for filename in ('test_gemini_sami.py','test_sami_integration.py'):
+                spec=importlib.util.spec_from_file_location('safe_import_'+filename[:-3],filename)
+                module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+            client.assert_not_called()
+    def test_legacy_voice_route_does_not_bypass_free_gate(self):
+        import asyncio
+        import minomasal as mm
+        with tempfile.TemporaryDirectory() as tmp,patch.dict(os.environ,{'MINOMASAL_GEMINI_FREE_TIER_CONFIRMED':'false'}),patch('google.genai.Client') as client:
+            with self.assertRaisesRegex(RuntimeError,'yeni ses isteği yapılmadı'):
+                asyncio.run(mm.voices({'scenes':[{'narration':'Türkçe test.'}]},Path(tmp)))
+            client.assert_not_called()
+
+
+class SceneNarrationBindingTests(unittest.TestCase):
+    def test_reviewed_images_cannot_be_reused_with_different_narration(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)/'root';root.mkdir()
+            for name in ('minomasal_platform_durumu.json','minomasal_v4_47_revize_hikaye.json','tonton_referans.png'):
+                shutil.copy(name,root/name)
+            shutil.copytree('story_queue',root/'story_queue')
+            visual=root/'visual_assets';visual.mkdir();plans=visual/'story-plans';plans.mkdir()
+            assets={state:{'cargo_state':state} for state in ('loaded','unloading','empty')}
+            catalog={'assets':assets,'backgrounds':{'test-background':{}},'profiles':{'tonton':{'reference':{'sha256':engine.sha(root/'tonton_referans.png')}}}}
+            (visual/'catalog.json').write_text(json.dumps(catalog))
+            scenes=[{'inventory':{'tonton':1,'red_bridge':1 if i>=8 else 0},'layers':[{'profile':'tonton','asset':'loaded' if i<=8 else 'unloading' if i==9 else 'empty'}]} for i in range(1,11)]
+            (plans/'47.json').write_text(json.dumps(scenes));(plans/'47.review.json').write_text(json.dumps({'story_number':47,'narration_sha256':'different-story'}))
+            def compose(catalog,plans,output):
+                output.mkdir();return [],{'scenes':[]}
+            with patch.dict(os.environ,{'MINOMASAL_GEMINI_FREE_TIER_CONFIRMED':'true','PUBLISH_ENABLED':'false','MINOMASAL_YOUTUBE_UPLOAD':'false'}),patch.object(engine,'compose_story',side_effect=compose),patch.object(engine,'validate_local_handoff') as handoff,patch.object(requests,'post') as inference:
+                report=engine.prepare(Path(tmp)/'output',root=root,render=True)
+                self.assertIn('scene_review_story_binding_missing_or_changed',report['blockers'])
+                handoff.assert_not_called();inference.assert_not_called()
+                self.assertFalse((Path(tmp)/'output/staging').exists())
+
 if __name__=='__main__':unittest.main()

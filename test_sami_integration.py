@@ -30,4 +30,6 @@ async def main():
 
         print(f"SAMI TEST BASARILI - Sure: {seconds:.1f} saniye")
 
-asyncio.run(main())
+if __name__ == '__main__':
+    try:asyncio.run(main())
+    except Exception:raise SystemExit('Live voice test stopped; details withheld, no publication.') from None

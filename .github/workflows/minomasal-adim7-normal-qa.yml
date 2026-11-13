@@ -52,11 +52,12 @@ jobs:
           MINOMASAL_YOUTUBE_UPLOAD: 'false'
           POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MINOMASAL_GEMINI_FREE_TIER_CONFIRMED: ${{ vars.MINOMASAL_GEMINI_FREE_TIER_CONFIRMED || 'false' }}
           STORY_NUMBER: ${{ inputs.story_number }}
         run: python minomasal_adim7_onizleme.py --story-number "$STORY_NUMBER"
       - name: Save preview
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2 (Node.js 24)
         with:
           name: minomasal-adim7-normal-qa
           path: |

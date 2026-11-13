@@ -69,6 +69,9 @@ def prepare(output,*,root=ROOT,render=False):
             review=root/f'visual_assets/story-plans/{number}.review.json'
             if not review.is_file():raise AssetError('manual_scene_review_missing')
             manifest['manual_scene_review']=json.loads(review.read_text())
+            if (manifest['manual_scene_review'].get('story_number')!=number
+                    or manifest['manual_scene_review'].get('narration_sha256')!=evidence['narration_sha256']):
+                raise AssetError('scene_review_story_binding_missing_or_changed')
             write(temp/'frames/composition.json',manifest)
             validate_local_handoff(temp/'frames')
             if not render:
