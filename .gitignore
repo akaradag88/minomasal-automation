@@ -34,3 +34,5 @@ asset_test_output/
 *.private
 client_secret*.json
 recovery_package/
+engine_output/
+prepared/

@@ -1,14 +1,52 @@
 name: MinoMasal Pollinations Account Check (NO GENERATION NO PUBLISH)
+run-name: ${{ inputs.asset_test && 'Approved asset tests - PR 4 (NO PUBLISH)' || inputs.dependency_test && 'Dependency benchmark - PR 4 (NO PUBLISH)' || inputs.cloudflare_test && 'Cloudflare FLUX manual test - PR 4 (NO PUBLISH)' || 'Pollinations read-only account check' }}
 
 on:
   workflow_dispatch:
+    inputs:
+      engine_check:
+        description: End-to-end engine audit and preparation only; NO PUBLISH
+        type: boolean
+        default: false
+      tonton_asset_test:
+        description: Two free-gated Tonton asset candidates, never production or reference editing
+        type: boolean
+        default: false
+      rescue_audit:
+        description: Read-only platform and free-quota recovery audit
+        type: boolean
+        default: false
+      asset_test:
+        description: 'Run isolated sprite composition tests; no publishing'
+        type: boolean
+        required: false
+        default: false
+      dependency_test:
+        description: 'Run isolated APT/pip benchmark only; no API secrets or publishing'
+        type: boolean
+        required: false
+        default: false
+      cloudflare_test:
+        description: 'PR #4 manual Cloudflare test only; Pollinations check will not run'
+        type: boolean
+        required: false
+        default: false
+      generate_images:
+        description: 'Generate two scenes only if free-plan and quota checks pass'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ inputs.asset_test && format('minomasal-asset-test-{0}', github.ref) || inputs.dependency_test && format('minomasal-dependency-test-{0}', github.ref) || 'minomasal-cloudflare-free-test' }}
+  cancel-in-progress: false
+
 jobs:
   account-check:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && !inputs.cloudflare_test && !inputs.dependency_test && !inputs.asset_test
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -22,3 +60,246 @@ jobs:
         env:
           POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
         run: python minomasal_pollinations_check.py
+
+  cloudflare-quality-test:
+    if: github.event_name == 'workflow_dispatch' && inputs.cloudflare_test && !inputs.dependency_test && !inputs.asset_test && github.ref == 'refs/heads/feat/adim-10-9-free-image-providers'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (Node.js 24)
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 (Node.js 24)
+        with:
+          python-version: '3.11'
+      - name: Install image-test dependencies (no secrets, no video tooling)
+        run: python -m pip install 'requests>=2.31,<3' 'Pillow>=10,<13' PyYAML
+      - name: Offline Cloudflare safety tests before any API call
+        run: python -m unittest -v test_minomasal_cloudflare_quality_test test_minomasal_visual_profile test_minomasal_tonton_asset_trial
+      - name: Verify free access and optionally generate two scenes
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_USAGE_TOKEN: ${{ secrets.CLOUDFLARE_USAGE_TOKEN }}
+          GENERATE: ${{ inputs.generate_images }}
+          TONTON_TRIAL: ${{ inputs.tonton_asset_test }}
+        run: |
+          set -euo pipefail
+          probe_script=minomasal_cloudflare_quality_test.py
+          if [ "$TONTON_TRIAL" = 'true' ]; then
+            probe_script=minomasal_tonton_asset_trial.py
+          fi
+          if [ "$GENERATE" = 'true' ]; then
+            python "$probe_script" --generate-two-scenes
+          else
+            python "$probe_script"
+          fi
+      - name: Save sanitized report and any test images
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cloudflare-flux-test-${{ github.run_id }}
+          path: cloudflare_test_output/
+          if-no-files-found: warn
+          include-hidden-files: false
+          retention-days: 14
+
+  dependency-test:
+    if: github.event_name == 'workflow_dispatch' && inputs.dependency_test && !inputs.asset_test && github.ref == 'refs/heads/feat/adim-10-9-free-image-providers'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (Node.js 24)
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 (Node.js 24)
+        id: python
+        timeout-minutes: 5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements-minomasal.txt
+            requirements-minomasal-daily.txt
+      - name: Runner resources (no secrets)
+        timeout-minutes: 1
+        run: |
+          df -h /
+          free -h
+      - name: Measure real APT and pip, verify imports (no model downloads)
+        timeout-minutes: 18
+        env:
+          DEPENDENCY_CACHE_HIT: ${{ steps.python.outputs.cache-hit }}
+        run: python minomasal_dependency_benchmark.py
+      - name: Install offline-test tooling only
+        timeout-minutes: 2
+        run: timeout --signal=TERM --kill-after=15s 90s python -m pip install --disable-pip-version-check --no-input --timeout 30 --retries 2 PyYAML
+      - name: Full offline suite (network and rendering blocked)
+        timeout-minutes: 5
+        run: python run_readiness_tests.py
+      - name: Save sanitized dependency timing report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: minomasal-dependencies-${{ github.run_id }}
+          path: dependency_test_output/
+          if-no-files-found: warn
+          include-hidden-files: false
+          retention-days: 14
+
+  asset-test:
+    if: github.event_name == 'workflow_dispatch' && inputs.asset_test && github.ref == 'refs/heads/feat/adim-10-9-free-image-providers'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (Node.js 24)
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 (Node.js 24)
+        timeout-minutes: 5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements-minomasal.txt
+            requirements-minomasal-daily.txt
+      - name: Install system dependencies (bounded)
+        timeout-minutes: 8
+        run: bash scripts/install-minomasal-dependencies.sh system
+      - name: Install local OCR for real text-detection tests (bounded)
+        timeout-minutes: 6
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM --kill-after=15s 2m sudo -n apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o DPkg::Lock::Timeout=60 update
+          timeout --signal=TERM --kill-after=15s 3m sudo -n env DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o DPkg::Lock::Timeout=60 install --yes --no-install-recommends tesseract-ocr tesseract-ocr-eng
+      - name: Install Python dependencies (bounded)
+        timeout-minutes: 10
+        run: bash scripts/install-minomasal-dependencies.sh python
+      - name: Install test tooling (bounded)
+        timeout-minutes: 2
+        run: timeout --signal=TERM --kill-after=15s 90s python -m pip install --disable-pip-version-check --no-input --timeout 30 --retries 2 PyYAML
+      - name: Full offline suite before any optional API call
+        timeout-minutes: 5
+        run: python run_readiness_tests.py
+      - name: Compose synthetic proxies with offline backgrounds
+        if: ${{ !inputs.generate_images && !inputs.rescue_audit }}
+        timeout-minutes: 3
+        run: python minomasal_asset_demo.py
+      - name: Optional two free backgrounds and preview composition (never character generation)
+        if: ${{ inputs.generate_images && !inputs.rescue_audit }}
+        timeout-minutes: 10
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_USAGE_TOKEN: ${{ secrets.CLOUDFLARE_USAGE_TOKEN }}
+        run: python minomasal_asset_demo.py --generate-backgrounds
+      - name: Read-only recovery audit (no generation or publishing)
+        if: ${{ inputs.rescue_audit }}
+        timeout-minutes: 5
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_USAGE_TOKEN: ${{ secrets.CLOUDFLARE_USAGE_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          MINOMASAL_HOSTING_TOKEN: ${{ secrets.MINOMASAL_HOSTING_TOKEN }}
+        run: python minomasal_recovery_audit.py
+      - name: Save asset test report and preview frames
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: minomasal-assets-${{ github.run_id }}
+          path: asset_test_output/
+          if-no-files-found: warn
+          include-hidden-files: false
+          retention-days: 14
+
+  end-to-end-engine-check:
+    if: github.event_name == 'workflow_dispatch' && inputs.engine_check && github.ref == 'refs/heads/fix/end-to-end-engine-2026-11-13'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-minomasal-engine.lock.txt
+      - name: Bounded system dependencies
+        run: bash scripts/install-minomasal-dependencies.sh system
+        timeout-minutes: 8
+      - name: Hash-locked Python installation
+        run: timeout --signal=TERM --kill-after=15s 8m python -m pip install --disable-pip-version-check --no-input --timeout 30 --retries 2 --require-hashes -r requirements-minomasal-engine.lock.txt
+        timeout-minutes: 10
+      - name: Verify dependency consistency
+        run: |
+          python -m pip check
+          bash scripts/install-minomasal-dependencies.sh verify
+        timeout-minutes: 2
+      - name: All offline safety tests before any optional inference
+        run: python run_readiness_tests.py
+        timeout-minutes: 5
+      - name: Audit every workflow and Python module without executing modules
+        run: python minomasal_engine_inventory.py
+        timeout-minutes: 1
+      - name: Real FFmpeg and FFprobe diagnostic (not a story video)
+        run: python minomasal_media_smoke.py
+        timeout-minutes: 3
+      - name: Read-only service scopes, history, free quota; one TTS sample ONLY if free account attested
+        env:
+          MINOMASAL_AUDIT_OUTPUT: engine_output/audit
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_USAGE_TOKEN: ${{ secrets.CLOUDFLARE_USAGE_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MINOMASAL_GEMINI_FREE_TIER_CONFIRMED: ${{ vars.MINOMASAL_GEMINI_FREE_TIER_CONFIRMED || 'false' }}
+          MINOMASAL_TEST_REAL_TTS: 'true'
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          MINOMASAL_HOSTING_SECRET_PRESENT: ${{ secrets.MINOMASAL_HOSTING_TOKEN != '' }}
+          MINOMASAL_POLLINATIONS_SECRET_PRESENT: ${{ secrets.POLLINATIONS_API_KEY != '' }}
+        run: python minomasal_recovery_audit.py
+        timeout-minutes: 5
+      - name: Attempt real preparation; any block remains explicitly not publication-ready
+        id: real-preparation
+        continue-on-error: true
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MINOMASAL_GEMINI_FREE_TIER_CONFIRMED: ${{ vars.MINOMASAL_GEMINI_FREE_TIER_CONFIRMED || 'false' }}
+          PUBLISH_ENABLED: 'false'
+          MINOMASAL_YOUTUBE_UPLOAD: 'false'
+        run: python minomasal_publish_engine.py --output engine_output/preparation --render
+        timeout-minutes: 10
+      - name: Report actual acceptance state (test success is not publication success)
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          path=pathlib.Path('engine_output/preparation/report.json')
+          if not path.exists():raise SystemExit('Preparation evidence missing; diagnosis failed.')
+          data=json.loads(path.read_text())
+          print(json.dumps({'technical_checks_passed':data['technical_checks_passed'],'publication_approved':False,'blockers':data['blockers']}))
+          if not data['technical_checks_passed']:
+              print('::warning::REAL STORY VIDEO NOT READY. Inspect blockers; unit-test success is not production success.')
+          PY
+      - name: Save honest reports and any complete MP4; never upload to social platforms
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: minomasal-engine-evidence-${{ github.run_id }}
+          path: engine_output/
+          if-no-files-found: warn
+          include-hidden-files: false
+          retention-days: 14

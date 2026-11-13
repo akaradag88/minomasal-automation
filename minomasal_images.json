@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "order": [
+    "ovhcloud",
+    "cloudflare",
+    "comfyui",
+    "pollinations"
+  ],
+  "output_size": [
+    1080,
+    1920
+  ],
+  "min_source_side": 512,
+  "cloudflare_steps": 4,
+  "pollinations_enabled": false,
+  "pollinations_max_pollen_per_request": null,
+  "approved_for_automation": []
+}

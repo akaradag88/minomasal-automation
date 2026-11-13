@@ -26,17 +26,16 @@ class RuntimeConfigurationTests(unittest.TestCase):
         self.assertEqual(set(workflow['on']),{'workflow_dispatch','schedule'})
         self.assertEqual(workflow['on']['schedule'],[{'cron':'7 16 * * *'}])
         self.assertEqual(workflow['concurrency'],{'group':'minomasal-preview-state','cancel-in-progress':'false'})
-        job=workflow['jobs']['produce-and-publish']
+        job=workflow['jobs']['prepare-for-review']
         self.assertEqual(job['if'],"github.ref == 'refs/heads/main'")
-        stage=next(s for s in job['steps'] if s.get('id')=='stage')
-        self.assertEqual(stage['if'],'${{ false }}')
+        self.assertEqual(workflow['permissions'],{'contents':'read'})
+        stage=next(s for s in job['steps'] if 'minomasal_publish_engine.py' in s.get('run',''))
         self.assertEqual(stage['env']['MINOMASAL_YOUTUBE_UPLOAD'],'false')
-        publish=next(s for s in job['steps'] if s.get('name')=='Publish same video to YouTube and Instagram')
-        self.assertEqual(publish['if'],'${{ false }}')
-        self.assertEqual(publish['env']['PUBLISH_ENABLED'],'false')
-        self.assertEqual(publish['env']['MINOMASAL_ENFORCE_DAILY_LOCK'],'true')
-        self.assertEqual(publish['env']['MINOMASAL_YOUTUBE_PRIVACY'],'public')
-        self.assertIn('minomasal_dual_publish.py',publish['run'])
+        self.assertEqual(stage['env']['PUBLISH_ENABLED'],'false')
+        for step in job['steps']:
+            self.assertNotIn('minomasal_dual_publish.py',step.get('run',''))
+            self.assertNotIn('minomasal_gunluk_kilit.py acquire',step.get('run',''))
+
 
 
 if __name__ == '__main__': unittest.main()

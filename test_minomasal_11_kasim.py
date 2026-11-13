@@ -81,8 +81,13 @@ class NovemberReadinessTests(unittest.TestCase):
         story={'title':'Test','characters':'Fox','scenes':[
             {'narration':'Merhaba orman.','visual':'A fox'} for _ in range(10)]}
         root=Path(self.tmp.name)/'production'
-        with patch.object(mm,'ROOT',root), patch.object(mm,'API_KEY','offline-secret'), \
-             patch.object(mm.requests,'get',return_value=Mock(status_code=402)) as get, \
+        import minomasal_images
+        config=minomasal_images.load_config();config['order']=['pollinations'];config['approved_for_automation']=['pollinations']
+        with patch.object(minomasal_images,'load_config',return_value=config), \
+             patch.dict(os.environ,{'MINOMASAL_IMAGE_PROVIDERS':'pollinations'}), \
+             patch('minomasal_images.Pollinations.preflight'), \
+             patch.object(mm,'ROOT',root), patch.object(mm,'API_KEY','offline-secret'), \
+             patch.object(mm.requests,'request',return_value=Mock(status_code=402)) as get, \
              patch.object(mm.time,'sleep') as sleep, patch.object(mm,'voices') as voices, \
              patch.object(mm,'render') as render:
             with self.assertRaisesRegex(RuntimeError,'402.*bakiye/kredi'):

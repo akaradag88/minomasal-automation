@@ -60,6 +60,9 @@ def write_receipt(video, story, images, audios):
     validate_inputs(story, images, audios)
     assets = [Path(video).parent / 'hikaye.json', *map(Path, images),
               *(Path(a[0]) for a in audios)]
+    provenance = Path(images[0]).parent / 'images.json'
+    if provenance.is_file():
+        assets.append(provenance)
     data = {'video_sha256': digest(video),
             'assets': [{'path': str(p.resolve().relative_to(Path(video).parent.resolve())), 'sha256': digest(p)} for p in assets]}
     receipt_path(video).write_text(json.dumps(data), encoding='utf-8')
@@ -70,7 +73,11 @@ def validate_receipt(video):
     if digest(video) != data['video_sha256'] or not data['assets']:
         raise RuntimeError('Üretim kanıtı MP4 ile uyuşmuyor.')
     for asset in data['assets']:
-        if digest(Path(video).parent / asset['path']) != asset['sha256']:
+        root=Path(video).parent.resolve()
+        relative=Path(asset['path'])
+        if relative.is_absolute() or not (root/relative).resolve().is_relative_to(root):
+            raise RuntimeError('Üretim kanıtında güvenli olmayan dosya yolu.')
+        if digest(root / relative) != asset['sha256']:
             raise RuntimeError('Üretim sahnesi/görseli/sesi değişmiş.')
     validate_video(video)
 

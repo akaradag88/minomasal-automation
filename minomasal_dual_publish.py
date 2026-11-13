@@ -4,13 +4,16 @@ Uses an existing staging artifact (video + metadata); never generates a differen
 Requires explicit PUBLISH_ENABLED=true. Commits state before/after each external call.
 """
 import argparse
+import hashlib
 import json
 import os
+import re
 import subprocess
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 from minomasal import KONULAR, duration, upload_youtube
@@ -53,21 +56,61 @@ def save(ledger, message):
 
 
 def graph(method, path, params):
-    data = urllib.parse.urlencode(params).encode()
-    url = f'{API}/{path}'
-    if method == 'GET':
-        url += '?' + data.decode()
-        data = None
-    req = urllib.request.Request(url, data=data, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=60) as response:
-            return json.load(response)
-    except urllib.error.HTTPError as exc:
+    params=dict(params)
+    token=params.pop('access_token',None)
+    data=urllib.parse.urlencode(params).encode()
+    url=f'{API}/{path}'
+    if method=='GET':url+='?'+data.decode();data=None
+    headers={'Authorization':'Bearer '+token} if token else {}
+    attempts=3 if method=='GET' else 1
+    for attempt in range(attempts):
+        req=urllib.request.Request(url,data=data,method=method,headers=headers)
         try:
-            e = json.load(exc).get('error', {})
-            raise RuntimeError(f'Instagram HTTP {exc.code}; code={e.get("code")}; subcode={e.get("error_subcode")}; details=redacted') from None
-        except (ValueError, KeyError):
-            raise RuntimeError(f'Instagram HTTP {exc.code}') from None
+            with urllib.request.urlopen(req,timeout=60) as response:return json.load(response)
+        except urllib.error.HTTPError as error:
+            if error.code in (429,500,502,503,504) and attempt+1<attempts:
+                time.sleep(2**attempt);continue
+            raise RuntimeError(f'Instagram HTTP {error.code}; details=redacted; no POST replay') from None
+        except Exception:
+            raise RuntimeError('Instagram request failed; details=redacted; no POST replay') from None
+
+
+def verify_youtube(video_id):
+    import requests
+    try:
+        response=requests.post('https://oauth2.googleapis.com/token',data={
+            'client_id':os.environ['YOUTUBE_CLIENT_ID'],'client_secret':os.environ['YOUTUBE_CLIENT_SECRET'],
+            'refresh_token':os.environ['YOUTUBE_REFRESH_TOKEN'],'grant_type':'refresh_token'},timeout=30)
+        if response.status_code!=200:raise ValueError()
+        access=response.json()['access_token']
+        for attempt in range(6):
+            result=requests.get('https://www.googleapis.com/youtube/v3/videos',params={'part':'status','id':video_id},
+                headers={'Authorization':'Bearer '+access},timeout=30)
+            if result.status_code!=200:raise ValueError()
+            items=result.json().get('items',[])
+            if len(items)==1 and items[0].get('id')==video_id:
+                status=items[0].get('status',{})
+                if status.get('uploadStatus')=='processed' and status.get('privacyStatus')=='public':
+                    return 'https://www.youtube.com/watch?v='+video_id
+                if status.get('uploadStatus') in ('failed','rejected','deleted'):raise ValueError()
+            if attempt<5:time.sleep(10)
+    except Exception:raise RuntimeError('YouTube publication not verified; preserve known ID and reconcile, never reupload blindly.') from None
+    raise RuntimeError('YouTube processing not verified within bounded wait; preserve ID.')
+
+
+def verified_host_asset(url,video):
+    expected=hashlib.sha256(Path(video).read_bytes()).hexdigest();size=Path(video).stat().st_size
+    try:
+        with urllib.request.urlopen(url,timeout=60) as response:
+            total=0;digest=hashlib.sha256()
+            while True:
+                block=response.read(1024*1024)
+                if not block:break
+                total+=len(block)
+                if total>size:raise ValueError()
+                digest.update(block)
+        if total!=size or digest.hexdigest()!=expected:raise ValueError()
+    except Exception:raise RuntimeError('Existing hosted asset does not verify; no replacement or duplicate release.') from None
 
 
 def main():
@@ -93,7 +136,7 @@ def main():
     if row is None and choose(ledger) != n:
         raise RuntimeError('Hikâye sırası atlanamaz.')
     if row is None:
-        row = {'topic': meta['topic'], 'title': meta['title'], 'youtube': {'status': 'pending', 'video_id': None, 'privacy': None}, 'instagram': {'status': 'pending', 'container_id': None, 'media_id': None}, 'video_asset': None}
+        row = {'topic': meta['topic'], 'title': meta['title'], 'youtube': {'status': 'pending', 'video_id': None, 'privacy': None}, 'instagram': {'status': 'pending', 'container_id': None, 'media_id': None}, 'video_asset': None, 'narration_sha256':meta.get('narration_sha256')}
     elif row['topic'] != meta['topic']:
         raise RuntimeError('Existing topic mismatch')
     for platform in ('youtube', 'instagram'):
@@ -107,6 +150,16 @@ def main():
         return
     # Yalnizca LIVE gunluk workflow'da etkin: tam olarak bu run'a ait
     # GitHub kilidi olmadan ilk yayin kaydini veya API upload'unu baslatma.
+    if os.environ.get('MINOMASAL_ENFORCE_DAILY_LOCK') != 'true':
+        raise RuntimeError('Daily lock is mandatory for any real publication.')
+    approved=os.environ.get('MINOMASAL_APPROVED_VIDEO_SHA256','')
+    if len(approved)!=64 or hashlib.sha256(video.read_bytes()).hexdigest()!=approved:
+        raise RuntimeError('Explicit approval for this exact MP4 is required.')
+    from minomasal_engine_qa import check as engine_quality
+    quality=json.loads((stage/'quality-report.json').read_text())
+    if quality.get('technical_checks_passed') is not True or quality.get('video_sha256')!=approved:
+        raise RuntimeError('Engine quality report missing or mismatched.')
+    engine_quality(video,stage/'altyazi.srt')
     if os.environ.get('MINOMASAL_ENFORCE_DAILY_LOCK') == 'true':
         from minomasal_gunluk_kilit import verify
         lock_day = os.environ.get('MINOMASAL_LOCK_DAY', '').strip()
@@ -126,8 +179,13 @@ def main():
         yt['status'] = 'ambiguous'  # must be committed BEFORE irreversible API call
         save(ledger, f'Mark YouTube upload attempt for story {n}')
         video_id = upload_youtube(video, meta['title'], meta['topic'])
-        yt.update(status='published', video_id=video_id, privacy='public')
-        save(ledger, f'Record YouTube video {n}')
+        if not isinstance(video_id,str) or not re.fullmatch(r'[A-Za-z0-9_-]{11}',video_id):
+            raise RuntimeError('YouTube accepted ID invalid; ambiguous state retained.')
+        yt.update(video_id=video_id)
+        save(ledger, f'Record YouTube accepted ID {n}; verification pending')
+        link=verify_youtube(video_id)
+        yt.update(status='published',privacy='public',url=link,verified_at_utc=datetime.now(timezone.utc).isoformat())
+        save(ledger, f'Record verified YouTube video {n}')
         print('YouTube uploaded:', video_id)
     else:
         print('YouTube already recorded; skip')
@@ -145,8 +203,14 @@ def main():
     env = {**os.environ, 'GH_TOKEN': token}
     exists = subprocess.run(['gh', 'release', 'view', tag, '--repo', HOST], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
     if exists:
-        raise RuntimeError(f'Hosting release {tag} already exists; verify asset manually to avoid mismatched video')
-    subprocess.run(['gh', 'release', 'create', tag, filename, '--repo', HOST, '--title', f'MinoMasal story {n}', '--notes', 'Instagram processing asset', '--prerelease'], env=env, check=True)
+        expected_url=f'https://github.com/{HOST}/releases/download/{tag}/{filename}'
+        if (row.get('video_asset') or {}).get('url')!=expected_url:
+            raise RuntimeError('Existing release is not bound to the recorded asset; manual reconciliation required.')
+        verified_host_asset(expected_url,video)
+    if not exists:
+        result=subprocess.run(['gh','release','create',tag,filename,'--repo',HOST,'--title',f'MinoMasal story {n}',
+            '--notes','Instagram processing asset','--prerelease'],env=env,capture_output=True,check=False)
+        if result.returncode:raise RuntimeError('Hosting create failed; reconcile before retrying; details withheld.')
     url = f'https://github.com/{HOST}/releases/download/{tag}/{filename}'
     row['video_asset'] = {'url': url, 'release_tag': tag}
     save(ledger, f'Record hosted asset {n}')
@@ -154,11 +218,13 @@ def main():
     save(ledger, f'Mark Instagram publish attempt for story {n}')
     auth = {'access_token': os.environ['INSTAGRAM_ACCESS_TOKEN']}
     result = graph('POST', f'{os.environ["INSTAGRAM_USER_ID"]}/media', {**auth, 'media_type': 'REELS', 'video_url': url, 'thumb_offset': 2000, 'caption': meta['title'] + '\n#MinoMasal #ÇocukHikayeleri'})
-    container = result['id']
+    container = str(result['id'])
+    if not re.fullmatch('[0-9]+',container):raise RuntimeError('Instagram container ID invalid; ambiguous state retained.')
     ig['container_id'] = container
     save(ledger, f'Record Instagram container {n}')
     for _ in range(25):
         status = graph('GET', container, {**auth, 'fields': 'id,status_code,status'}).get('status_code')
+        if status not in ('IN_PROGRESS','FINISHED','ERROR','EXPIRED','PUBLISHED'):raise RuntimeError('Instagram processing status unknown; details withheld.')
         print('Instagram processing:', status)
         if status == 'FINISHED':
             break
@@ -169,8 +235,16 @@ def main():
         raise RuntimeError('Instagram processing timed out; manual reconciliation required')
     # State remains ambiguous if API succeeds but subsequent commit fails.
     published = graph('POST', f'{os.environ["INSTAGRAM_USER_ID"]}/media_publish', {**auth, 'creation_id': container})
-    ig.update(status='published', media_id=published['id'])
-    save(ledger, f'Record Instagram publication {n}')
+    if not re.fullmatch('[0-9]+',str(published.get('id',''))):raise RuntimeError('Instagram media ID invalid; ambiguous state retained.')
+    ig['media_id']=str(published['id'])
+    save(ledger, f'Record Instagram accepted ID {n}; verification pending')
+    confirmed=graph('GET',ig['media_id'],{**auth,'fields':'id,permalink,media_type'})
+    link=confirmed.get('permalink','')
+    parsed=urllib.parse.urlsplit(link)
+    if confirmed.get('id')!=ig['media_id'] or confirmed.get('media_type')!='VIDEO' or parsed.scheme!='https' or parsed.hostname not in ('www.instagram.com','instagram.com'):
+        raise RuntimeError('Instagram publication not verified; preserve ID and reconcile, never republish blindly.')
+    ig.update(status='published',url=link,verified_at_utc=datetime.now(timezone.utc).isoformat())
+    save(ledger, f'Record verified Instagram publication {n}')
     print('Instagram published:', published['id'])
     print('SUCCESS: both platforms recorded. Hosting asset retained for safe processing.')
 

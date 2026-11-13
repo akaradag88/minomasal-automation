@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "stories": {
+    "47": {
+      "topic": "Kaybolan Oyuncak Kamyon",
+      "path": "minomasal_v4_47_revize_hikaye.json",
+      "sha256": "77725c870ce63c945e7a0865ab932328aba1bdf34f0bee3e244a63e2299c9e2c",
+      "approved": true,
+      "approval_source": "Explicit user instruction: preserve canonical 89-word Tonton story, 2026-11-13"
+    }
+  }
+}

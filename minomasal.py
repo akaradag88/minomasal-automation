@@ -233,40 +233,8 @@ Karakter isimlerini ve görünüşlerini bütün sahnelerde koru. Görsel açık
     return validate(json.loads(text))
 
 def make_images(story, folder, key, model, local=''):
-    folder.mkdir(exist_ok=True); out=[]
-    supplied=sorted(p for p in Path(local).glob('*') if p.suffix.lower() in ['.png','.jpg','.jpeg','.webp']) if local else []
-    if local and len(supplied)!=len(story['scenes']): raise ValueError('Yüklenen görsel sayısı sahne sayısına eşit olmalı; 01.jpg, 02.jpg… adlandırın.')
-    for i,s in enumerate(story['scenes']):
-        path=folder/f'{i+1:02}.jpg'
-        if not path.exists():
-            if supplied: im=Image.open(supplied[i])
-            else:
-                if not key: raise ValueError('Görsel üretimi için POLLINATIONS_API_KEY veya yerel görsel klasörü gerekli.')
-                prompt=f"{story['characters']}. {s['visual']}. Colorful children's animated storybook illustration, vibrant saturated emerald greens, sky blues and warm coral accents, richly detailed forest environment filling every edge, colorful textured ground and foliage, balanced exposure, no white canvas, no blank white backgrounds, no washed-out colors, no excessive bright haze, consistent character design, vertical composition, full bleed, subjects inside central 70 percent, no lettering, no border."
-                for attempt in range(3):
-                    try:
-                        r=requests.get('https://gen.pollinations.ai/image/'+quote(prompt,safe=''),params={'model':model,'width':1080,'height':1920,'seed':SEED+i,'nologo':'true'},headers={'Authorization':'Bearer '+key},timeout=180)
-                    except requests.RequestException:
-                        raise RuntimeError('Görsel servisine bağlantı başarısız; üretim durduruldu.') from None
-                    if r.status_code == 402:
-                        raise RuntimeError('Görsel servisi HTTP 402: bakiye/kredi yetersiz; tekrar denenmedi.')
-                    if r.status_code == 429 or r.status_code in (500, 502, 503, 504):
-                        if attempt == 2:
-                            raise RuntimeError(f'Görsel servisi HTTP {r.status_code}; tekrar deneme sınırı doldu.')
-                        time.sleep(3 * 2**attempt)
-                        continue
-                    if r.status_code != 200:
-                        raise RuntimeError(f'Görsel servisi HTTP {r.status_code}; üretim durduruldu.')
-                    import io
-                    try:
-                        im=Image.open(io.BytesIO(r.content)); im.load()
-                    except (OSError, ValueError):
-                        raise RuntimeError('Görsel servisi geçersiz görsel döndürdü.') from None
-                    break
-            ImageOps.fit(im.convert('RGB'),(1080,1920),method=Image.Resampling.LANCZOS).save(path,quality=95)
-        with Image.open(path) as im: im.verify()
-        out.append(path); print(f'Görsel {i+1}/{len(story["scenes"])} hazır')
-    return out
+    from minomasal_images import make_images as generate_batch
+    return generate_batch(story, folder, key, model, local, seed=SEED)
 
 
 
@@ -547,6 +515,8 @@ async def produce(topic, supplied_story=None):
     
     from minomasal_yayin_guvenligi import ensure_allowed_topic, validate_video
     ensure_allowed_topic(topic)
+    from minomasal_images import ensure_production_config
+    ensure_production_config(GORSel_KLASORU)
     story = validate(supplied_story) if supplied_story else create_story(topic, API_KEY, HIKAYE_MODELI)
 
     from minomasal_masalsi_kopru import prepare_story_for_render
@@ -555,7 +525,8 @@ async def produce(topic, supplied_story=None):
         supplied_story=supplied_story is not None
     )
 
-    identity={'story':story,'voice':SES,'rate':SES_HIZI,'image_model':GORSEL_MODELI,'seed':SEED,'local':GORSel_KLASORU,'music_files':{k:hashlib.sha256((MUZIK_KLASORU / v).read_bytes()).hexdigest()[:12] if (MUZIK_KLASORU / v).is_file() else 'missing' for k,v in MUZIK_DOSYALARI.items()},'music_level':MUZIK_SEVIYESI,'sfx':SFX_KLASORU,'fps':FPS,'channel':KANAL_ADI,'engine':4}
+    from minomasal_images import identity as image_pipeline_identity
+    identity={'image_pipeline':image_pipeline_identity(),'story':story,'voice':SES,'rate':SES_HIZI,'image_model':GORSEL_MODELI,'seed':SEED,'local':GORSel_KLASORU,'music_files':{k:hashlib.sha256((MUZIK_KLASORU / v).read_bytes()).hexdigest()[:12] if (MUZIK_KLASORU / v).is_file() else 'missing' for k,v in MUZIK_DOSYALARI.items()},'music_level':MUZIK_SEVIYESI,'sfx':SFX_KLASORU,'fps':FPS,'channel':KANAL_ADI,'engine':4}
     fingerprint=hashlib.sha256(json.dumps(identity,ensure_ascii=False,sort_keys=True).encode()).hexdigest()[:12]
     folder=(ROOT/fingerprint).resolve(); folder.mkdir(parents=True,exist_ok=True)
     save_json(folder/'hikaye.json',story)

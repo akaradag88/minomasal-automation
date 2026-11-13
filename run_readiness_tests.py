@@ -10,6 +10,11 @@ import unittest
 from unittest.mock import patch
 
 MODULES = (
+    'test_minomasal_publish_engine',
+    'test_minomasal_asset_compositor', 'test_minomasal_visual_profile',
+    'test_minomasal_images', 'test_minomasal_cloudflare_quality_test',
+    'test_minomasal_recovery_audit', 'test_minomasal_tonton_asset_trial',
+    'test_minomasal_dependencies',
     'test_minomasal_recovery_preparation',
     'test_minomasal_recovery_workflow',
     'test_minomasal_pollinations_check', 'test_minomasal_actions_runtime', 'test_minomasal_11_kasim', 'test_minomasal_10_8',
