@@ -1,0 +1,159 @@
+{
+  "code_commit": "43b240d666d12571af39cd46be0acb798448127a",
+  "run_id": 43492247195,
+  "artifact_id": 14071065049,
+  "offline_tests_passed": 228,
+  "ffmpeg_diagnostic": {
+    "synthetic_diagnostic_only": true,
+    "story_video_created": false,
+    "published": false,
+    "passed": true,
+    "media": {
+      "resolution": [
+        1080,
+        1920
+      ],
+      "video_codec": "h264",
+      "pixel_format": "yuv420p",
+      "audio_codec": "aac",
+      "duration": 3.0,
+      "fps": 30.0,
+      "stream_duration_delta": 0.0,
+      "full_decode_passed": true,
+      "mean_dbfs": -24.1,
+      "peak_dbfs": -20.8,
+      "extended_black_frames": false,
+      "speech_intelligibility_and_background_balance": "human_listening_required",
+      "subtitle_cues": 1,
+      "last_subtitle_end": 3.0,
+      "timeline_passed": true,
+      "visual_identity_text_logos_and_story_action": "human_review_required",
+      "publication_approved": false
+    }
+  },
+  "preparation": {
+    "schema_version": 1,
+    "status": "blocked",
+    "started_at_utc": "2026-11-13T19:28:01.554556+00:00",
+    "technical_checks_passed": false,
+    "publication_approved": false,
+    "human_video_approval_required": true,
+    "new_image_api_requests": 0,
+    "new_speech_requests": 0,
+    "ledger_written": false,
+    "daily_slot_reserved": false,
+    "blockers": [
+      "approved_scene_plan_missing",
+      "approved_character_assets_missing",
+      "approved_scene_backgrounds_missing",
+      "gemini_free_account_not_attested"
+    ],
+    "number": 47,
+    "topic": "Kaybolan Oyuncak Kamyon",
+    "story": {
+      "provider": "canonical_local_queue",
+      "fallback_reason": null,
+      "narration_sha256": "a70f2342c89520477a86ed3e150856871900093e8fb85d2b202e44d17115a437",
+      "word_count": 89,
+      "semantic_originality_and_child_suitability": "human_review_required"
+    },
+    "ledger_sha256": "3cbf09e81c2c243cc16c9d7c1d92e22f13d9f9efc7f43d6d2ebe5cce8f807ab4"
+  },
+  "youtube": {
+    "token_http_status": 200,
+    "scope_metadata_returned": true,
+    "read_scope_present": false,
+    "upload_scope_present": true,
+    "channel_http_status": 403,
+    "safe_reasons": [
+      "insufficientPermissions"
+    ]
+  },
+  "instagram_permissions": {
+    "http_status": 200,
+    "granted_known_scopes": [
+      "instagram_basic",
+      "instagram_content_publish",
+      "pages_read_engagement",
+      "pages_show_list"
+    ],
+    "publish_scope_verified": true,
+    "read_scope_verified": true,
+    "no_publish_request_sent": true
+  },
+  "instagram_media_read_http_status": 200,
+  "candidate_47_history": {
+    "youtube": {
+      "history_complete": false,
+      "candidate_title_matches": 0,
+      "absence_verified_by_title": false,
+      "limitation": "renamed_or_unidentifiable_manual_uploads_require_human_reconciliation"
+    },
+    "instagram": {
+      "history_complete": true,
+      "candidate_title_matches": 0,
+      "absence_verified_by_title": true,
+      "limitation": "renamed_or_unidentifiable_manual_uploads_require_human_reconciliation"
+    },
+    "both_platforms_verified": false
+  },
+  "gemini_speech": {
+    "model_catalog_http_status": 200,
+    "generation_tested": false,
+    "free_generation_verified": false,
+    "configured_model_listed": true,
+    "free_account_attested": false,
+    "generation_blocked_reason": "free_account_not_attested_or_test_not_requested"
+  },
+  "gemini_text": {
+    "catalog_http_status": 200,
+    "model": "gemini-3.8-flash",
+    "model_listed": true,
+    "inference_tested": false
+  },
+  "cloudflare": {
+    "status": "preflight_passed_generation_not_requested",
+    "connection_verified": true,
+    "free_plan_verified": true,
+    "quota_verified": true,
+    "tokens_separated": true,
+    "quota": {
+      "utc_day": "2026-11-13",
+      "used_neurons_reported": 0,
+      "free_daily_neurons": 10000,
+      "remaining_neurons_reported": 10000,
+      "source": "account_all_models_graphql",
+      "analytics_may_lag": true,
+      "authoritative_remaining_quota": false
+    }
+  },
+  "mp4_count": 0,
+  "timings": {
+    "steps": [
+      {
+        "completed_at": "2026-11-13T19:27:37Z",
+        "conclusion": "success",
+        "name": "Bounded system dependencies",
+        "started_at": "2026-11-13T19:26:58Z"
+      },
+      {
+        "completed_at": "2026-11-13T19:27:49Z",
+        "conclusion": "success",
+        "name": "Hash-locked Python installation",
+        "started_at": "2026-11-13T19:27:37Z"
+      },
+      {
+        "completed_at": "2026-11-13T19:27:58Z",
+        "conclusion": "success",
+        "name": "All offline safety tests before any optional inference",
+        "started_at": "2026-11-13T19:27:51Z"
+      },
+      {
+        "completed_at": "2026-11-13T19:27:59Z",
+        "conclusion": "success",
+        "name": "Real FFmpeg and FFprobe diagnostic (not a story video)",
+        "started_at": "2026-11-13T19:27:58Z"
+      }
+    ]
+  }
+}

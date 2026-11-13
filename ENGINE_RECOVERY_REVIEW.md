@@ -141,3 +141,74 @@ and restore the prior preparation hold. Never revert successful platform IDs,
 remove skipped records, delete locks, erase artifacts or reset an ambiguous
 upload to pending. Keep publication closed during rollback; reconcile any
 external IDs against real APIs before a retry. Secrets are never part of rollback.
+
+## Final verified results — code `43b240d`
+
+[Real runner run 43492247195](https://github.com/akaradag88/minomasal-automation/actions/runs/43492247195)
+completed successfully as a **test/diagnostic workflow**, not as story production.
+Artifact: [`minomasal-engine-evidence-43492247195`](https://github.com/akaradag88/minomasal-automation/actions/runs/43492247195/artifacts/14071065049).
+
+- **228/228 offline tests passed locally and on Ubuntu 24.04 / Python 3.11.**
+  A separate local, network-disabled real receipt-copy / deleted-image publication
+  rejection integration test also passed. It creates/deletes a temporary tiny
+  diagnostic clip; it is not a story or publishable video.
+- Real runner: system installation **39 s**, hash-checked pip installation **12 s**,
+  offline suite **7 s** (unittest reports 5.677 s), real FFmpeg diagnostic **1 s**.
+  The 8-minute pip cap is met. Dependency consistency checks passed.
+- All remote actions across 54 workflow files are pinned to commit SHAs; artifact
+  actions were upgraded to the already tested Node.js 24 v7 pin. No workflow state
+  or schedule was enabled by this PR.
+- The shared Sami helper and legacy voice path now both enforce the same free
+  account gate, 90-second request limit and single SDK attempt. Old live voice
+  test files are import-safe; they no longer trigger synthesis during discovery.
+- Human scene review is bound to both frame hashes and the exact story number /
+  narration fingerprint. Reviewed frames cannot approve a newly changed script.
+  Approved queued text takes precedence over needless fresh inference.
+- Instagram media read HTTP **200**; permission read HTTP **200**;
+  `instagram_basic`, `instagram_content_publish`, `pages_read_engagement` and
+  `pages_show_list` granted. No container or media-publish request was sent.
+  Complete returned history has no candidate #47 title match; renamed manual
+  uploads remain a known limit of title-only matching.
+- YouTube token refresh HTTP **200**, upload scope present, read scope absent;
+  channel read HTTP **403 insufficientPermissions**. #47 is selected by the
+  unchanged ledger but its absence on YouTube is **not independently verified**.
+- Cloudflare distinct-token, model, free-plan and usage preflight passed. On
+  13 November UTC the API reported **0 / 10,000 Neurons used**, **10,000 remaining**;
+  analytics may lag. **No new image inference** was made in this task.
+- Gemini text and configured Sami TTS models are listed (HTTP **200**). Owner
+  free-account attestation is **false**. **No real speech generation** or model
+  text inference was made. Neither model availability nor Cloudflare quota proves
+  Google project billing status. Existing canonical #47 input works entirely locally.
+- Actual preparation result: **blocked**, with missing approved scene plan,
+  genuine approved character assets, approved backgrounds and free Gemini account
+  attestation. **Zero MP4 files in the artifact**, zero new voice requests, zero
+  daily reservations, zero ledger writes, zero social uploads, no payment/upgrade.
+- The artifact metadata inventory contains all **28** currently available records.
+  The relevant old #47 revision artifact contains only three partial images and
+  story/report JSON, **no MP4 or WAV/MP3**. It cannot supply a complete rescue video.
+
+Sanitized machine evidence is in `docs/engine-recovery/runner-evidence.json`,
+`artifact-inventory.json` and `old-47-artifact-summary.json`. No credential values,
+credential hashes, account IDs or Authorization headers are included.
+
+## Required owner actions (no secret values in chat)
+
+1. Re-consent the **existing** YouTube OAuth client for `youtube.readonly` while
+   retaining `youtube.upload`, then update only `YOUTUBE_REFRESH_TOKEN` in GitHub
+   Secrets. The existing local helper/guide in `docs/recovery-next-steps.md` remains
+   available. The assistant cannot grant additional OAuth scopes by refreshing an
+   upload-only token.
+2. Verify the **actual current Google AI Studio project** is Free tier with
+   sufficient model quota. Only then set the non-secret repository variable
+   `MINOMASAL_GEMINI_FREE_TIER_CONFIRMED=true` (Settings → Secrets and variables →
+   Actions → Variables). Do not set it for a paid project, an unknown plan or an
+   exhausted quota. Re-check/reset this attestation after changing the associated
+   project/key. No secret value needs to be supplied to the assistant.
+3. Supply/approve the complete Tonton assets and construction-site scenes described
+   in `visual_assets/story-plans/README.md`, or explicitly choose a different visual
+   design to be drafted and reviewed first. The cropped RGB identity reference and
+   rejected FLUX candidates are not silently promoted to production assets.
+4. After those prerequisites, the assistant can run real synthesis/rendering and
+   deliver the complete MP4/quality report. Only **then** approve that exact video
+   hash for manual publication. Automatic daily publication requires separate
+   explicit approval after a real verified successful pilot; it remains closed.
