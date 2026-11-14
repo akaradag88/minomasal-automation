@@ -87,3 +87,29 @@ CC BY-NC-SA 4.0 bağlantısı veriyor; ticari uygunluğu doğrulanamadığından
 kullanılmıyor. Edge TTS istemcisinin açık kaynak olması, Microsoft ses hizmetinin
 ücretsiz/ticari kullanım lisansını kanıtlamıyor. Onaylanmış, lisansı ve Türkçe
 kalitesi doğrulanmış başka otomatik yedek henüz yok; ses klonlama yapılmıyor.
+
+## 14 Kasım 2026 gerçek hesap denetimi
+
+[Run 43614676035](https://github.com/akaradag88/minomasal-automation/actions/runs/43614676035)
+ve artifact `minomasal-accounts-43614676035` (ID `14121905296`):
+
+- Mevcut OAuth refresh HTTP 200; upload scope var, readonly yok. Bugünkü
+  `GET /youtube/v3/channels?part=id&mine=true` HTTP 403 `insufficientPermissions`.
+  Önceki part=contentDetails isteğinin engeli de aynı izin eksikliğiydi.
+- MinoMasal kanal kimliği mevcut upload-only tokenla doğrulanamadı; bunu yanlış
+  kanal olarak yorumlamıyoruz. Yeni token gerçek ledger video channelId'leriyle
+  eşleştirilecek. Gerçek yükleme çağrısı gönderilmedi.
+- Aday Secret henüz tanımlı değil. Asıl Secret değiştirilmedi; eski token için
+  iptal çağrısı yapılmadı.
+- Gemini model listesi HTTP 200, katalog tam. Kullanılabilir TTS adları:
+  `gemini-2.5-flash-preview-tts`, `gemini-2.5-pro-preview-tts`,
+  `gemini-3.1-flash-tts-preview`, `gemini-3.8-flash-lite-tts`,
+  `gemini-3.8-flash-tts`. Mevcut model `gemini-3.8-flash-tts`, ses `Sami` korunuyor.
+- Ücretsiz hesap onayı false; kalan kota bilinmiyor/API ile doğrulanmış değil.
+  Gerçek ses isteği ve WAV yok. Katalog erişimi ses testi veya ücretsiz kullanım
+  başarısı olarak sunulmadı.
+- 237 çevrimdışı regresyon testi yerelde; 9 hesap/OAuth güvenlik testi gerçek
+  runner'da başarılı. Main, PR #4, ledger ve #45/#46/#47 durumları değişmedi.
+
+Token/anahtar/değer özetleri içermeyen rapor:
+`docs/engine-recovery/account-step-1-report.json`.

@@ -1,0 +1,48 @@
+{
+  "current_youtube": {
+    "refresh_token_present": true,
+    "upload_scope_verified": true,
+    "read_scope_verified": false,
+    "channel_matches_ledger": false,
+    "upload_test_performed": false,
+    "token_revoked": false,
+    "refresh_http_status": 200,
+    "channel_http_status": 403,
+    "endpoint": "GET /youtube/v3/channels?part=id&mine=true",
+    "safe_reason": "insufficientPermissions",
+    "status": "channel_read_blocked"
+  },
+  "candidate_youtube": {
+    "refresh_token_present": false,
+    "upload_scope_verified": false,
+    "read_scope_verified": false,
+    "channel_matches_ledger": false,
+    "upload_test_performed": false,
+    "token_revoked": false,
+    "status": "not_configured"
+  },
+  "gemini": {
+    "key_present": true,
+    "tts_models": [
+      "gemini-2.5-flash-preview-tts",
+      "gemini-2.5-pro-preview-tts",
+      "gemini-3.1-flash-tts-preview",
+      "gemini-3.8-flash-lite-tts",
+      "gemini-3.8-flash-tts"
+    ],
+    "selected_model": "gemini-3.8-flash-tts",
+    "free_account_confirmed": false,
+    "remaining_free_quota": null,
+    "quota_api_verified": false,
+    "speech_test_performed": false,
+    "commercial_output_terms_source": "https://ai.google.dev/gemini-api/terms",
+    "pricing_source": "https://ai.google.dev/gemini-api/docs/pricing#gemini-3.8-flash-tts",
+    "models_http_status": 200,
+    "catalog_complete": true,
+    "voice": "Sami",
+    "status": "blocked_free_plan_and_quota_require_owner_evidence"
+  },
+  "ledger_written": false,
+  "published": false,
+  "secrets_updated": false
+}
