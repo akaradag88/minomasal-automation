@@ -4,6 +4,10 @@ run-name: ${{ inputs.asset_test && 'Approved asset tests - PR 4 (NO PUBLISH)' ||
 on:
   workflow_dispatch:
     inputs:
+      client_id_challenge:
+        description: One-use comparison packet from the local OAuth Client ID tool; no raw credentials
+        type: string
+        default: ''
       accounts_only:
         description: YouTube OAuth and Gemini account checks only; no production or publication
         type: boolean
@@ -349,3 +353,39 @@ jobs:
           include-hidden-files: false
           if-no-files-found: warn
           retention-days: 14
+
+  identify-current-youtube-client:
+    if: github.event_name == 'workflow_dispatch' && inputs.client_id_challenge != '' && github.ref == 'refs/heads/fix/end-to-end-engine-2026-11-13'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.11'
+      - name: Install existing pinned HTTP dependency
+        timeout-minutes: 2
+        run: timeout --signal=TERM --kill-after=15s 90s python -m pip install --disable-pip-version-check --no-input --timeout 20 --retries 1 requests==2.34.2
+      - name: Offline comparison and non-disclosure tests
+        timeout-minutes: 1
+        run: python -m unittest -v test_minomasal_oauth_client_identity
+      - name: Compare in memory and verify the existing refresh/client pair (no changes)
+        timeout-minutes: 1
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: python minomasal_oauth_client_identity.py
+      - name: Save choice and HTTP result only (never IDs, credentials or configured-ID digest)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: minomasal-oauth-client-match-${{ github.run_id }}
+          path: oauth_client_match_output/
+          include-hidden-files: false
+          if-no-files-found: warn
+          retention-days: 7
