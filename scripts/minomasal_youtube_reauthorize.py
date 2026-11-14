@@ -84,16 +84,57 @@ def write_private(path,token):
         Path(path).unlink(missing_ok=True)
         raise OAuthError('Private-file permissions could not be verified; no secret saved.') from None
 
+
+def expected_video_ids():
+    try:
+        ledger=json.loads((Path(__file__).resolve().parents[1]/'minomasal_platform_durumu.json').read_text())
+        ids=[row['youtube']['video_id'] for _,row in sorted(ledger['stories'].items(),key=lambda pair:int(pair[0]))
+             if row.get('youtube',{}).get('status')=='published'][-2:]
+        if len(ids)!=2:raise ValueError()
+        return ids
+    except Exception:raise OAuthError('Use the full current repository; channel identity evidence missing.') from None
+
+
+def verify_new_refresh(client_id,client_secret,refresh):
+    """Verify the REFRESH token itself and canonical channel before saving it."""
+    try:
+        body=urllib.parse.urlencode({'client_id':client_id,'client_secret':client_secret,
+            'refresh_token':refresh,'grant_type':'refresh_token'}).encode()
+        with urllib.request.urlopen(urllib.request.Request(TOKEN,data=body),timeout=30) as response:data=json.load(response)
+        scopes=set(data.get('scope','').split())
+        if not set(SCOPES)<=scopes or not data.get('access_token'):raise ValueError()
+        headers={'Authorization':'Bearer '+data['access_token']}
+        url='https://www.googleapis.com/youtube/v3/channels?part=id&mine=true'
+        with urllib.request.urlopen(urllib.request.Request(url,headers=headers),timeout=30) as response:channels=json.load(response)
+        ids=expected_video_ids()
+        url='https://www.googleapis.com/youtube/v3/videos?'+urllib.parse.urlencode({'part':'snippet','id':','.join(ids)})
+        with urllib.request.urlopen(urllib.request.Request(url,headers=headers),timeout=30) as response:videos=json.load(response)
+        own={item['id'] for item in channels.get('items',[])};items=videos.get('items',[])
+        if len(own)!=1 or {item['id'] for item in items}!=set(ids) or not all(item['snippet']['channelId'] in own for item in items):raise ValueError()
+    except Exception:raise OAuthError('New refresh token, scopes or MinoMasal channel did not verify. Existing token untouched.') from None
+
+
+def stage_candidate(refresh):
+    """Optional owner-local GitHub CLI path: token goes via stdin, never args."""
+    try:
+        result=subprocess.run(['gh','secret','set','YOUTUBE_REFRESH_TOKEN_CANDIDATE','--repo','akaradag88/minomasal-automation'],
+            input=refresh,text=True,capture_output=True,timeout=45,check=False)
+        if result.returncode:raise ValueError()
+    except Exception:raise OAuthError('Candidate secret was not saved; existing production secret untouched. Details withheld.') from None
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--client-file',required=True,help='Existing local Google OAuth client JSON; never paste it in chat.')
     parser.add_argument('--output',default='youtube-refresh-token.private')
     parser.add_argument('--port',type=int,default=8765)
+    parser.add_argument('--stage-github-candidate',action='store_true',help='Use your existing local gh login to stage the verified new token. Does not replace the current token.')
     args=parser.parse_args()
     if os.environ.get('GITHUB_ACTIONS')=='true':raise OAuthError('This interactive helper must run locally, never in Actions.')
     if not 1024<=args.port<=65535:raise OAuthError('Use a local non-privileged port.')
     if Path(args.output).exists() or Path(args.output).is_symlink():raise OAuthError('Output already exists; nothing overwritten.')
     client_id,client_secret=load_client(args.client_file)
+    expected_video_ids()  # Fail before browser consent if this is not a full repo checkout.
     state=secrets.token_urlsafe(32);verifier=secrets.token_urlsafe(64)
     redirect=f'http://127.0.0.1:{args.port}/'
     result={}
@@ -120,15 +161,13 @@ def main():
     try:
         with urllib.request.urlopen(urllib.request.Request(TOKEN,data=body),timeout=30) as response:data=json.load(response)
         refresh,access=validate_tokens(data)
-        request=urllib.request.Request('https://www.googleapis.com/youtube/v3/channels?part=id&mine=true&maxResults=1',
-            headers={'Authorization':'Bearer '+access})
-        with urllib.request.urlopen(request,timeout=30) as response:channel=json.load(response)
-        if not channel.get('items'):raise OAuthError('No YouTube channel found; no secret saved.')
+        verify_new_refresh(client_id,client_secret,refresh)
         write_private(args.output,refresh)
     except OAuthError:raise
     except Exception:raise OAuthError('Token exchange, read verification or private-file save failed; details withheld.') from None
-    print('Upload + read permissions and channel read verified. Refresh token saved privately; its value is never printed.')
-    print('Update ONLY YOUTUBE_REFRESH_TOKEN in GitHub Actions Secrets from the private file, then remove that local file securely.')
+    if args.stage_github_candidate:stage_candidate(refresh)
+    print('New refresh token, upload/read scopes and MinoMasal channel verified. Token saved privately; its value is never printed.')
+    print('Stage YOUTUBE_REFRESH_TOKEN_CANDIDATE first. After Actions verifies it with the EXISTING client Secrets, replace YOUTUBE_REFRESH_TOKEN from the same private file. Never revoke the old token first.')
 
 if __name__=='__main__':
     try:main()

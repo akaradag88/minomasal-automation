@@ -4,6 +4,10 @@ run-name: ${{ inputs.asset_test && 'Approved asset tests - PR 4 (NO PUBLISH)' ||
 on:
   workflow_dispatch:
     inputs:
+      accounts_only:
+        description: YouTube OAuth and Gemini account checks only; no production or publication
+        type: boolean
+        default: false
       engine_check:
         description: End-to-end engine audit and preparation only; NO PUBLISH
         type: boolean
@@ -303,4 +307,45 @@ jobs:
           path: engine_output/
           if-no-files-found: warn
           include-hidden-files: false
+          retention-days: 14
+
+  accounts-only:
+    if: github.event_name == 'workflow_dispatch' && inputs.accounts_only && github.ref == 'refs/heads/fix/end-to-end-engine-2026-11-13'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-minomasal-engine.lock.txt
+      - name: Install existing hash-locked dependencies (bounded)
+        timeout-minutes: 10
+        run: timeout --signal=TERM --kill-after=15s 8m python -m pip install --disable-pip-version-check --no-input --timeout 30 --retries 2 --require-hashes -r requirements-minomasal-engine.lock.txt
+      - name: Offline OAuth and account-safety tests before API access
+        timeout-minutes: 2
+        run: python -m unittest -v test_minomasal_account_preflight
+      - name: Verify current and optional candidate tokens; test speech only with free-account evidence
+        timeout-minutes: 5
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          YOUTUBE_REFRESH_TOKEN_CANDIDATE: ${{ secrets.YOUTUBE_REFRESH_TOKEN_CANDIDATE }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MINOMASAL_GEMINI_FREE_TIER_CONFIRMED: ${{ vars.MINOMASAL_GEMINI_FREE_TIER_CONFIRMED || 'false' }}
+        run: python minomasal_account_preflight.py
+      - name: Save redacted account report and any verified speech sample
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: minomasal-accounts-${{ github.run_id }}
+          path: account_preflight_output/
+          include-hidden-files: false
+          if-no-files-found: warn
           retention-days: 14
