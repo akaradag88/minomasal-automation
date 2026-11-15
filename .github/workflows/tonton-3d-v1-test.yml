@@ -1,0 +1,36 @@
+name: Tonton 3D V1 - Single Image Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pillow requests
+
+      - name: Generate one Tonton image
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_USAGE_TOKEN: ${{ secrets.CLOUDFLARE_USAGE_TOKEN }}
+        run: python tonton_3d_v1_generate.py
+
+      - name: Upload image for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tonton-3d-v1-review
+          path: tonton_3d_v1_output/
+          if-no-files-found: warn
