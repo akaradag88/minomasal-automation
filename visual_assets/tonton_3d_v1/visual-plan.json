@@ -1,0 +1,29 @@
+﻿{
+    "scenes":  [
+                   {
+                       "inventory":  {
+                                         "tonton":  1
+                                     },
+                       "action":  "Tonton stands still with his dump bed lowered and empty, smiling toward the viewer."
+                   }
+               ],
+    "profile":  {
+                    "composition":  "Three-quarter front view, facing left, full truck visible, generous blank margins, clean plain light neutral background.",
+                    "style":  "High-quality 3D animated preschool movie character, soft rounded toy-like shapes, cheerful expression, clean studio lighting, smooth colorful materials, single complete vehicle.",
+                    "version":  1,
+                    "entities":  {
+                                     "tonton":  {
+                                                    "label":  "one friendly small sky-blue cartoon dump truck named Tonton",
+                                                    "traits":  {
+                                                                   "color":  "sky-blue cab and sky-blue hinged dump bed, green eyes with white sclera, orange wheel rims, black tires",
+                                                                   "scale":  "small toy truck, consistent proportions, entire vehicle fully visible",
+                                                                   "shape":  "short rounded cab, large friendly windshield eyes, smiling front grille, two round headlights",
+                                                                   "parts":  "exactly four black tires with orange rims, one cab, one attached blue hinged dump bed, two headlights"
+                                                               },
+                                                    "max_count":  1,
+                                                    "kind":  "object"
+                                                }
+                                 },
+                    "exclusions":  "No other vehicles, humans, animals, scenery, sand, text, logos, watermark, duplicate wheels, detached parts or cropped body."
+                }
+}
