@@ -1,0 +1,45 @@
+﻿name: Tonton Sami Seslendirme
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install google-genai
+
+      - name: Generate Sami narration
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from minomasal_sami_tts_interactions import create_sami_wav
+
+          story = Path("tonton-kayip-elmalar/masal.txt")
+          if not story.is_file():
+              raise SystemExit("Masal metni bulunamadi.")
+
+          output = Path("tonton-kayip-elmalar/sami_seslendirme.wav")
+          create_sami_wav(story.read_text(encoding="utf-8-sig"), output)
+          print("SAMI SESLENDIRME HAZIR")
+          PY
+
+      - name: Upload narration
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tonton-sami-seslendirme
+          path: tonton-kayip-elmalar/sami_seslendirme.wav
+          if-no-files-found: error
