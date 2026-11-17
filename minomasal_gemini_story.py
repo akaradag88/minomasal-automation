@@ -6,7 +6,7 @@ import time
 
 import requests
 
-MODEL = os.environ.get("MINOMASAL_STORY_MODEL", "gemini-2.5-flash-lite")
+MODEL = os.environ.get("MINOMASAL_STORY_MODEL", "gemini-3.5-flash-lite")
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
@@ -61,25 +61,39 @@ def generate_story(topic, prompt):
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": 0.55, "responseMimeType": "application/json"},
     }
-    url = API_URL.format(model=MODEL)
+    # Only transient server overloads trigger a model fallback.
+    models = list(dict.fromkeys([MODEL, "gemini-3.1-flash-lite", "gemini-3.5-flash"]))
     last_error = None
-    for attempt in range(3):
-        try:
-            response = requests.post(
-                url, headers={"x-goog-api-key": api_key},
-                json=payload, timeout=90
-            )
-            if response.status_code in (429, 500, 502, 503, 504):
-                raise RuntimeError(f"Gemini geçici HTTP {response.status_code}")
-            response.raise_for_status()
-            data = response.json()
-            text = "".join(
-                part.get("text", "")
-                for part in data["candidates"][0]["content"]["parts"]
-            )
-            return _validate_story(json.loads(text))
-        except (ValueError, KeyError, IndexError, RuntimeError, requests.RequestException) as exc:
-            last_error = exc
-            if attempt < 2:
-                time.sleep(2 * (attempt + 1))
+    for model in models:
+        url = API_URL.format(model=model)
+        for attempt in range(3):
+            try:
+                response = requests.post(
+                    url, headers={"x-goog-api-key": api_key},
+                    json=payload, timeout=90
+                )
+                if response.status_code in (429, 500, 502, 503, 504):
+                    print(f"Gemini transient HTTP {response.status_code}; model={model}; attempt={attempt + 1}", flush=True)
+                    last_error = RuntimeError(f"Gemini geçici HTTP {response.status_code}")
+                    if attempt < 2:
+                        time.sleep(3 * (2 ** attempt))
+                        continue
+                    break
+                response.raise_for_status()
+                data = response.json()
+                text = "".join(
+                    part.get("text", "")
+                    for part in data["candidates"][0]["content"]["parts"]
+                )
+                story = _validate_story(json.loads(text))
+                print(f"Gemini story model succeeded: {model}", flush=True)
+                return story
+            except (ValueError, KeyError, IndexError, requests.RequestException) as exc:
+                last_error = exc
+                # Bad model output is retried on the same model; HTTP 4xx
+                # (except 429 handled above) is a configuration error.
+                if isinstance(exc, requests.HTTPError):
+                    raise RuntimeError(f"Gemini API error HTTP {exc.response.status_code} on {model}") from exc
+                if attempt < 2:
+                    time.sleep(3 * (2 ** attempt))
     raise RuntimeError(f"Gemini masal üretimi doğrulanamadı: {last_error}") from last_error
