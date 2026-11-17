@@ -66,17 +66,17 @@ def generate_story(topic, prompt):
     last_error = None
     for model in models:
         url = API_URL.format(model=model)
-        for attempt in range(3):
+        for attempt in range(2):
             try:
                 response = requests.post(
                     url, headers={"x-goog-api-key": api_key},
-                    json=payload, timeout=90
+                    json=payload, timeout=(10, 20)
                 )
                 if response.status_code in (429, 500, 502, 503, 504):
                     print(f"Gemini transient HTTP {response.status_code}; model={model}; attempt={attempt + 1}", flush=True)
                     last_error = RuntimeError(f"Gemini geçici HTTP {response.status_code}")
-                    if attempt < 2:
-                        time.sleep(3 * (2 ** attempt))
+                    if attempt < 1:
+                        time.sleep(2 * (2 ** attempt))
                         continue
                     break
                 response.raise_for_status()
@@ -94,6 +94,6 @@ def generate_story(topic, prompt):
                 # (except 429 handled above) is a configuration error.
                 if isinstance(exc, requests.HTTPError):
                     raise RuntimeError(f"Gemini API error HTTP {exc.response.status_code} on {model}") from exc
-                if attempt < 2:
+                if attempt < 1:
                     time.sleep(3 * (2 ** attempt))
     raise RuntimeError(f"Gemini masal üretimi doğrulanamadı: {last_error}") from last_error
