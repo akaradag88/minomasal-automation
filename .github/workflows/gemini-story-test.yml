@@ -44,7 +44,7 @@ jobs:
           selected=next((n for n in preferred if n in names),None)
           if not selected: raise SystemExit('No approved story model available; stopping safely')
           print('Selected model:',selected)
-          with open(os.environ['GITHUB_ENV'],'a') as f: f.write('MINOMASAL_STORY_MODEL='+selected+'\\n')
+          with open(os.environ['GITHUB_ENV'],'a') as f: f.write('MINOMASAL_STORY_MODEL='+selected+chr(10))
           PY
       - name: Generate story only (no upload, no video)
         env:
