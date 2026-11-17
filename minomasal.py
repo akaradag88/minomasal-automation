@@ -141,9 +141,9 @@ def validate(story):
     return story
 
 def create_story(topic, key, model):
-    if not key: raise ValueError('Yeni hikâye için Colab Secrets bölümüne POLLINATIONS_API_KEY ekleyin veya JSON hikâye yükleyin.')
+    if not os.environ.get('GEMINI_API_KEY'): raise ValueError('Masal yazımı için GEMINI_API_KEY gerekli.')
     prompt = f"""4–8 yaş çocuklarına Türkçe öğretici hayvan hikâyesi yaz. Konu: {topic}.
-Toplam 100–130 kelime, 10 sahne. İlk cümle merak uyandırsın. Olaylar sebep-sonuç sırasıyla ilerlesin.
+Toplam 75–110 kelime, tam 10 sahne. İlk cümle merak uyandırsın. Olaylar sebep-sonuç sırasıyla ilerlesin.
 Tek somut ders, korkutucu içerik yok, tehlikeli davranışa özendirme yok, satın alma/abone ol çağrısı yok.
 Son cümlede çocukla ilgili kısa düşünme sorusu sor.
 Yalnız JSON döndür: {{"title":"kısa Türkçe başlık","moral":"ders","characters":"tüm karakterlerin İngilizce sabit fiziksel tanımı",
@@ -187,12 +187,8 @@ Karakter isimlerini ve görünüşlerini bütün sahnelerde koru. Görsel açık
             + ortak.strip()
         )
 
-    r=requests.post('https://gen.pollinations.ai/v1/chat/completions',headers={'Authorization':'Bearer '+key},
-        json={'model':model,'messages':[{'role':'user','content':prompt}],'response_format':{'type':'json_object'}},timeout=150)
-    if r.status_code!=200: raise RuntimeError(f'Hikâye servisi HTTP {r.status_code}; anahtar, bakiye ve model adını kontrol edin.')
-    text=r.json()['choices'][0]['message']['content']
-    text=re.sub(r'^```(?:json)?\s*|\s*```$','',text.strip())
-    return validate(json.loads(text))
+    from minomasal_gemini_story import generate_story
+    return validate(generate_story(topic, prompt))
 
 def make_images(story, folder, key, model, local=''):
     folder.mkdir(exist_ok=True); out=[]
