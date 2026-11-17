@@ -1,0 +1,54 @@
+name: Gemini Masal Testi (Yayin Yok)
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: "Masal konusu"
+        required: true
+        default: "Kucuk itfaiye araci ormanda mahsur kalan sincaba yardim ediyor"
+permissions:
+  contents: read
+jobs:
+  story-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      MINOMASAL_STORY_MODEL: gemini-2.5-flash-lite
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install requests only
+        run: python -m pip install requests
+      - name: Generate story only (no upload, no video)
+        env:
+          TOPIC: ${{ inputs.topic }}
+        run: |
+          python - <<'PY'
+          import json, os, pathlib
+          from minomasal_gemini_story import generate_story
+          topic = os.environ["TOPIC"]
+          prompt = (
+              "4-7 yas cocuklari icin Turkce, mantikli, sevecen ve ozgun bir masal yaz. "
+              "Bir kahraman, bir sorun, yardimlasmayla cozum ve mutlu son olsun. "
+              "Sahneler gorsel olarak birebir anlatimla uyumlu olsun. "
+              "Tam 10 sahne, toplam 75-110 kelime, en fazla 4 karakter."
+          )
+          story = generate_story(topic, prompt)
+          out = pathlib.Path("gemini-story-test.json")
+          out.write_text(json.dumps(story, ensure_ascii=False, indent=2), encoding="utf-8")
+          print("PASS: 10 scenes; narration words:", sum(len(s["narration"].split()) for s in story["scenes"]))
+          print("Title:", story["title"])
+          print("Saved:", out)
+          PY
+      - name: Upload story result
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-story-test
+          path: gemini-story-test.json
+          retention-days: 3
