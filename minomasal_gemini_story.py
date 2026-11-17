@@ -34,9 +34,9 @@ def _validate_story(story):
     words = len(combined.split())
     if not 75 <= words <= 110:
         raise ValueError(f"Masal uzunluğu {words}; 75–110 kelime gerekli.")
-    if re.search(r"(\\b\\w{3,}\\b)(?:\\s+\\1){1,}", combined, re.IGNORECASE):
+    if re.search(r"(\b\w{3,}\b)(?:\s+\1){1,}", combined, re.IGNORECASE):
         raise ValueError("Masalda yinelenen kelimeler var.")
-    if re.search(r"([A-Za-zÇĞİÖŞÜçğıöşü]{3,})\\1", combined):
+    if re.search(r"([A-Za-zÇĞİÖŞÜçğıöşü]{3,})\1", combined):
         raise ValueError("Masalda bozuk tekrarlı yazım olabilir.")
     return story
 
