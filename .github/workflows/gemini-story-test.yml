@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 8
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      MINOMASAL_STORY_MODEL: gemini-2.5-flash-lite
+      MINOMASAL_STORY_MODEL: gemini-3.5-flash-lite
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@v4
