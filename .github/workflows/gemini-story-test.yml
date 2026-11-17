@@ -46,6 +46,25 @@ jobs:
           print('Selected model:',selected)
           with open(os.environ['GITHUB_ENV'],'a') as f: f.write('MINOMASAL_STORY_MODEL='+selected+chr(10))
           PY
+      - name: Probe generateContent and show sanitized API error
+        run: |
+          python - <<'PY'
+          import os, requests
+          key=os.environ['GEMINI_API_KEY']
+          model=os.environ['MINOMASAL_STORY_MODEL']
+          url=f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent'
+          payload={'contents':[{'parts':[{'text':'Merhaba de.'}]}]}
+          r=requests.post(url,headers={'x-goog-api-key':key},json=payload,timeout=35)
+          print('Probe model:',model,'HTTP:',r.status_code)
+          if not r.ok:
+              try:
+                  error=r.json().get('error',{})
+                  print('Google error status:',error.get('status','unknown'))
+                  print('Google error message:',str(error.get('message','unknown'))[:700])
+              except ValueError: print('Google returned a non-JSON error')
+              raise SystemExit(1)
+          print('Probe successful; starting story generation')
+          PY
       - name: Generate story only (no upload, no video)
         env:
           TOPIC: ${{ inputs.topic }}
