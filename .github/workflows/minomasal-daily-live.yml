@@ -1,73 +1,64 @@
 name: MinoMasal Daily YouTube Instagram (19 TR)
-
+# Turkey does not currently observe DST: 19:07 Europe/Istanbul = 16:07 UTC.
 on:
   schedule:
-    - cron: '0 16 * * *'  # 19:00 Europe/Istanbul (UTC+3 year-round)
+    - cron: '7 16 * * *'
   workflow_dispatch:
-
 permissions:
-  contents: write
-
+  contents: read
 concurrency:
   group: minomasal-preview-state
   cancel-in-progress: false
-
 jobs:
-  produce-and-publish:
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
+  prepare-for-review:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
     steps:
-      - name: Checkout latest ledger
-        uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          persist-credentials: true
-      - name: Set up Python
-        uses: actions/setup-python@v5
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
-          python -m pip install -r requirements-minomasal.txt
-          python -m pip install google-api-python-client google-auth google-auth-httplib2
-      - name: Generate next video from ledger
-        id: stage
+          cache: pip
+          cache-dependency-path: requirements-minomasal-engine.lock.txt
+      - name: Install system dependencies (bounded APT)
+        timeout-minutes: 8
+        run: bash scripts/install-minomasal-dependencies.sh system
+      - name: Install pinned Python dependencies (hash checked, bounded)
+        timeout-minutes: 10
+        run: timeout --signal=TERM --kill-after=15s 8m python -m pip install --disable-pip-version-check --no-input --timeout 30 --retries 2 --require-hashes -r requirements-minomasal-engine.lock.txt
+      - name: Verify installed dependencies
+        timeout-minutes: 2
+        run: bash scripts/install-minomasal-dependencies.sh verify
+      - name: Check daily slot (read only)
+        id: daycheck
         env:
-          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
-          MINOMASAL_YOUTUBE_UPLOAD: 'false'
+          MINOMASAL_LOCK_TOKEN: ${{ github.token }}
+          MINOMASAL_LOCK_START_DATE: '2026-11-04'
+        run: python minomasal_gunluk_kilit.py preflight
+      - name: Prepare reviewed local scenes and canonical or free story (NO PUBLISH)
+        if: steps.daycheck.outputs.eligible == 'true'
+        timeout-minutes: 65
+        env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python minomasal_daily_live.py
-      - name: Configure Git identity
-        if: steps.stage.outputs.number != ''
+          MINOMASAL_GEMINI_FREE_TIER_CONFIRMED: ${{ vars.MINOMASAL_GEMINI_FREE_TIER_CONFIRMED || 'false' }}
+          PUBLISH_ENABLED: 'false'
+          MINOMASAL_YOUTUBE_UPLOAD: 'false'
+        run: python minomasal_publish_engine.py --render
+      - name: Failure notification in Actions (never a publication success)
+        if: failure()
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-      
-      - name: Sync latest GitHub state before publishing
-        if: steps.stage.outputs.number != ''
-        run: |
-          git fetch origin main
-          git diff --quiet || {
-            echo "Tracked files have local changes; refusing to discard them."
-            exit 1
-          }
-          git diff --cached --quiet || {
-            echo "Staged changes exist; refusing to discard them."
-            exit 1
-          }
-          git reset --hard origin/main
-          git status --short
-     
-      - name: Publish same video to YouTube and Instagram
-        if: steps.stage.outputs.number != ''
-        env:
-          PUBLISH_ENABLED: 'true'
-          MINOMASAL_YOUTUBE_PRIVACY: public
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
-          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
-          MINOMASAL_HOSTING_TOKEN: ${{ secrets.MINOMASAL_HOSTING_TOKEN }}
-        run: python minomasal_dual_publish.py --stage staging --number '${{ steps.stage.outputs.number }}'
+          echo '::error::MinoMasal preparation failed or was blocked. No video was published. Inspect the quality artifact.'
+          echo '## BLOCKED / FAILED — NO PUBLICATION' >> "$GITHUB_STEP_SUMMARY"
+          echo 'No daily reservation or published ledger entry was made by this workflow.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Save preparation evidence and any real MP4 for manual review
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: minomasal-preparation-${{ github.run_id }}
+          path: engine_output/
+          if-no-files-found: warn
+          include-hidden-files: false
+          retention-days: 14

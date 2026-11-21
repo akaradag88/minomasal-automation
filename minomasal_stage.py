@@ -31,6 +31,8 @@ async def main():
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
     shutil.copy2(video, output / 'masal_short.mp4')
+    from minomasal_yayin_guvenligi import copy_receipt
+    copy_receipt(video, output / 'masal_short.mp4')
     (output / 'metadata.json').write_text(json.dumps({
         'number': number,
         'topic': topic,

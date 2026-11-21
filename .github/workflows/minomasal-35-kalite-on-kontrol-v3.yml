@@ -1,0 +1,86 @@
+name: MinoMasal 35+ Kalite V3 (NO PUBLISH)
+
+on:
+  workflow_dispatch:
+    inputs:
+      render_video:
+        description: 'Gercek API ile yayinsiz video uret (Gemini kotasi kullanir)'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: minomasal-preview-state
+  cancel-in-progress: false
+
+jobs:
+  quality-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (Node.js 24)
+
+      - name: Python 3.11
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 (Node.js 24)
+        with:
+          python-version: '3.11'
+
+      - name: Read-only preflight (NO external API)
+        env:
+          MINOMASAL_YOUTUBE_UPLOAD: 'false'
+          PUBLISH_ENABLED: 'false'
+        run: |
+          python minomasal_kalite_35_qa_v3.py
+
+      - name: Install video dependencies - only for optional video QA
+        if: ${{ inputs.render_video == true }}
+        timeout-minutes: 15
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ASSET='ffmpeg-master-latest-linux64-gpl.tar.xz'
+          REPO='BtbN/FFmpeg-Builds'
+          gh release download latest --repo "$REPO" \
+            --pattern "$ASSET" --pattern 'checksums.sha256' --dir "$RUNNER_TEMP"
+          cd "$RUNNER_TEMP"
+          grep -F "$ASSET" checksums.sha256 | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/ffmpeg"
+          tar -xJf "$ASSET" -C "$RUNNER_TEMP/ffmpeg"
+          FFMPEG_BIN="$(find "$RUNNER_TEMP/ffmpeg" -type f -name ffmpeg -print -quit)"
+          test -n "$FFMPEG_BIN"
+          BIN_DIR="$(dirname "$FFMPEG_BIN")"
+          echo "$BIN_DIR" >> "$GITHUB_PATH"
+          export PATH="$BIN_DIR:$PATH"
+          ffprobe -version
+          ffmpeg -filters | grep -E '(^| )ass( |$)'
+          python -m pip install --disable-pip-version-check -r "$GITHUB_WORKSPACE/requirements-minomasal.txt"
+          python -m pip install --disable-pip-version-check 'faster-whisper>=1.1,<2'
+
+      - name: Make optional QA preview (NEVER PUBLISH)
+        if: ${{ inputs.render_video == true }}
+        env:
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MINOMASAL_GEMINI_FREE_TIER_CONFIRMED: ${{ vars.MINOMASAL_GEMINI_FREE_TIER_CONFIRMED || 'false' }}
+          MINOMASAL_YOUTUBE_UPLOAD: 'false'
+          MINOMASAL_30SN_TEST: 'false'
+          PUBLISH_ENABLED: 'false'
+        run: python minomasal_kalite_35_qa_v3.py --render
+
+      - name: Save QA results (only files, no uploads)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2 (Node.js 24)
+        with:
+          name: minomasal-35-kalite-v3-qa
+          if-no-files-found: warn
+          retention-days: 5
+          path: |
+            minomasal_kalite_v3_qa_rapor.json
+            minomasal_kalite_v3_qa_data/**/masal_short.mp4
+            minomasal_kalite_v3_qa_data/**/altyazi.srt
+            minomasal_kalite_v3_qa_data/**/hikaye.json

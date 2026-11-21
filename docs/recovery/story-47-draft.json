@@ -1,0 +1,25 @@
+{
+  "number": 47,
+  "topic": "Kaybolan Oyuncak Kamyon",
+  "status": "draft_not_production_input",
+  "publication_approved": false,
+  "title": "Küçük Oyuncak Kamyon Şantiyede Kayboldu! | MinoMasal",
+  "description": "Tonton, oyuncak şantiyede yolunu kaybedince sakin kalıp işaretleri takip ediyor. #MinoMasal #ÇocukHikayeleri",
+  "character": "Tonton: canonical blue toy dump truck from tonton_referans.png; no fox, no additional vehicles.",
+  "source": "minomasal_v4_47_revize_hikaye.json",
+  "source_sha256": "77725c870ce63c945e7a0865ab932328aba1bdf34f0bee3e244a63e2299c9e2c",
+  "reference": "tonton_referans.png",
+  "reference_sha256": "2c78b485ddf1299999fc4bc906d94fc5720226b41653d2da82130dface2a6de6",
+  "narrations": [
+    "Eyvah! Tonton, oyuncak şantiyede kum taşırken yolunu kaybetti.",
+    "Az önce gördüğü kırmızı köprü, bir anda gözden kaybolmuştu.",
+    "Üç farklı yol vardı; hangisi doğruydu, hiç bilmiyordu.",
+    "Paniklemek yerine durdu, etrafındaki renkli işaretlere dikkatle baktı.",
+    "Yerde bir sarı ok gördü; ok, mavi kuleyi gösteriyordu.",
+    "Küçük kamyon oku izledi, fakat önüne kocaman bir çukur çıktı.",
+    "Çukurun yanındaki güvenli patikayı seçip yavaşça ilerledi.",
+    "Sonunda kırmızı köprü göründü! Aradığı kum boşaltma alanı hemen arkasındaydı.",
+    "Tonton kumunu bıraktı ve dönüş yolundaki işaretleri tek tek izledi.",
+    "Artık biliyordu: Yolunu şaşırınca sakin kalıp işaretlere dikkat etmek önemliydi."
+  ]
+}

@@ -12,13 +12,13 @@ concurrency:
 
 jobs:
   dry-run:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (Node.js 24)
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 (Node.js 24)
         with:
           python-version: '3.11'
       - name: Validate existing platform ledger
@@ -26,7 +26,7 @@ jobs:
       - name: Build cross-platform plan for story 16 (NO PUBLISH)
         run: python minomasal_publish_plan.py --number 16
       - name: Save dry-run result
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2 (Node.js 24)
         with:
           name: minomasal-daily-rehearsal
           path: minomasal_publish_plan.json

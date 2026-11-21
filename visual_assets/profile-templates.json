@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "profiles": {
+    "fox": {
+      "kind": "character",
+      "traits": {
+        "color": "bright orange fur, white cheeks, chest and tail tip, dark brown ear tips",
+        "face": "round head, short white oval muzzle, tiny black button nose",
+        "eyes": "large almond-shaped emerald green eyes",
+        "clothing": "one plain cobalt-blue scarf, simple knot and two short flat ends, solid unpatterned fabric",
+        "proportions": "short rounded body, head half the body height, small orange paws",
+        "accessories": "no other clothing or accessories"
+      },
+      "reference": {
+        "path": "",
+        "sha256": "",
+        "approval": {
+          "status": "pending",
+          "scope": "production",
+          "reviewed_by": "",
+          "reviewed_at": "",
+          "reviewed_record_sha256": "",
+          "checks": {
+            "identity": false
+          }
+        }
+      },
+      "views": {
+        "front": null,
+        "side": null,
+        "back": null
+      }
+    },
+    "truck": {
+      "kind": "object",
+      "traits": {
+        "color": "bright red cab, red rectangular tipper bed and flat red roof",
+        "shape": "compact boxy toy dump truck, pale blue windows",
+        "parts": "two round yellow headlights, grey grille with two horizontal bars, four black wheels with dark grey hubs",
+        "scale": "truck height one third of the fox height, blank smooth unmarked surfaces"
+      },
+      "reference": {
+        "path": "",
+        "sha256": "",
+        "approval": {
+          "status": "pending",
+          "scope": "production",
+          "reviewed_by": "",
+          "reviewed_at": "",
+          "reviewed_record_sha256": "",
+          "checks": {
+            "identity": false
+          }
+        }
+      },
+      "views": {
+        "front": null,
+        "side": null,
+        "back": null
+      }
+    }
+  }
+}

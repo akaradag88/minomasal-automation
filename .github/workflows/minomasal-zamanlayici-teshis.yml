@@ -1,0 +1,80 @@
+name: MinoMasal 9.7 - Zamanlayici Teshis (READ ONLY)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  audit-schedule:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (Node.js 24)
+        with:
+          fetch-depth: 10
+
+      - name: Examine workflow status and scheduled events (no changes)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p minomasal_zamanlama_teshis
+          BASE="repos/${GITHUB_REPOSITORY}"
+          gh api "$BASE" > minomasal_zamanlama_teshis/repo.json
+          gh api "$BASE/actions/workflows/minomasal-daily-live.yml" > minomasal_zamanlama_teshis/workflow.json
+          gh api "$BASE/actions/workflows/minomasal-daily-live.yml/runs?per_page=30" > minomasal_zamanlama_teshis/runs.json
+          gh api "$BASE/actions/workflows/minomasal-daily-live.yml/runs?event=schedule&per_page=15" > minomasal_zamanlama_teshis/scheduled.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+
+          base = Path('minomasal_zamanlama_teshis')
+          repo = json.loads((base / 'repo.json').read_text())
+          wf = json.loads((base / 'workflow.json').read_text())
+          runs = json.loads((base / 'runs.json').read_text())['workflow_runs']
+          planned = json.loads((base / 'scheduled.json').read_text())['workflow_runs']
+          f = Path('.github/workflows/minomasal-daily-live.yml')
+          yaml = f.read_text(encoding='utf-8') if f.exists() else '(WORKFLOW FILE MISSING)'
+          def local(t):
+              if not t:
+                  return '-'
+              return datetime.fromisoformat(t.replace('Z', '+00:00')).astimezone(ZoneInfo('Europe/Istanbul')).strftime('%Y-%m-%d %H:%M:%S TRT')
+          lines = [
+              '== MinoMasal 9.7 zamanlama teshisi (READ ONLY) ==',
+              'Depo: ' + repo['full_name'],
+              'Varsayilan dal: ' + repo['default_branch'],
+              'Is akisi: ' + wf['name'],
+              'Durum: ' + wf['state'],
+              'Dosya: ' + wf['path'],
+              'Son guncelleme (API): ' + local(wf.get('updated_at')),
+              'Gorunen schedule/cron satirlari:'
+          ]
+          lines += ['  ' + s.strip() for s in yaml.splitlines() if 'schedule:' in s or 'cron:' in s or 'timezone:' in s]
+          lines += ['', '== Son 15 calisma ==']
+          for r in runs[:15]:
+              lines.append(f"#{r['run_number']} | {local(r['created_at'])} | event={r['event']} | status={r['status']} | result={r.get('conclusion')} | {r['html_url']}")
+          lines += ['', '== Son 10 otomatik (schedule) calisma ==']
+          if not planned:
+              lines.append('Hic schedule kaydi bulunmadi.')
+          for r in planned[:10]:
+              lines.append(f"#{r['run_number']} | {local(r['created_at'])} | result={r.get('conclusion')}")
+          lines += ['', 'Bu is akisi dosya/kayit degistirmez, video uretmez, yayin yapmaz.']
+          report = '\n'.join(lines) + '\n'
+          print(report)
+          (base / 'SONUC.txt').write_text(report, encoding='utf-8')
+          PY
+
+      - name: Save diagnosis report (no publication)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2 (Node.js 24)
+        with:
+          name: minomasal-9-7-zamanlayici-teshis
+          path: minomasal_zamanlama_teshis/
+          retention-days: 5
+          if-no-files-found: warn

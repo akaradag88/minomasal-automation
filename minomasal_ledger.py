@@ -67,7 +67,7 @@ def validate(ledger):
     assert ledger.get('schema_version') == 1
     stories = ledger.get('stories', {})
     assert isinstance(stories, dict)
-    valid = {'unknown', 'needs_review', 'pending', 'uploading', 'processed_not_published', 'published', 'failed', 'ambiguous'}
+    valid = {'unknown', 'needs_review', 'pending', 'uploading', 'processed_not_published', 'published', 'failed', 'ambiguous', 'skipped'}
     for key, item in stories.items():
         assert key.isdigit(), f'Invalid story number: {key}'
         for platform in ('youtube', 'instagram'):

@@ -1,0 +1,233 @@
+{
+  "story_number": 47,
+  "version": "10.6",
+  "render_policy": "NO PUBLISH, TEST FIRST",
+  "reference": "tonton_referans.png",
+  "continuity_contract": {
+    "sand_loaded_scenes": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "sand_unloads_scene": 9,
+    "sand_empty_scene": 10,
+    "bridge_hidden_scenes": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "bridge_visible_scenes": [
+      8,
+      9,
+      10
+    ],
+    "three_way_fork_scene": 3,
+    "new_vehicles_forbidden": true,
+    "character_identity_source": "tonton_referans.png"
+  },
+  "scenes": [
+    {
+      "number": 1,
+      "purpose": "The truck is lost while transporting sand",
+      "cargo": "loaded",
+      "bridge": "hidden",
+      "camera": "Three-quarter view with full truck and cargo bed visible",
+      "action": "The blue toy truck has just taken a wrong fork in the orange toy construction yard and looks puzzled",
+      "props": "A fork in the orange dirt track, a small mound of yellow sand in the TRUCK BED",
+      "must_see": [
+        "yellow sand visibly inside blue cargo bed",
+        "fork in the path"
+      ],
+      "must_not_see": [
+        "red bridge",
+        "empty truck cargo bed",
+        "other vehicles"
+      ],
+      "narration": "Eyvah! Tonton, oyuncak şantiyede kum taşırken yolunu kaybetti."
+    },
+    {
+      "number": 2,
+      "purpose": "The red bridge is hidden from sight",
+      "cargo": "loaded",
+      "bridge": "hidden",
+      "camera": "Three-quarter front view with cargo bed clearly visible, not cropped",
+      "action": "The truck looks back from a bend, but tall colorful toy brick stacks block its view of the old road",
+      "props": "Tall colorful toy brick stacks fully blocking the background, yellow sand still in the truck bed",
+      "must_see": [
+        "yellow sand visibly inside blue cargo bed",
+        "brick stacks blocking road behind"
+      ],
+      "must_not_see": [
+        "any visible red bridge",
+        "empty truck cargo bed",
+        "other vehicles"
+      ],
+      "narration": "Az önce gördüğü kırmızı köprü, bir anda gözden kaybolmuştu."
+    },
+    {
+      "number": 3,
+      "purpose": "The truck chooses among three roads",
+      "cargo": "loaded",
+      "bridge": "hidden",
+      "camera": "Slightly elevated wide-angle view showing all three paths and full truck, no cropping",
+      "action": "The truck stops at a very obvious three-way split, looking from left to right, unsure which path to choose",
+      "props": "Exactly THREE separate sandy toy paths diverging from one junction, loaded yellow sand in truck bed",
+      "must_see": [
+        "three distinct branching paths",
+        "yellow sand visibly inside blue cargo bed"
+      ],
+      "must_not_see": [
+        "red bridge",
+        "empty truck cargo bed",
+        "other vehicles"
+      ],
+      "narration": "Üç farklı yol vardı; hangisi doğruydu, hiç bilmiyordu."
+    },
+    {
+      "number": 4,
+      "purpose": "Calmly checks nearby landmarks",
+      "cargo": "loaded",
+      "bridge": "hidden",
+      "camera": "Medium-wide view with truck, load and all landmarks in frame",
+      "action": "The truck stops to study safe toy-road markers calmly",
+      "props": "Yellow arrow painted on orange toy ground, little blue tower, red flag, loaded yellow sand in the blue bed",
+      "must_see": [
+        "yellow road arrow",
+        "blue tower",
+        "yellow sand in truck bed"
+      ],
+      "must_not_see": [
+        "red bridge",
+        "empty cargo bed",
+        "other vehicles"
+      ],
+      "narration": "Paniklemek yerine durdu, etrafındaki renkli işaretlere dikkatle baktı."
+    },
+    {
+      "number": 5,
+      "purpose": "Finds yellow arrow toward blue tower",
+      "cargo": "loaded",
+      "bridge": "hidden",
+      "camera": "Low three-quarter view with arrow in foreground and blue tower in distance; full truck and bed visible",
+      "action": "The truck discovers a yellow arrow on the ground pointing toward the blue tower",
+      "props": "Clearly visible yellow ground arrow pointing to blue toy tower, a stable mound of yellow sand in truck bed",
+      "must_see": [
+        "yellow ground arrow",
+        "blue tower",
+        "yellow sand inside cargo bed"
+      ],
+      "must_not_see": [
+        "red bridge",
+        "empty cargo bed",
+        "other vehicles"
+      ],
+      "narration": "Yerde bir sarı ok gördü; ok, mavi kuleyi gösteriyordu."
+    },
+    {
+      "number": 6,
+      "purpose": "Safely stops before a pit",
+      "cargo": "loaded",
+      "bridge": "hidden",
+      "camera": "Wide side view that shows the truck FULLY STOPPED before the pit",
+      "action": "The truck stops safely at the edge of a shallow toy construction pit before it reaches the obstacle",
+      "props": "One clear shallow toy pit in front, safe solid ground under all four wheels, yellow sand still in bed",
+      "must_see": [
+        "shallow pit ahead",
+        "sand in truck bed",
+        "truck stopped safely"
+      ],
+      "must_not_see": [
+        "red bridge",
+        "truck falling into pit",
+        "empty cargo bed",
+        "other vehicles"
+      ],
+      "narration": "Küçük kamyon oku izledi, fakat önüne kocaman bir çukur çıktı."
+    },
+    {
+      "number": 7,
+      "purpose": "Takes the safe path around a pit",
+      "cargo": "loaded",
+      "bridge": "hidden",
+      "camera": "High three-quarter wide view with full side path visible",
+      "action": "The truck follows a solid side path clearly going around the shallow pit",
+      "props": "A safe bypass path with visible pit to the side, yellow sand still in cargo bed",
+      "must_see": [
+        "path going around pit",
+        "yellow sand in cargo bed"
+      ],
+      "must_not_see": [
+        "red bridge",
+        "truck inside pit",
+        "empty cargo bed",
+        "other vehicles"
+      ],
+      "narration": "Çukurun yanındaki güvenli patikayı seçip yavaşça ilerledi."
+    },
+    {
+      "number": 8,
+      "purpose": "Finds the red bridge and unloading area",
+      "cargo": "loaded",
+      "bridge": "visible",
+      "camera": "Wide scene with full truck and unmistakable red toy bridge in same frame",
+      "action": "The truck recognizes the RED TOY BRIDGE ahead, with the toy sand-unloading box behind the bridge",
+      "props": "Clearly visible red toy bridge in the foreground/distance, unloading box behind it, yellow sand still in bed",
+      "must_see": [
+        "red bridge fully visible",
+        "yellow sand inside truck bed",
+        "unloading box"
+      ],
+      "must_not_see": [
+        "empty cargo bed",
+        "other vehicles"
+      ],
+      "narration": "Sonunda kırmızı köprü göründü! Aradığı kum boşaltma alanı hemen arkasındaydı."
+    },
+    {
+      "number": 9,
+      "purpose": "Unloads the sand only now",
+      "cargo": "unloading",
+      "bridge": "visible",
+      "camera": "Clear side view of same truck with dump bed visibly tilted and sand pouring",
+      "action": "The same blue truck tips its own cargo bed, letting yellow sand pour safely into the designated unloading box",
+      "props": "The toy unloading box beside red bridge, yellow sand visibly falling from the tilted blue cargo bed",
+      "must_see": [
+        "truck bed tilted",
+        "yellow sand pouring into unloading box"
+      ],
+      "must_not_see": [
+        "sand still piled in lowered bed",
+        "other vehicles"
+      ],
+      "narration": "Tonton kumunu bıraktı ve dönüş yolundaki işaretleri tek tek izledi."
+    },
+    {
+      "number": 10,
+      "purpose": "Returns with an empty truck bed and lesson learned",
+      "cargo": "empty",
+      "bridge": "visible",
+      "camera": "Medium-wide three-quarter shot showing empty cargo bed and recognizable landmarks",
+      "action": "The truck heads home confidently following markers, with its cargo bed visibly EMPTY after unloading",
+      "props": "Yellow floor arrow, little blue tower, red toy bridge far behind, visibly empty blue truck bed",
+      "must_see": [
+        "completely empty cargo bed",
+        "yellow arrow",
+        "blue tower"
+      ],
+      "must_not_see": [
+        "yellow sand inside bed",
+        "other vehicles"
+      ],
+      "narration": "Artık biliyordu: Yolunu şaşırınca sakin kalıp işaretlere dikkat etmek önemliydi."
+    }
+  ]
+}

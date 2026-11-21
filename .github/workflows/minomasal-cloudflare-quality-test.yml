@@ -1,0 +1,56 @@
+name: MinoMasal Cloudflare FLUX Quality Test (NO VIDEO NO PUBLISH)
+
+on:
+  workflow_dispatch:
+    inputs:
+      generate_images:
+        description: 'Generate exactly two scenes ONLY after free plan and current quota checks pass'
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: minomasal-cloudflare-free-test
+  cancel-in-progress: false
+
+jobs:
+  cloudflare-quality-test:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/feat/adim-10-9-free-image-providers'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (Node.js 24)
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 (Node.js 24)
+        with:
+          python-version: '3.11'
+      - name: Install image-test dependencies (no secrets, no video tooling)
+        run: python -m pip install 'requests>=2.31,<3' 'Pillow>=10,<13' PyYAML
+      - name: Offline Cloudflare safety tests before any API call
+        run: python -m unittest -v test_minomasal_cloudflare_quality_test test_minomasal_visual_profile
+      - name: Verify free access and optionally generate two scenes
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_USAGE_TOKEN: ${{ secrets.CLOUDFLARE_USAGE_TOKEN }}
+          GENERATE: ${{ inputs.generate_images }}
+        run: |
+          set -euo pipefail
+          if [ "$GENERATE" = 'true' ]; then
+            python minomasal_cloudflare_quality_test.py --generate-two-scenes
+          else
+            python minomasal_cloudflare_quality_test.py
+          fi
+      - name: Save sanitized report and any test images
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cloudflare-flux-test-${{ github.run_id }}
+          path: cloudflare_test_output/
+          if-no-files-found: warn
+          include-hidden-files: false
+          retention-days: 14

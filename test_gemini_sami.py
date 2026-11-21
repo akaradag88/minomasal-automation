@@ -1,34 +1,12 @@
-import os
+"""Explicit live voice smoke command, never an import-time API request."""
 import wave
-from google import genai
-from google.genai import types
+from minomasal_sami_tts_interactions import create_sami_wav
 
-client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+def main():
+    path=create_sami_wav("Merhaba çocuklar. Bugün Tonton ile sakin kalıp yolumuzu bulmayı öğreneceğiz.","minomasal_sami_test.wav")
+    with wave.open(str(path),'rb') as sound:
+        print('Sami WAV verified:',sound.getframerate(),'Hz,',round(sound.getnframes()/sound.getframerate(),2),'seconds; human listening required.')
 
-response = client.models.generate_content(
-    model="gemini-3.8-flash-tts",
-    contents="## Transcript:\nBir sabah küçük sincap Fındık, ormanda kocaman bir ceviz buldu. Çok sevindi ve cevizi yuvasına götürmeye karar verdi. Ancak ceviz çok ağırdı. Tam vazgeçecekken arkadaşı tavşan yardım etmeye geldi. Birlikte cevizi büyük meşe ağacının altına taşıdılar. Fındık cevizi arkadaşlarıyla paylaştı. O gün yardımlaşmanın ve paylaşmanın ne kadar güzel olduğunu öğrendi. Peki sen arkadaşlarınla ne paylaşmak isterdin?",
-    config=types.GenerateContentConfig(
-        response_modalities=["AUDIO"],
-        speech_config=types.SpeechConfig(
-            voice_config=types.VoiceConfig(
-                prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                    voice_name="Sami"
-                )
-            )
-        ),
-    ),
-)
-
-audio = response.candidates[0].content.parts[0].inline_data
-
-if not audio or not audio.data:
-    raise RuntimeError("Ses üretilemedi.")
-
-with wave.open("minomasal_sami_test.wav", "wb") as wav:
-    wav.setnchannels(1)
-    wav.setsampwidth(2)
-    wav.setframerate(24000)
-    wav.writeframes(audio.data)
-
-print("Sami ses testi başarılı!")
+if __name__=='__main__':
+    try:main()
+    except Exception:raise SystemExit('Live TTS test stopped safely; free account confirmation or synthesis failed. Details withheld.') from None

@@ -17,3 +17,25 @@ __pycache__/
 # Temporary files
 *.tmp
 *.log
+
+.venv/
+
+.venv-readiness/
+
+pollinations-account-check.json
+
+image_comparison/
+
+cloudflare_test_output/
+dependency_test_output/
+asset_test_output/
+
+# Local OAuth reauthorization outputs (never commit credentials)
+*.private
+client_secret*.json
+recovery_package/
+engine_output/
+prepared/
+account_preflight_output/
+minomasal-client-check.json
+oauth_client_match_output/

@@ -1,0 +1,29 @@
+name: MinoMasal Gunluk Kilit Unit Test (NO PUBLISH)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lock-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (Node.js 24)
+      - name: Python 3.11
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 (Node.js 24)
+        with:
+          python-version: '3.11'
+      - name: Offline safety tests (11 cases)
+        run: python -m unittest -v test_minomasal_gunluk_kilit.py
+      - name: Read-only repository preflight
+        env:
+          MINOMASAL_LOCK_TOKEN: ${{ github.token }}
+          MINOMASAL_LOCK_START_DATE: '2026-11-04'
+        run: python minomasal_gunluk_kilit.py preflight
+      - name: Confirm test has no publication steps
+        run: |
+          echo 'TEST TAMAMLANDI. Kilit olusturulmadi; video uretilmedi; yayin yapilmadi.'

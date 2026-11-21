@@ -1,64 +1,108 @@
 name: MinoMasal Dual Publish Manual
-
 on:
   workflow_dispatch:
     inputs:
       staging_run_id:
-        description: 'Successful MinoMasal Manual Staging GitHub Actions run ID'
+        description: Successful main preparation run ID containing the reviewed MP4
         required: true
         type: string
       story_number:
-        description: 'Story number in staging artifact (e.g. 16)'
+        description: Exact story number in that artifact
         required: true
-        default: '16'
+        type: string
+        default: '47'
+      approved_video_sha256:
+        description: SHA256 of the exact MP4 the user reviewed and approved
+        required: true
         type: string
       publish_enabled:
-        description: 'Set true ONLY for approved public upload to BOTH platforms'
-        required: true
-        default: false
+        description: Explicit final user approval for this exact MP4 on both platforms
         type: boolean
-
+        default: false
+      resume_partial:
+        description: Explicit same-day retry ONLY of a pending platform, same video; ambiguous states never retry
+        type: boolean
+        default: false
 permissions:
-  contents: write
+  contents: read
   actions: read
-
 concurrency:
   group: minomasal-preview-state
   cancel-in-progress: false
-
 jobs:
-  dual-publish:
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
+  validate-approved-artifact:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          persist-credentials: true
-      - uses: actions/setup-python@v5
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: '3.11'
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
-          python -m pip install -r requirements-minomasal.txt
-          python -m pip install google-api-python-client google-auth google-auth-httplib2
-      - name: Download staged video (do not regenerate)
+          cache: pip
+          cache-dependency-path: requirements-minomasal-engine.lock.txt
+      - run: bash scripts/install-minomasal-dependencies.sh system
+        timeout-minutes: 8
+      - run: timeout --signal=TERM --kill-after=15s 8m python -m pip install --disable-pip-version-check --no-input --timeout 30 --retries 2 --require-hashes -r requirements-minomasal-engine.lock.txt
+        timeout-minutes: 10
+      - name: Download the existing video (never regenerate)
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ inputs.staging_run_id }}
+          SOURCE_RUN: ${{ inputs.staging_run_id }}
         run: |
-          mkdir -p staging
-          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name minomasal-staging-video --dir staging
-          test -s staging/masal_short.mp4
-          test -s staging/metadata.json
-      - name: Configure Git author
+          set -euo pipefail
+          [[ "$SOURCE_RUN" =~ ^[0-9]+$ ]]
+          gh run download "$SOURCE_RUN" --repo "$GITHUB_REPOSITORY" --name "minomasal-preparation-$SOURCE_RUN" --dir prepared
+      - name: Verify trusted source, hash approval, receipt, decode and quality (read only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.staging_run_id }}
+          STORY_NUMBER: ${{ inputs.story_number }}
+          APPROVED_SHA: ${{ inputs.approved_video_sha256 }}
+        run: python minomasal_approved_publish.py --source-run "$SOURCE_RUN" --number "$STORY_NUMBER" --approved-sha256 "$APPROVED_SHA"
+  publish-exact-video:
+    if: github.ref == 'refs/heads/main' && inputs.publish_enabled
+    needs: validate-approved-artifact
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-minomasal-engine.lock.txt
+      - run: bash scripts/install-minomasal-dependencies.sh system
+        timeout-minutes: 8
+      - run: timeout --signal=TERM --kill-after=15s 8m python -m pip install --disable-pip-version-check --no-input --timeout 30 --retries 2 --require-hashes -r requirements-minomasal-engine.lock.txt
+        timeout-minutes: 10
+      - name: Download the same approved artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.staging_run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_RUN" =~ ^[0-9]+$ ]]
+          gh run download "$SOURCE_RUN" --repo "$GITHUB_REPOSITORY" --name "minomasal-preparation-$SOURCE_RUN" --dir prepared
+      - name: Configure ledger commit identity
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-      - name: Validate or publish (manual approval required)
+      - name: Verify platform access, reserve atomically and publish exact approved bytes
         env:
-          PUBLISH_ENABLED: ${{ inputs.publish_enabled }}
+          GH_TOKEN: ${{ github.token }}
+          MINOMASAL_LOCK_TOKEN: ${{ github.token }}
+          MINOMASAL_LOCK_START_DATE: '2026-11-04'
+          SOURCE_RUN: ${{ inputs.staging_run_id }}
+          STORY_NUMBER: ${{ inputs.story_number }}
+          APPROVED_SHA: ${{ inputs.approved_video_sha256 }}
+          RESUME_PARTIAL: ${{ inputs.resume_partial }}
+          PUBLISH_ENABLED: 'true'
           MINOMASAL_YOUTUBE_PRIVACY: public
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
@@ -66,4 +110,11 @@ jobs:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
           MINOMASAL_HOSTING_TOKEN: ${{ secrets.MINOMASAL_HOSTING_TOKEN }}
-        run: python minomasal_dual_publish.py --stage staging --number '${{ inputs.story_number }}'
+        run: |
+          set -euo pipefail
+          resume_args=()
+          if [ "$RESUME_PARTIAL" = 'true' ]; then resume_args+=(--resume); fi
+          python minomasal_approved_publish.py --source-run "$SOURCE_RUN" --number "$STORY_NUMBER" --approved-sha256 "$APPROVED_SHA" --publish "${resume_args[@]}"
+      - name: Stop and reconcile on failure (never replay uploads automatically)
+        if: failure()
+        run: echo '::error::Publication stopped. Check persisted IDs, platform responses and daily reservation before an explicit retry.'

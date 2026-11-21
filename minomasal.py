@@ -12,6 +12,13 @@ SEED = 1234
 GORSel_KLASORU = ""
 MUZIK_KLASORU = Path("music")
 MUZIK_SEVIYESI = 0.12
+
+# 30 saniyelik masal denemesi.
+# Varsayilan olarak kapali; gunluk yayinlar etkilenmez.
+KISA_MASAL_TEST = (
+    os.environ.get("MINOMASAL_30SN_TEST", "false").lower() == "true"
+)
+
 SFX_KLASORU = ""
 ROOT = Path("minomasal_data").resolve()
 ROOT.mkdir(parents=True, exist_ok=True)
@@ -133,17 +140,48 @@ def save_json(path, data):
     tmp=Path(str(path)+'.tmp'); tmp.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf-8'); tmp.replace(path)
 
 def validate(story):
-    assert isinstance(story,dict) and story.get('title') and story.get('characters'), 'Başlık ve karakter tanımı gerekli.'
-    assert 6 <= len(story.get('scenes',[])) <= 15, '6–15 sahne kullanın.'
-    for s in story['scenes']:
-        assert s.get('narration') and s.get('visual'), 'Her sahnede narration ve visual gerekli.'
-        assert len(s['narration'].split())<=35, 'Bir sahnede en fazla 35 kelime kullanın.'
+    if not isinstance(story, dict) or not story.get('title') or not story.get('characters'):
+        raise ValueError('Başlık ve karakter tanımı gerekli.')
+    scenes = story.get('scenes')
+    if not isinstance(scenes, list) or not 6 <= len(scenes) <= 15:
+        raise ValueError('6–15 sahne kullanın.')
+    for scene in scenes:
+        if not isinstance(scene, dict) or any(
+            not isinstance(scene.get(k), str) or not scene[k].strip()
+            for k in ('narration', 'visual')
+        ):
+            raise ValueError('Her sahnede narration ve visual gerekli.')
+        if len(scene['narration'].split()) > 35:
+            raise ValueError('Bir sahnede en fazla 35 kelime kullanın.')
     return story
 
 def create_story(topic, key, model):
     if not key: raise ValueError('Yeni hikâye için Colab Secrets bölümüne POLLINATIONS_API_KEY ekleyin veya JSON hikâye yükleyin.')
+    
+    
+    if KISA_MASAL_TEST:
+        format_kurali = (
+            "KESİN KURAL: Tam 6 sahne oluştur. "
+            "Toplam anlatım metni 50–65 Türkçe kelime olmalı. "
+            "İlk sahnenin narration metni 5–7 kelime olsun. "
+            "Diğer 5 sahnenin her biri 9–11 kelime içersin. "
+            "Her sahnede yalnızca bir kısa anlatım cümlesi kullan. "
+            "İlk sahnede doğrudan merak uyandıran olayı göster. "
+            "Giriş, uzun betimleme ve tekrar kullanma. "
+            "JSON yanıtını vermeden önce narration kelimelerini say. "
+            "Sınırlar dışındaysa metni kısaltarak düzelt. "
+            "Başlık, moral ve visual metinleri kelime hesabına dahil değildir."
+        )
+
+    else:
+        format_kurali = (
+            "Toplam 100–130 kelime, 10 sahne. "
+            "İlk cümle merak uyandırsın. "
+            "Olaylar sebep-sonuç sırasıyla ilerlesin."
+        )
+
     prompt = f"""4–8 yaş çocuklarına Türkçe öğretici hayvan hikâyesi yaz. Konu: {topic}.
-Toplam 100–130 kelime, 10 sahne. İlk cümle merak uyandırsın. Olaylar sebep-sonuç sırasıyla ilerlesin.
+{format_kurali}
 Tek somut ders, korkutucu içerik yok, tehlikeli davranışa özendirme yok, satın alma/abone ol çağrısı yok.
 Son cümlede çocukla ilgili kısa düşünme sorusu sor.
 Yalnız JSON döndür: {{"title":"kısa Türkçe başlık","moral":"ders","characters":"tüm karakterlerin İngilizce sabit fiziksel tanımı",
@@ -195,29 +233,8 @@ Karakter isimlerini ve görünüşlerini bütün sahnelerde koru. Görsel açık
     return validate(json.loads(text))
 
 def make_images(story, folder, key, model, local=''):
-    folder.mkdir(exist_ok=True); out=[]
-    supplied=sorted(p for p in Path(local).glob('*') if p.suffix.lower() in ['.png','.jpg','.jpeg','.webp']) if local else []
-    if local and len(supplied)!=len(story['scenes']): raise ValueError('Yüklenen görsel sayısı sahne sayısına eşit olmalı; 01.jpg, 02.jpg… adlandırın.')
-    for i,s in enumerate(story['scenes']):
-        path=folder/f'{i+1:02}.jpg'
-        if not path.exists():
-            if supplied: im=Image.open(supplied[i])
-            else:
-                if not key: raise ValueError('Görsel üretimi için POLLINATIONS_API_KEY veya yerel görsel klasörü gerekli.')
-                prompt=f"{story['characters']}. {s['visual']}. Colorful children's animated storybook illustration, vibrant saturated emerald greens, sky blues and warm coral accents, richly detailed forest environment filling every edge, colorful textured ground and foliage, balanced exposure, no white canvas, no blank white backgrounds, no washed-out colors, no excessive bright haze, consistent character design, vertical composition, full bleed, subjects inside central 70 percent, no lettering, no border."
-                for attempt in range(3):
-                    try:
-                        r=requests.get('https://gen.pollinations.ai/image/'+quote(prompt,safe=''),params={'model':model,'width':1080,'height':1920,'seed':SEED+i,'nologo':'true'},headers={'Authorization':'Bearer '+key},timeout=180)
-                        if r.status_code!=200: raise RuntimeError(f'Görsel servisi HTTP {r.status_code}')
-                        import io
-                        im=Image.open(io.BytesIO(r.content)); im.load(); break
-                    except Exception:
-                        if attempt==2: raise
-                        time.sleep(3*(attempt+1))
-            ImageOps.fit(im.convert('RGB'),(1080,1920),method=Image.Resampling.LANCZOS).save(path,quality=95)
-        with Image.open(path) as im: im.verify()
-        out.append(path); print(f'Görsel {i+1}/{len(story["scenes"])} hazır')
-    return out
+    from minomasal_images import make_images as generate_batch
+    return generate_batch(story, folder, key, model, local, seed=SEED)
 
 
 
@@ -236,6 +253,8 @@ async def voices(story, folder):
     full_wav = folder / "sami_tam_masal.wav"
 
     if not full_wav.exists():
+        if os.environ.get("MINOMASAL_GEMINI_FREE_TIER_CONFIRMED") != "true":
+            raise RuntimeError("Gemini ücretsiz hesap onayı yok; yeni ses isteği yapılmadı.")
         style = (
             "Türkçe bir çocuk masalı anlatıcısı gibi konuş. "
             "Sıcak, samimi, neşeli ve enerjik ol. "
@@ -247,7 +266,8 @@ async def voices(story, folder):
 
         def generate():
             client = genai.Client(
-                api_key=os.environ["GEMINI_API_KEY"]
+                api_key=os.environ["GEMINI_API_KEY"],
+                http_options={"timeout":90000,"retry_options":{"attempts":1}}
             )
             response = client.models.generate_content(
                 model="gemini-3.8-flash-tts",
@@ -444,6 +464,8 @@ def make_scene_music(story, lengths, folder):
     return output
 
 def render(story,images,audios,folder):
+    from minomasal_yayin_guvenligi import validate_inputs
+    validate_inputs(story, images, audios)
     parts=[]; part_lengths=[]; all_cues=[]; offset=0
     for i,(im,(audio,dur,words),s) in enumerate(zip(images,audios,story['scenes'])):
         cues=subtitle_groups(words,s['narration'],dur)
@@ -494,6 +516,10 @@ def render(story,images,audios,folder):
 
 async def produce(topic, supplied_story=None):
     
+    from minomasal_yayin_guvenligi import ensure_allowed_topic, validate_video
+    ensure_allowed_topic(topic)
+    from minomasal_images import ensure_production_config
+    ensure_production_config(GORSel_KLASORU)
     story = validate(supplied_story) if supplied_story else create_story(topic, API_KEY, HIKAYE_MODELI)
 
     from minomasal_masalsi_kopru import prepare_story_for_render
@@ -502,16 +528,22 @@ async def produce(topic, supplied_story=None):
         supplied_story=supplied_story is not None
     )
 
-    identity={'story':story,'voice':SES,'rate':SES_HIZI,'image_model':GORSEL_MODELI,'seed':SEED,'local':GORSel_KLASORU,'music_files':{k:hashlib.sha256((MUZIK_KLASORU / v).read_bytes()).hexdigest()[:12] if (MUZIK_KLASORU / v).is_file() else 'missing' for k,v in MUZIK_DOSYALARI.items()},'music_level':MUZIK_SEVIYESI,'sfx':SFX_KLASORU,'fps':FPS,'channel':KANAL_ADI,'engine':4}
+    from minomasal_images import identity as image_pipeline_identity
+    identity={'image_pipeline':image_pipeline_identity(),'story':story,'voice':SES,'rate':SES_HIZI,'image_model':GORSEL_MODELI,'seed':SEED,'local':GORSel_KLASORU,'music_files':{k:hashlib.sha256((MUZIK_KLASORU / v).read_bytes()).hexdigest()[:12] if (MUZIK_KLASORU / v).is_file() else 'missing' for k,v in MUZIK_DOSYALARI.items()},'music_level':MUZIK_SEVIYESI,'sfx':SFX_KLASORU,'fps':FPS,'channel':KANAL_ADI,'engine':4}
     fingerprint=hashlib.sha256(json.dumps(identity,ensure_ascii=False,sort_keys=True).encode()).hexdigest()[:12]
     folder=(ROOT/fingerprint).resolve(); folder.mkdir(parents=True,exist_ok=True)
     save_json(folder/'hikaye.json',story)
     complete=folder/'tamam.json'; final=folder/'masal_short.mp4'
     if complete.exists() and final.exists() and duration(final)>1:
+        from minomasal_yayin_guvenligi import validate_receipt
+        validate_receipt(final)
         print('Önceden tamamlandı:',final); return final
     images=make_images(story,folder/'gorseller',API_KEY,GORSEL_MODELI,GORSel_KLASORU)
     audios=await voices(story,folder)
     final=render(story,images,audios,folder)
+    validate_video(final)
+    from minomasal_yayin_guvenligi import write_receipt
+    write_receipt(final, story, images, audios)
     save_json(complete,{'title':story['title'],'duration':duration(final),'video':str(final)})
     print('Video hazır:',final); return final
 

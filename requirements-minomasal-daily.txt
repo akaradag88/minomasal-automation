@@ -1,0 +1,8 @@
+# Existing daily workflow dependencies, collected into one cacheable resolver input.
+-r requirements-minomasal.txt
+# YouTube authentication and upload (minomasal.py::upload_youtube).
+google-api-python-client
+google-auth
+google-auth-httplib2
+# Word alignment / narration quality (minomasal_sami_hizalama_v2.py).
+faster-whisper>=1.1,<2

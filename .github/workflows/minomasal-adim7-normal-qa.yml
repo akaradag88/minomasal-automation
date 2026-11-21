@@ -1,0 +1,68 @@
+name: MinoMasal Adim 7 - Normal Masal QA (No Publish)
+on:
+  workflow_dispatch:
+    inputs:
+      story_number:
+        description: 'Test masali numarasi (onerilen: 35, fil Edi)'
+        required: true
+        default: '35'
+        type: string
+permissions:
+  contents: read
+jobs:
+  short-preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (Node.js 24)
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 (Node.js 24)
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        timeout-minutes: 12
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ASSET="ffmpeg-master-latest-linux64-gpl.tar.xz"
+          REPO="BtbN/FFmpeg-Builds"
+          gh release download latest \
+            --repo "$REPO" \
+            --pattern "$ASSET" \
+            --pattern "checksums.sha256" \
+            --dir "$RUNNER_TEMP"
+          cd "$RUNNER_TEMP"
+          grep -F "$ASSET" checksums.sha256 | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/ffmpeg"
+          tar -xJf "$ASSET" -C "$RUNNER_TEMP/ffmpeg"
+          FFMPEG_BIN="$(find "$RUNNER_TEMP/ffmpeg" -type f -name ffmpeg -print -quit)"
+          test -n "$FFMPEG_BIN"
+          BIN_DIR="$(dirname "$FFMPEG_BIN")"
+          echo "$BIN_DIR" >> "$GITHUB_PATH"
+          export PATH="$BIN_DIR:$PATH"
+          ffmpeg -version
+          ffprobe -version
+          python -m pip install --disable-pip-version-check -r "$GITHUB_WORKSPACE/requirements-minomasal.txt"
+          python -m pip install --disable-pip-version-check "faster-whisper>=1.1,<2"
+      - name: Generate normal story QA preview (never publishes)
+        env:
+          MINOMASAL_30SN_TEST: 'false'
+          MINOMASAL_YOUTUBE_UPLOAD: 'false'
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MINOMASAL_GEMINI_FREE_TIER_CONFIRMED: ${{ vars.MINOMASAL_GEMINI_FREE_TIER_CONFIRMED || 'false' }}
+          STORY_NUMBER: ${{ inputs.story_number }}
+        run: python minomasal_adim7_onizleme.py --story-number "$STORY_NUMBER"
+      - name: Save preview
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2 (Node.js 24)
+        with:
+          name: minomasal-adim7-normal-qa
+          path: |
+            minomasal_data/**/masal_short.mp4
+            minomasal_data/**/hikaye.json
+            minomasal_data/**/altyazi.srt
+          if-no-files-found: warn
+          retention-days: 5

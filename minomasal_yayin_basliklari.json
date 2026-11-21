@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "description": "Yalnızca 47-60 araç masallarında isteğe bağlı yayın başlığı ve giriş yönlendirmesi. KONULAR, hikâye numarası ve yayın defteri değişmez.",
+  "stories": {
+    "47": {
+      "topic": "Kaybolan Oyuncak Kamyon",
+      "publish_title": "Küçük Oyuncak Kamyon Şantiyede Kayboldu! 🚚 | MinoMasal",
+      "editorial_hint": "Oyuncak kamyon, bir oyuncak şantiyesinde yolunu kaybeder. İlk sahnede olay hemen başlasın. Yeni adlandırılmış araç ya da insan karakteri ekleme; tek onaylı karakter oyuncak kamyondur.",
+      "required_terms": [["kaybol", "lost"], ["şantiye", "insaat alan", "inşaat alan", "construction site", "toy construction"]]
+    },
+    "48": {
+      "topic": "İlk Görevine Çıkan İtfaiye Aracı",
+      "publish_title": "Minik İtfaiye İlk Görevini Başarabilecek mi? 🚒 | MinoMasal",
+      "editorial_hint": "İtfaiye aracı ilk görevinde küçük, güvenli bir yardım yapar; korkutucu yangın, yaralanma ve tehlike yok. Olay ilk sahnede başlasın. Başka adlandırılmış kişi/araç icat etme.",
+      "required_terms": [["görev", "gorev", "mission", "task"]]
+    },
+    "49": {
+      "topic": "Sabırsız Küçük Yarış Arabası",
+      "publish_title": "Yarış Arabası Acele Edince Ne Oldu? 🏎️ | MinoMasal",
+      "editorial_hint": "Yarış arabası acele ederek küçük bir hata yapar, sonra sabretmenin değerini öğrenir. Tehlikeli sürüşü özendirme. Birinci sahneden itibaren merak olsun.",
+      "required_terms": [["acele", "sabırsız", "sabirsiz", "impatient", "rush", "hurry"]]
+    },
+    "50": {
+      "topic": "Çamura Saplanan Traktör",
+      "publish_title": "Traktör Çamurdan Nasıl Kurtulacak? 🚜 | MinoMasal",
+      "editorial_hint": "Traktör ilk sahnede çamura saplanır; sakin ve güvenli bir çözüm bulur. Sözlük dışı kurtarıcı araç veya insan karakteri oluşturma.",
+      "required_terms": [["çamur", "camur", "mud"], ["saplan", "stuck", "kurtul", "free"]]
+    },
+    "52": {
+      "topic": "Küçük Beton Mikserinin Büyük Görevi",
+      "publish_title": "Beton Mikseri İnşaatı Yetiştirebilecek mi? | MinoMasal",
+      "editorial_hint": "Beton mikserinin şantiyedeki küçük ama önemli görevi vardır. Zamanında görevini tamamlayıp tamamlayamayacağı merak edilsin; tehlikeli aceleyi özendirme.",
+      "required_terms": [["şantiye", "inşaat", "insaat", "construction", "building"], ["yetiş", "yetis", "zaman", "time", "deadline", "vaktinde"]]
+    },
+    "55": {
+      "topic": "Küçük Vinç ve Yüksek Kule",
+      "publish_title": "Küçük Vinç Kocaman Kuleyi Yapabilecek mi? 🏗️ | MinoMasal",
+      "editorial_hint": "Küçük vinç bir kule yapma görevinde zorluk yaşar, sabırla çözer. İş güvenliğini gözet. Her sahnede onaylı tek vinç karakterini koru.",
+      "required_terms": [["kule", "tower"], ["vinç", "vinc", "crane"]]
+    },
+    "60": {
+      "topic": "Köprü Yapan İş Makineleri",
+      "publish_title": "Traktör ve Vinç Köprüyü Tamamlayabilecek mi? 🏗️ | MinoMasal",
+      "editorial_hint": "YALNIZCA bu hikâye için sözlükte bulunan traktör, vinç, beton mikseri ve çekici karakterlerini kullan; kepçe veya kamyon ekleme. Traktör ve vinç birlikte köprü projesini tamamlamaya çalışır; bütün onaylı karakterler hikâyede yer alsın, ancak her sahnede en fazla iki karakter görünsün.",
+      "required_terms": [["köprü", "kopru", "bridge"], ["traktör", "traktor", "tractor"], ["vinç", "vinc", "crane"]]
+    }
+  }
+}

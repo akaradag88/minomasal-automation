@@ -1,0 +1,25 @@
+name: MinoMasal V4 Baslik On Kontrolu (NO PUBLISH)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v4-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (Node.js 24)
+      - name: Setup Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 (Node.js 24)
+        with:
+          python-version: '3.11'
+      - name: Offline safety and title tests (NO APIs / NO PUBLISH)
+        run: |
+          python -m unittest -v test_minomasal_v4.py
+          python minomasal_v4_gunluk_stage.py --check
+      - name: Result
+        run: echo 'MinoMasal V4 baslik on kontrol basarili; hicbir video yayinlanmadi.'
