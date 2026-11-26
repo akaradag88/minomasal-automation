@@ -147,7 +147,7 @@ def validate(story):
 import base64, io, zlib
 
 GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
-STORY_MODELS = [m for m in (os.environ.get('MINOMASAL_STORY_MODEL', ''), 'gemini-3.8-flash', 'gemini-3.5-flash-lite') if m]
+STORY_MODELS = [m for m in (os.environ.get('MINOMASAL_STORY_MODEL', ''), 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite') if m]
 QC_MODELS = [m for m in (os.environ.get('MINOMASAL_QC_MODEL', ''), 'gemini-3.5-flash-lite', 'gemini-3.8-flash') if m]
 TTS_MODEL = os.environ.get('MINOMASAL_TTS_MODEL', 'gemini-3.8-flash-tts')
 TTS_STYLE = os.environ.get('MINOMASAL_TTS_STYLE', 'warm, gentle fairy-tale narrator for young children, lively and clear')
@@ -200,22 +200,25 @@ def gemini_post(path, payload, tries=4, timeout=180):
 
 
 def gemini_text(prompt, models, images=(), as_json=False):
-    """models listesini sırayla dener (404/erişim yoksa sonrakine geçer)."""
+    """Modelleri sırayla dener: 503/429/404/403 gibi hatalarda sıradaki modele geçer; iki tur sonra durur."""
     parts = [{'text': prompt}] + [{'inlineData': {'mimeType': 'image/png', 'data': base64.b64encode(b).decode()}} for b in images]
     payload = {'contents': [{'role': 'user', 'parts': parts}]}
     if as_json: payload['generationConfig'] = {'responseMimeType': 'application/json'}
     errors = []
-    for m in models:
-        try:
-            data = gemini_post(f'models/{m}:generateContent', payload)
-            cand = (data.get('candidates') or [{}])[0]
-            text = ''.join(p.get('text', '') for p in cand.get('content', {}).get('parts', []))
-            if not text.strip(): raise RuntimeError('boş yanıt')
-            return text, m
-        except RuntimeError as e:
-            errors.append(f'{m}: {e}')
-            if 'HTTP 404' not in str(e) and 'HTTP 403' not in str(e): break
-    raise RuntimeError('Gemini metin modeli kullanılamadı -> ' + ' | '.join(errors))
+    for rnd in range(2):
+        for m in models:
+            try:
+                data = gemini_post(f'models/{m}:generateContent', payload, tries=2)
+                cand = (data.get('candidates') or [{}])[0]
+                text = ''.join(p.get('text', '') for p in cand.get('content', {}).get('parts', []))
+                if not text.strip(): raise RuntimeError('boş yanıt')
+                return text, m
+            except RuntimeError as e:
+                if 'Secret eksik' in str(e): raise
+                errors.append(f'{m}: {str(e)[:120]}')
+                print(f'Gemini modeli atlandı -> {errors[-1]}')
+        if rnd == 0: time.sleep(30)          # yoğunluk geçsin diye kısa bekleme, sonra ikinci tur
+    raise RuntimeError('Gemini metin modeli kullanılamadı -> ' + ' | '.join(errors[-4:]))
 
 
 def create_story(topic, key=None, model=None):
