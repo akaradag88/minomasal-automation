@@ -2,8 +2,19 @@ name: MinoMasal Daily YouTube Instagram (19 TR)
 
 on:
   schedule:
-    - cron: '0 16 * * *'  # 19:00 Europe/Istanbul (UTC+3 year-round)
+    - cron: '0 16 */2 * *'  # iki günde bir, 19:00 Europe/Istanbul (UTC+3 year-round)
   workflow_dispatch:
+    inputs:
+      number:
+        description: "Yalnız ÖNİZLEME: üretilecek konu numarası (boş bırakırsanız sıradaki masal)"
+        required: false
+        default: ""
+        type: string
+      publish:
+        description: "Gerçek yayın için YES yazın (numara doluysa yayın HER ZAMAN kapalıdır)"
+        required: false
+        default: "NO"
+        type: string
 
 permissions:
   contents: write
@@ -34,18 +45,33 @@ jobs:
       - name: Generate next video from ledger
         id: stage
         env:
-          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
-          MINOMASAL_YOUTUBE_UPLOAD: 'false'
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          MINOMASAL_YOUTUBE_UPLOAD: 'false'
+          MINOMASAL_FORCE_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.number || '' }}
         run: python minomasal_daily_live.py
+      - name: Save review files (video, character cards, scene images, QC report)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: minomasal-onizleme
+          path: |
+            staging/
+            minomasal_data/*/gorseller/
+            minomasal_data/*/karakterler/
+            minomasal_data/*/gorsel_kontrol.json
+            minomasal_data/*/hikaye.json
+          retention-days: 7
+          if-no-files-found: warn
       - name: Configure Git identity
-        if: steps.stage.outputs.number != ''
+        if: steps.stage.outputs.number != '' && (github.event_name == 'schedule' || inputs.publish == 'YES')
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
       
       - name: Sync latest GitHub state before publishing
-        if: steps.stage.outputs.number != ''
+        if: steps.stage.outputs.number != '' && (github.event_name == 'schedule' || inputs.publish == 'YES')
         run: |
           git fetch origin main
           git diff --quiet || {
@@ -60,7 +86,7 @@ jobs:
           git status --short
      
       - name: Publish same video to YouTube and Instagram
-        if: steps.stage.outputs.number != ''
+        if: steps.stage.outputs.number != '' && (github.event_name == 'schedule' || inputs.publish == 'YES')
         env:
           PUBLISH_ENABLED: 'true'
           MINOMASAL_YOUTUBE_PRIVACY: public
