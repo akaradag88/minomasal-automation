@@ -193,6 +193,8 @@ def gemini_post(path, payload, tries=4, timeout=180):
         r = requests.post(f'{GEMINI_BASE}/{path}', headers={'x-goog-api-key': key, 'Content-Type': 'application/json'}, json=payload, timeout=timeout)
         if r.status_code == 200: return r.json()
         last = f'HTTP {r.status_code}: {_clean_err(r)}'
+        if r.status_code == 429 and ('per day' in last.lower() or 'daily' in last.lower()):
+            raise RuntimeError(f'Gemini günlük ücretsiz kota doldu ({path.split(":")[0]}; kota Pasifik saatiyle gece yarısı, Türkiye saatiyle 11:00\'de sıfırlanır): {last}')
         if r.status_code in (429, 500, 502, 503, 504) and k < tries - 1:
             time.sleep(6 * (2 ** k)); continue
         break
@@ -410,19 +412,51 @@ def tts_scene(text):
     return raw
 
 
+def _silences(wav):
+    """ffmpeg silencedetect ile sessizlik aralıklarını (başlangıç, bitiş, süre) bulur."""
+    r = subprocess.run(['ffmpeg', '-hide_banner', '-nostats', '-i', str(wav), '-af', 'silencedetect=noise=-38dB:d=0.18', '-f', 'null', '-'],
+                       capture_output=True, text=True)
+    starts = [float(x) for x in re.findall(r'silence_start: (-?[0-9.]+)', r.stderr)]
+    ends = [(float(e), float(d)) for e, d in re.findall(r'silence_end: ([0-9.]+) \| silence_duration: ([0-9.]+)', r.stderr)]
+    return [(max(0.0, st), en, du) for st, (en, du) in zip(starts, ends)]
+
+
+def plan_cuts(texts, total, sil):
+    """Sahne sınırlarını: kelime payına göre beklenen konuma en yakın (ve uzun) sessizliğin ortasına koyar."""
+    w = [max(1, len(re.sub(r'\W', '', t))) for t in texts]; tot = sum(w)
+    avg = total / len(texts); cuts = []; prev = 0.0; acc = 0; fallback = 0
+    for k in range(len(texts) - 1):
+        acc += w[k]; exp = total * acc / tot
+        lo = max(prev + 0.8, exp - 0.55 * avg); hi = exp + 0.55 * avg
+        cand = [(abs((s0 + e0) / 2 - exp) - 0.4 * min(d, 1.0), (s0 + e0) / 2) for s0, e0, d in sil
+                if lo <= (s0 + e0) / 2 <= hi and s0 > 0.3 and e0 < total - 0.3]
+        if cand: t = min(cand)[1]
+        else: t = max(exp, prev + 0.8); fallback += 1
+        cuts.append(t); prev = t
+    if fallback: print(f'UYARI: {fallback} sahne sınırı sessizliğe oturtulamadı, kelime payı kullanıldı.')
+    return cuts
+
+
 async def voices(story, folder):
+    """Tüm masal TEK Gemini TTS isteğiyle seslendirilir (ücretsiz katman günde 10 istek), sonra sahnelere bölünür."""
     folder.mkdir(parents=True, exist_ok=True)
+    n = len(story['scenes']); audios = [folder / f'ses_{i+1:02}.mp3' for i in range(n)]
+    if not all(a.exists() for a in audios):
+        texts = [s['narration'].strip() for s in story['scenes']]
+        full = folder / 'ses_tam.wav'
+        if not full.exists(): full.write_bytes(await asyncio.to_thread(tts_scene, '\n\n'.join(texts)))
+        total = duration(full); sil = _silences(full); cuts = plan_cuts(texts, total, sil)
+        bounds = [0.0] + cuts + [total]
+        save_json(folder / 'ses_kesim.json', {'total': round(total, 2), 'cuts': [round(c, 2) for c in cuts], 'silences': [[round(x, 2), round(y, 2)] for x, y, _ in sil]})
+        for i, a in enumerate(audios):
+            run(['ffmpeg', '-y', '-loglevel', 'error', '-i', full, '-ss', f'{bounds[i]:.3f}', '-to', f'{bounds[i+1]:.3f}',
+                 '-af', 'apad=pad_dur=0.2', '-codec:a', 'libmp3lame', a])
     out = []
-    for i, s in enumerate(story['scenes']):
-        audio = folder / f'ses_{i+1:02}.mp3'; meta = folder / f'ses_{i+1:02}.json'
-        if not audio.exists():
-            wav = folder / f'ses_{i+1:02}.wav'
-            wav.write_bytes(await asyncio.to_thread(tts_scene, s['narration'].strip()))
-            run(['ffmpeg', '-y', '-loglevel', 'error', '-i', wav, '-af', 'apad=pad_dur=0.2', '-codec:a', 'libmp3lame', audio])
-            await asyncio.sleep(3)           # ücretsiz katman hız sınırına karşı küçük bekleme
+    for i, a in enumerate(audios):
+        meta = folder / f'ses_{i+1:02}.json'
         if not meta.exists(): save_json(meta, [])
-        out.append((audio, duration(audio), json.loads(meta.read_text(encoding='utf-8'))))
-        print(f'Ses {i+1}/{len(story["scenes"])} hazır')
+        out.append((a, duration(a), json.loads(meta.read_text(encoding='utf-8'))))
+        print(f'Ses {i+1}/{n} hazır ({out[-1][1]:.1f} sn)')
     return out
 
 
@@ -596,8 +630,8 @@ async def produce(topic, supplied_story=None):
     complete=folder/'tamam.json'; final=folder/'masal_short.mp4'
     if complete.exists() and final.exists() and duration(final)>1:
         print('Önceden tamamlandı:',final); return final
-    images=make_images(story,folder/'gorseller',API_KEY,GORSEL_MODELI,GORSel_KLASORU)
     audios=await voices(story,folder)
+    images=make_images(story,folder/'gorseller',API_KEY,GORSEL_MODELI,GORSel_KLASORU)
     final=render(story,images,audios,folder)
     save_json(complete,{'title':story['title'],'duration':duration(final),'video':str(final)})
     print('Video hazır:',final); return final
