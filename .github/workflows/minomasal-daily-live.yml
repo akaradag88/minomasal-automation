@@ -51,19 +51,26 @@ jobs:
           MINOMASAL_YOUTUBE_UPLOAD: 'false'
           MINOMASAL_FORCE_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.number || '' }}
         run: python minomasal_daily_live.py
-      - name: Save review files (video, character cards, scene images, QC report)
+      - name: Save review files to a GitHub pre-release (no Actions artifact quota)
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: minomasal-onizleme
-          path: |
-            staging/
-            minomasal_data/*/gorseller/
-            minomasal_data/*/karakterler/
-            minomasal_data/*/gorsel_kontrol.json
-            minomasal_data/*/hikaye.json
-          retention-days: 7
-          if-no-files-found: warn
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p review
+          [ -d staging ] && cp -r staging review/staging || true
+          for d in minomasal_data/*/; do
+            [ -d "${d}gorseller" ] && cp -r "${d}gorseller" review/gorseller || true
+            [ -d "${d}karakterler" ] && cp -r "${d}karakterler" review/karakterler || true
+            cp "${d}gorsel_kontrol.json" "${d}hikaye.json" review/ 2>/dev/null || true
+          done
+          if [ -z "$(ls -A review)" ]; then echo "No review files produced."; exit 0; fi
+          (cd review && zip -qr ../minomasal-onizleme.zip .)
+          ASSETS="minomasal-onizleme.zip"
+          [ -f staging/masal_short.mp4 ] && ASSETS="$ASSETS staging/masal_short.mp4"
+          gh release create "onizleme-${{ github.run_id }}" $ASSETS --prerelease \
+            --title "MinoMasal onizleme ${{ github.run_id }}" \
+            --notes "Onizleme dosyalari. Bu bir yayin degildir."
       - name: Configure Git identity
         if: steps.stage.outputs.number != '' && (github.event_name == 'schedule' || inputs.publish == 'YES')
         run: |
