@@ -3,11 +3,11 @@
 import os, json, asyncio, shutil
 from pathlib import Path
 KANAL_ADI = "MinoMasal"
-SES = "Sami"
+SES = "Leda"
 SES_HIZI = "Promote"
 FPS = 24
-HIKAYE_MODELI = "openai"
-GORSEL_MODELI = "flux"
+HIKAYE_MODELI = "gemini"
+GORSEL_MODELI = "cloudflare-flux2-klein-4b"
 SEED = 1234
 GORSel_KLASORU = ""
 MUZIK_KLASORU = Path("music")
@@ -15,7 +15,7 @@ MUZIK_SEVIYESI = 0.12
 SFX_KLASORU = ""
 ROOT = Path("minomasal_data").resolve()
 ROOT.mkdir(parents=True, exist_ok=True)
-API_KEY = os.environ.get("POLLINATIONS_API_KEY", "")
+API_KEY = os.environ.get("GEMINI_API_KEY", "")
 YAYIN_AKTIF = os.environ.get("MINOMASAL_YOUTUBE_UPLOAD", "false").lower() == "true"
 YOUTUBE_GORUNURLUK = os.environ.get("MINOMASAL_YOUTUBE_PRIVACY", "private").lower()
 if YOUTUBE_GORUNURLUK not in ("private", "public", "unlisted"):
@@ -140,17 +140,99 @@ def validate(story):
         assert len(s['narration'].split())<=35, 'Bir sahnede en fazla 35 kelime kullanın.'
     return story
 
-def create_story(topic, key, model):
-    if not key: raise ValueError('Yeni hikâye için Colab Secrets bölümüne POLLINATIONS_API_KEY ekleyin veya JSON hikâye yükleyin.')
-    prompt = f"""4–8 yaş çocuklarına Türkçe öğretici hayvan hikâyesi yaz. Konu: {topic}.
-Toplam 100–130 kelime, 10 sahne. İlk cümle merak uyandırsın. Olaylar sebep-sonuç sırasıyla ilerlesin.
+# ---------------------------------------------------------------------------
+# MinoMasal v5: Gemini (hikâye, ses, görsel kontrolü) + Cloudflare FLUX.2 (görsel)
+# Karakter adları ve görünüşleri minomasal_karakterler.json dosyasından gelir.
+# ---------------------------------------------------------------------------
+import base64, io, zlib
+
+GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
+STORY_MODELS = [m for m in (os.environ.get('MINOMASAL_STORY_MODEL', ''), 'gemini-3.8-flash', 'gemini-3.5-flash-lite') if m]
+QC_MODELS = [m for m in (os.environ.get('MINOMASAL_QC_MODEL', ''), 'gemini-3.5-flash-lite', 'gemini-3.8-flash') if m]
+TTS_MODEL = os.environ.get('MINOMASAL_TTS_MODEL', 'gemini-3.8-flash-tts')
+TTS_STYLE = os.environ.get('MINOMASAL_TTS_STYLE', 'warm, gentle fairy-tale narrator for young children, lively and clear')
+CF_MODEL = '@cf/black-forest-labs/flux-2-klein-4b'
+IMG_W, IMG_H = 864, 1536          # 9:16; 1080x1920'ye montaj sırasında büyütülür
+QC_MIN_ACCEPT = 7                 # bu puan ve üstü: hemen kabul
+QC_MIN_FLOOR = 5                  # en iyi deneme bunun altındaysa üretim DURUR
+SCENE_ATTEMPTS = 3
+STYLE_LOCK = ("Colorful children's animated storybook illustration, soft 3D-rendered look, vibrant but balanced pastel colors, "
+              "richly detailed environment filling every edge, no white canvas, no blank white background, no washed-out colors, "
+              "consistent character design, vertical 9:16 composition, full bleed, main subjects inside the central 70 percent, "
+              "no text, no letters, no watermark, no border")
+CHAR_FILE = Path(__file__).with_name('minomasal_karakterler.json')
+CHAR_SHEET_DIR = Path(__file__).with_name('karakter_gorselleri')   # isteğe bağlı: onaylı kalıcı karakter kartları
+
+
+def load_bible():
+    return json.loads(CHAR_FILE.read_text(encoding='utf-8'))
+
+
+def ids_for_topic(topic):
+    """Konu numarasından karakter kimliklerini bulur (defterdeki story_characters_31_100)."""
+    number = KONULAR.index(topic) + 1
+    return list(load_bible().get('story_characters_31_100', {}).get(str(number), []))
+
+
+def _clean_err(r):
+    try:
+        e = r.json()
+        e = e.get('error', e) if isinstance(e, dict) else e
+        msg = e.get('message') if isinstance(e, dict) else str(e)
+        if not msg and isinstance(e, dict) and e.get('errors'): msg = '; '.join(str(x.get('message')) for x in e['errors'])
+        return str(msg or r.text)[:300]
+    except Exception:
+        return r.text[:300]
+
+
+def gemini_post(path, payload, tries=4, timeout=180):
+    key = os.environ.get('GEMINI_API_KEY', '')
+    if not key: raise RuntimeError('GEMINI_API_KEY GitHub Secret eksik.')
+    last = ''
+    for k in range(tries):
+        r = requests.post(f'{GEMINI_BASE}/{path}', headers={'x-goog-api-key': key, 'Content-Type': 'application/json'}, json=payload, timeout=timeout)
+        if r.status_code == 200: return r.json()
+        last = f'HTTP {r.status_code}: {_clean_err(r)}'
+        if r.status_code in (429, 500, 502, 503, 504) and k < tries - 1:
+            time.sleep(6 * (2 ** k)); continue
+        break
+    raise RuntimeError(f'Gemini isteği başarısız ({path.split(":")[0]}): {last}')
+
+
+def gemini_text(prompt, models, images=(), as_json=False):
+    """models listesini sırayla dener (404/erişim yoksa sonrakine geçer)."""
+    parts = [{'text': prompt}] + [{'inlineData': {'mimeType': 'image/png', 'data': base64.b64encode(b).decode()}} for b in images]
+    payload = {'contents': [{'role': 'user', 'parts': parts}]}
+    if as_json: payload['generationConfig'] = {'responseMimeType': 'application/json'}
+    errors = []
+    for m in models:
+        try:
+            data = gemini_post(f'models/{m}:generateContent', payload)
+            cand = (data.get('candidates') or [{}])[0]
+            text = ''.join(p.get('text', '') for p in cand.get('content', {}).get('parts', []))
+            if not text.strip(): raise RuntimeError('boş yanıt')
+            return text, m
+        except RuntimeError as e:
+            errors.append(f'{m}: {e}')
+            if 'HTTP 404' not in str(e) and 'HTTP 403' not in str(e): break
+    raise RuntimeError('Gemini metin modeli kullanılamadı -> ' + ' | '.join(errors))
+
+
+def create_story(topic, key=None, model=None):
+    number = KONULAR.index(topic) + 1
+    bible = load_bible(); ids = ids_for_topic(topic)
+    if not ids: raise RuntimeError(f'{number}. konu için karakter defterinde kayıt yok: {topic}')
+    chars = bible['characters']
+    cast = '\n'.join(f"- id={i} | ad={chars[i]['name']} | tür={chars[i]['type_tr']} | kişilik={chars[i]['personality_tr']}" for i in ids)
+    prompt = f"""4–8 yaş çocuklarına Türkçe öğretici bir masal yaz. Konu: {topic}.
+Toplam 75–110 kelime, tam 10 sahne, her sahnede 1–2 kısa cümle. İlk cümle merak uyandırsın. Olaylar sebep-sonuç sırasıyla ilerlesin.
 Tek somut ders, korkutucu içerik yok, tehlikeli davranışa özendirme yok, satın alma/abone ol çağrısı yok.
-Son cümlede çocukla ilgili kısa düşünme sorusu sor.
-Yalnız JSON döndür: {{"title":"kısa Türkçe başlık","moral":"ders","characters":"tüm karakterlerin İngilizce sabit fiziksel tanımı",
-"scenes":[{{"narration":"Türkçe 1–2 kısa cümle","visual":"bu anlatımdaki olayın İngilizce görsel açıklaması","sfx":"none"}}]}}.
-Karakter isimlerini ve görünüşlerini bütün sahnelerde koru. Görsel açıklamasında kadraj ve eylem belirt.
+Son cümlede çocukla ilgili kısa bir düşünme sorusu sor.
+KARAKTERLER (yalnız bunlar olsun, adlarını aynen kullan, yeni karakter ekleme):
+{cast}
+Yalnız JSON döndür: {{"title":"kısa Türkçe başlık","moral":"ders","scenes":[{{"narration":"Türkçe 1–2 kısa cümle","visual":"bu anlatımdaki olayın İngilizce görsel açıklaması: yalnız eylem, ortam ve kadraj; karakterlerin görünüşünü yazma, yalnız adlarını kullan","present":["bu sahnede görünen karakter id'leri"],"sfx":"none"}}]}}.
+Her sahnede anlatımda adı geçen karakter "present" listesinde olsun. Sahneler birbirini görsel olarak takip etsin.
 """
-    
     # Özel gün kuralları yalnızca ilgili dört hikâyeye uygulanır.
     ozel_gunler = {
         "Minik Sincabın Kırmızı Beyaz Bayrağı": "29 EKİM CUMHURİYET BAYRAMI:",
@@ -158,187 +240,188 @@ Karakter isimlerini ve görünüşlerini bütün sahnelerde koru. Görsel açık
         "Küçük Baykuş Atatürk'ü Öğreniyor": "10 KASIM ATATÜRK'Ü ANMA GÜNÜ:",
         "Orman Okulunda Atatürk'ü Anma Günü": "10 KASIM ATATÜRK'Ü ANMA GÜNÜ:",
     }
-
     baslik = ozel_gunler.get(topic)
-
     if baslik:
-        dosya = Path(__file__).with_name(
-            "minomasal_ozel_gun_kurallari.txt"
-        )
-        metin = dosya.read_text(encoding="utf-8")
-
+        metin = Path(__file__).with_name("minomasal_ozel_gun_kurallari.txt").read_text(encoding="utf-8")
         ortak_baslik = "ORTAK KURALLAR:"
-        bitis = (
-            "10 KASIM ATATÜRK'Ü ANMA GÜNÜ:"
-            if baslik.startswith("29 EKİM")
-            else ortak_baslik
-        )
-
+        bitis = "10 KASIM ATATÜRK'Ü ANMA GÜNÜ:" if baslik.startswith("29 EKİM") else ortak_baslik
         if baslik not in metin or bitis not in metin or ortak_baslik not in metin:
             raise RuntimeError("Özel gün kuralları eksik.")
-
         ozel = metin.split(baslik, 1)[1].split(bitis, 1)[0]
         ortak = metin.split(ortak_baslik, 1)[1]
+        prompt += "\n\nBU HİKÂYEYE ÖZEL ZORUNLU KURALLAR:\n" + ozel.strip() + "\n\nORTAK KURALLAR:\n" + ortak.strip()
+    text, used = gemini_text(prompt, STORY_MODELS, as_json=True)
+    print('Hikâye modeli:', used)
+    text = re.sub(r'^```(?:json)?\s*|\s*```$', '', text.strip())
+    story = json.loads(text)
+    # Görünüş bilgisi modele bırakılmaz: defterden eklenir.
+    story['characters'] = ' '.join(f"{chars[i]['name']}: {chars[i]['appearance_en']}" for i in ids)
+    story['char_ids'] = ids
+    for s in story.get('scenes', []):
+        present = [x for x in s.get('present', []) if x in ids]
+        s['present'] = present or list(ids)
+    return validate(story)
 
-        prompt += (
-            "\n\nBU HİKÂYEYE ÖZEL ZORUNLU KURALLAR:\n"
-            + ozel.strip()
-            + "\n\nORTAK KURALLAR:\n"
-            + ortak.strip()
-        )
 
-    r=requests.post('https://gen.pollinations.ai/v1/chat/completions',headers={'Authorization':'Bearer '+key},
-        json={'model':model,'messages':[{'role':'user','content':prompt}],'response_format':{'type':'json_object'}},timeout=150)
-    if r.status_code!=200: raise RuntimeError(f'Hikâye servisi HTTP {r.status_code}; anahtar, bakiye ve model adını kontrol edin.')
-    text=r.json()['choices'][0]['message']['content']
-    text=re.sub(r'^```(?:json)?\s*|\s*```$','',text.strip())
-    return validate(json.loads(text))
+# ------------------------------- görsel ------------------------------------
 
-def make_images(story, folder, key, model, local=''):
-    folder.mkdir(exist_ok=True); out=[]
-    supplied=sorted(p for p in Path(local).glob('*') if p.suffix.lower() in ['.png','.jpg','.jpeg','.webp']) if local else []
-    if local and len(supplied)!=len(story['scenes']): raise ValueError('Yüklenen görsel sayısı sahne sayısına eşit olmalı; 01.jpg, 02.jpg… adlandırın.')
-    for i,s in enumerate(story['scenes']):
-        path=folder/f'{i+1:02}.jpg'
-        if not path.exists():
-            if supplied: im=Image.open(supplied[i])
+def _png_bytes(im, box=480):
+    im = im.convert('RGB').copy(); im.thumbnail((box, box), Image.Resampling.LANCZOS)
+    b = io.BytesIO(); im.save(b, 'PNG'); return b.getvalue()
+
+
+def cf_generate(prompt, refs, seed, width, height):
+    acc = os.environ.get('CLOUDFLARE_ACCOUNT_ID', ''); tok = os.environ.get('CLOUDFLARE_API_TOKEN', '')
+    if not acc or not tok: raise RuntimeError('CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN GitHub Secret eksik.')
+    url = f'https://api.cloudflare.com/client/v4/accounts/{acc}/ai/run/{CF_MODEL}'
+    for attempt in range(3):
+        fields = {'prompt': (None, prompt), 'width': (None, str(width)), 'height': (None, str(height)), 'seed': (None, str(int(seed)))}
+        for i, png in enumerate(refs[:4]): fields[f'input_image_{i}'] = (f'ref{i}.png', png, 'image/png')
+        r = requests.post(url, headers={'Authorization': 'Bearer ' + tok}, files=fields, timeout=240)
+        if r.status_code == 200:
+            if r.headers.get('content-type', '').startswith('image/'): raw = r.content
             else:
-                if not key: raise ValueError('Görsel üretimi için POLLINATIONS_API_KEY veya yerel görsel klasörü gerekli.')
-                prompt=f"{story['characters']}. {s['visual']}. Colorful children's animated storybook illustration, vibrant saturated emerald greens, sky blues and warm coral accents, richly detailed forest environment filling every edge, colorful textured ground and foliage, balanced exposure, no white canvas, no blank white backgrounds, no washed-out colors, no excessive bright haze, consistent character design, vertical composition, full bleed, subjects inside central 70 percent, no lettering, no border."
-                for attempt in range(3):
-                    try:
-                        r=requests.get('https://gen.pollinations.ai/image/'+quote(prompt,safe=''),params={'model':model,'width':1080,'height':1920,'seed':SEED+i,'nologo':'true'},headers={'Authorization':'Bearer '+key},timeout=180)
-                        if r.status_code!=200: raise RuntimeError(f'Görsel servisi HTTP {r.status_code}')
-                        import io
-                        im=Image.open(io.BytesIO(r.content)); im.load(); break
-                    except Exception:
-                        if attempt==2: raise
-                        time.sleep(3*(attempt+1))
-            ImageOps.fit(im.convert('RGB'),(1080,1920),method=Image.Resampling.LANCZOS).save(path,quality=95)
-        with Image.open(path) as im: im.verify()
+                j = r.json()
+                if not j.get('success', True): raise RuntimeError('Cloudflare hata: ' + _clean_err(r))
+                raw = base64.b64decode(j['result']['image'])
+            im = Image.open(io.BytesIO(raw)); im.load(); return im.convert('RGB')
+        msg = _clean_err(r)
+        if r.status_code in (401, 403): raise RuntimeError(f'Cloudflare yetki hatası (HTTP {r.status_code}): token izni veya hesap kimliği yanlış olabilir. {msg}')
+        if r.status_code == 429 or 'neuron' in msg.lower() or '4006' in msg:
+            raise RuntimeError(f'Cloudflare günlük ücretsiz kota dolmuş olabilir (HTTP {r.status_code}): {msg}')
+        if r.status_code >= 500 and attempt < 2: time.sleep(5 * (attempt + 1)); continue
+        raise RuntimeError(f'Cloudflare görsel hatası (HTTP {r.status_code}): {msg}')
+
+
+def judge(image, expected, anchors, visual=''):
+    """Gemini görü modeli kalite kontrolü. Dönüş: (puan, sorunlar) ya da (None, [neden]) — kontrol yapılamadıysa."""
+    names = ', '.join(f"{c['name']} ({c['type_tr']})" for c in expected)
+    prompt = (f"You are a strict quality checker for children's storybook illustrations. Image 1 is the generated picture. "
+              f"The following images are reference pictures of the expected characters, in this order: {names}. "
+              f"Check: (1) every expected character is visible and clearly the same species/vehicle with the same colors and accessories as its reference; "
+              f"(2) no unexpected extra characters; (3) no text, letters or watermark; (4) no anatomy errors such as extra or missing limbs or merged bodies; "
+              f"(5) the picture matches this scene: {visual or 'n/a'}. "
+              f'Return only JSON: {{"score": integer 0-10, "problems": ["short English strings"]}}.')
+    try:
+        text, _ = gemini_text(prompt, QC_MODELS, images=[_png_bytes(image, 768)] + [_png_bytes(a, 384) for a in anchors], as_json=True)
+        d = json.loads(re.sub(r'^```(?:json)?\s*|\s*```$', '', text.strip()))
+        return float(d.get('score')), [str(x) for x in d.get('problems', [])][:5]
+    except Exception as e:
+        return None, [f'kontrol yapılamadı: {str(e)[:160]}']
+
+
+def character_anchor(cid, c, folder):
+    """Karakterin referans görseli: önce kalıcı kart, sonra bu videonun önbelleği, yoksa sabit seed ile üretilir."""
+    sheet = CHAR_SHEET_DIR / f'{cid}.png'
+    if sheet.is_file(): return Image.open(sheet).convert('RGB')
+    path = folder / f'{cid}.png'
+    if path.exists(): return Image.open(path).convert('RGB')
+    prompt = (f"Character reference picture of {c['name']}. {c['appearance_en']} Single character only, full body, centered, "
+              f"friendly neutral pose, plain soft pastel background. {STYLE_LOCK}")
+    base = zlib.crc32(cid.encode()) % 900000
+    best = (-1, None)
+    for k in range(3):
+        im = cf_generate(prompt, [], base + k * 7919, 768, 768)
+        score, problems = judge(im, [c], [], 'single character reference picture')
+        print(f'Karakter kartı {c["name"]} deneme {k+1}: puan={score} {problems}')
+        if score is None: best = (None, im); break       # kontrol yapılamadı: ilk görseli kullan
+        if score > best[0]: best = (score, im)
+        if score >= QC_MIN_ACCEPT: break
+    if best[0] is not None and best[0] < QC_MIN_FLOOR: raise RuntimeError(f'{c["name"]} karakter kartı kalite kontrolünden geçemedi (puan {best[0]}).')
+    path.parent.mkdir(parents=True, exist_ok=True); best[1].save(path)
+    return best[1]
+
+
+def scene_prompt(scene, chars, extra_ref=False):
+    refs = [f"reference image {i} shows {c['name']}" for i, c in enumerate(chars)]
+    if extra_ref: refs.append(f"reference image {len(chars)} shows the established art style and setting")
+    keep = 'Keep every character exactly as in its reference image: same species, body shape, colors and accessories.'
+    who = ' '.join(f"{c['name']}: {c['appearance_en']}" for c in chars)
+    p = f"{'; '.join(refs)}. {keep} Characters: {who} Scene: {scene['visual']}. {STYLE_LOCK}"
+    if len(p) > 1900: p = f"{'; '.join(refs)}. {keep} Scene: {scene['visual']}. {STYLE_LOCK}"
+    return p
+
+
+def make_images(story, folder, key=None, model=None, local=''):
+    folder.mkdir(exist_ok=True); out = []; report = []
+    supplied = sorted(p for p in Path(local).glob('*') if p.suffix.lower() in ['.png', '.jpg', '.jpeg', '.webp']) if local else []
+    if local and len(supplied) != len(story['scenes']): raise ValueError('Yüklenen görsel sayısı sahne sayısına eşit olmalı; 01.jpg, 02.jpg… adlandırın.')
+    bible = load_bible()['characters']; ids = story.get('char_ids') or []
+    cache = folder.parent / 'karakterler'; anchors = {}
+    if ids and not supplied:
+        for cid in ids:
+            anchors[cid] = character_anchor(cid, bible[cid], cache)
+            print(f'Karakter kartı hazır: {bible[cid]["name"]}')
+    first_ok = None
+    for i, s in enumerate(story['scenes']):
+        path = folder / f'{i+1:02}.jpg'
+        if not path.exists():
+            if supplied: im = Image.open(supplied[i])
+            else:
+                present = [x for x in (s.get('present') or ids) if x in anchors] or list(anchors)
+                chars = [bible[x] for x in present][:4]
+                refs = [_png_bytes(anchors[x]) for x in present][:4]
+                extra = first_ok is not None and len(refs) < 4
+                if extra: refs.append(_png_bytes(first_ok))
+                prompt = scene_prompt(s, chars, extra)
+                best = (-1, None, [])
+                for k in range(SCENE_ATTEMPTS):
+                    cand = cf_generate(prompt, refs, SEED + i + k * 1000, IMG_W, IMG_H)
+                    score, problems = judge(cand, chars, [anchors[x] for x in present][:4], s.get('visual', ''))
+                    print(f'Sahne {i+1} deneme {k+1}: puan={score} {problems}')
+                    if score is None: best = (None, cand, problems); break
+                    if score > (best[0] if best[0] is not None else -1): best = (score, cand, problems)
+                    if score >= QC_MIN_ACCEPT: break
+                if best[0] is not None and best[0] < QC_MIN_FLOOR:
+                    raise RuntimeError(f'Sahne {i+1} kalite kontrolünden geçemedi (en iyi puan {best[0]}): {best[2]}. Video üretimi durduruldu.')
+                im = best[1]; report.append({'scene': i + 1, 'score': best[0], 'problems': best[2]})
+                if i == 0: first_ok = im
+            ImageOps.fit(im.convert('RGB'), (1080, 1920), method=Image.Resampling.LANCZOS).save(path, quality=95)
+        with Image.open(path) as im2: im2.verify()
         out.append(path); print(f'Görsel {i+1}/{len(story["scenes"])} hazır')
+    if report: save_json(folder.parent / 'gorsel_kontrol.json', report)
     return out
 
+
+# -------------------------------- ses --------------------------------------
+
+def tts_scene(text):
+    """Tek sahne için Gemini TTS (Interactions API). WAV baytları döner."""
+    payload = {'model': TTS_MODEL,
+               'input': [{'type': 'user_input', 'content': [{'type': 'text', 'text': text,
+                          'annotations': [{'type': 'speech_metadata', 'style': TTS_STYLE}]}]}],
+               'response_format': {'type': 'audio'},
+               'generation_config': {'speech_config': [{'voice': SES}]}}
+    data = gemini_post('interactions', payload, timeout=240)
+    audio = None
+    for step in data.get('steps', []):
+        if step.get('type') == 'model_output':
+            for c in step.get('content', []):
+                if c.get('type') == 'audio' and c.get('data'): audio = c['data']
+    if not audio: raise RuntimeError('Gemini TTS yanıtında ses verisi yok.')
+    raw = base64.b64decode(audio)
+    if raw[:4] != b'RIFF':        # başlıksız PCM gelirse (24 kHz, mono, 16-bit) WAV başlığı ekle
+        b = io.BytesIO()
+        with wave.open(b, 'wb') as w: w.setnchannels(1); w.setsampwidth(2); w.setframerate(24000); w.writeframes(raw)
+        raw = b.getvalue()
+    return raw
 
 
 async def voices(story, folder):
-    import os
-    import wave
-    import asyncio
-    import subprocess
-    from google import genai
-    from google.genai import types
-
     folder.mkdir(parents=True, exist_ok=True)
-    scenes = story["scenes"]
-    narrations = [s["narration"].strip() for s in scenes]
-
-    full_wav = folder / "sami_tam_masal.wav"
-
-    if not full_wav.exists():
-        style = (
-            "Türkçe bir çocuk masalı anlatıcısı gibi konuş. "
-            "Sıcak, samimi, neşeli ve enerjik ol. "
-            "Olayları canlı vurgularla anlat. "
-            "Heyecanlı anlarda sesini canlandır. "
-            "Kelimeleri eksiksiz ve anlaşılır oku."
-        )
-        transcript = " ".join(narrations)
-
-        def generate():
-            client = genai.Client(
-                api_key=os.environ["GEMINI_API_KEY"]
-            )
-            response = client.models.generate_content(
-                model="gemini-3.8-flash-tts",
-                contents=(
-                    "# Style instructions\n"
-                    + style
-                    + "\n\n# Transcript\n"
-                    + transcript
-                ),
-                config=types.GenerateContentConfig(
-                    temperature=1,
-                    response_modalities=["AUDIO"],
-                    speech_config=types.SpeechConfig(
-                        voice_config=types.VoiceConfig(
-                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                                voice_name="Sami"
-                            )
-                        )
-                    ),
-                ),
-            )
-
-            if not response.candidates:
-                raise RuntimeError("Gemini ses yanıtı boş.")
-
-            parts = response.candidates[0].content.parts
-            audio_data = next(
-                (
-                    p.inline_data
-                    for p in parts
-                    if p.inline_data and p.inline_data.data
-                ),
-                None,
-            )
-            if audio_data is None:
-                raise RuntimeError("Sami ses üretemedi.")
-
-            with wave.open(str(full_wav), "wb") as wav:
-                wav.setnchannels(1)
-                wav.setsampwidth(2)
-                wav.setframerate(24000)
-                wav.writeframes(audio_data.data)
-
-        await asyncio.to_thread(generate)
-
-    total = duration(full_wav)
-
-    # Kesin zaman damgaları bulunmadığından yaklaşık bölme.
-    weights = [max(1, len(t.split())) for t in narrations]
-    weight_sum = sum(weights)
-    boundaries = [0.0]
-    cumulative = 0
-
-    for weight in weights[:-1]:
-        cumulative += weight
-        boundaries.append(total * cumulative / weight_sum)
-
-    boundaries.append(total)
-
     out = []
-    for i, narration in enumerate(narrations):
-        audio = folder / f"ses_{i+1:02}.mp3"
-        meta = folder / f"ses_{i+1:02}.json"
-
+    for i, s in enumerate(story['scenes']):
+        audio = folder / f'ses_{i+1:02}.mp3'; meta = folder / f'ses_{i+1:02}.json'
         if not audio.exists():
-            start = boundaries[i]
-            end = boundaries[i + 1]
-
-            subprocess.run(
-                [
-                    "ffmpeg", "-y", "-loglevel", "error",
-                    "-i", str(full_wav),
-                    "-ss", f"{start:.4f}",
-                    "-t", f"{end-start:.4f}",
-                    "-codec:a", "libmp3lame",
-                    str(audio),
-                ],
-                check=True,
-            )
-
-        if not meta.exists():
-            save_json(meta, [])
-
-        out.append((
-            audio,
-            duration(audio),
-            json.loads(meta.read_text(encoding="utf-8")),
-        ))
-        print(f"Ses {i+1}/{len(scenes)} hazır")
-
+            wav = folder / f'ses_{i+1:02}.wav'
+            wav.write_bytes(await asyncio.to_thread(tts_scene, s['narration'].strip()))
+            run(['ffmpeg', '-y', '-loglevel', 'error', '-i', wav, '-af', 'apad=pad_dur=0.2', '-codec:a', 'libmp3lame', audio])
+            await asyncio.sleep(3)           # ücretsiz katman hız sınırına karşı küçük bekleme
+        if not meta.exists(): save_json(meta, [])
+        out.append((audio, duration(audio), json.loads(meta.read_text(encoding='utf-8'))))
+        print(f'Ses {i+1}/{len(story["scenes"])} hazır')
     return out
+
 
 def ass_time(t):
     cs=round(max(0,t)*100); h,cs=divmod(cs,360000); m,cs=divmod(cs,6000); s,cs=divmod(cs,100)
@@ -501,8 +584,9 @@ async def produce(topic, supplied_story=None):
         story,
         supplied_story=supplied_story is not None
     )
+    story.setdefault('char_ids', ids_for_topic(topic))
 
-    identity={'story':story,'voice':SES,'rate':SES_HIZI,'image_model':GORSEL_MODELI,'seed':SEED,'local':GORSel_KLASORU,'music_files':{k:hashlib.sha256((MUZIK_KLASORU / v).read_bytes()).hexdigest()[:12] if (MUZIK_KLASORU / v).is_file() else 'missing' for k,v in MUZIK_DOSYALARI.items()},'music_level':MUZIK_SEVIYESI,'sfx':SFX_KLASORU,'fps':FPS,'channel':KANAL_ADI,'engine':4}
+    identity={'story':story,'voice':SES,'rate':SES_HIZI,'image_model':GORSEL_MODELI,'seed':SEED,'local':GORSel_KLASORU,'music_files':{k:hashlib.sha256((MUZIK_KLASORU / v).read_bytes()).hexdigest()[:12] if (MUZIK_KLASORU / v).is_file() else 'missing' for k,v in MUZIK_DOSYALARI.items()},'music_level':MUZIK_SEVIYESI,'sfx':SFX_KLASORU,'fps':FPS,'channel':KANAL_ADI,'engine':5}
     fingerprint=hashlib.sha256(json.dumps(identity,ensure_ascii=False,sort_keys=True).encode()).hexdigest()[:12]
     folder=(ROOT/fingerprint).resolve(); folder.mkdir(parents=True,exist_ok=True)
     save_json(folder/'hikaye.json',story)
@@ -580,7 +664,7 @@ async def main():
     num, topic = pending
     print(f"{'YouTube yüklemesi' if YAYIN_AKTIF else 'Önizleme'}: {num}. {topic}")
     if not API_KEY:
-        raise RuntimeError("POLLINATIONS_API_KEY GitHub Secret eksik.")
+        raise RuntimeError("GEMINI_API_KEY GitHub Secret eksik.")
     video = await produce(topic)
     story = json.loads((video.parent / "hikaye.json").read_text(encoding="utf-8"))
     title = str(story.get("title") or topic).strip() + " | MinoMasal"

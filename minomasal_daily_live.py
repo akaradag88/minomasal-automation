@@ -15,6 +15,10 @@ from minomasal import KONULAR, duration, produce
 from minomasal_ledger import read, validate
 
 LEDGER = Path("minomasal_platform_durumu.json")
+
+# Mevsimsel özel gün hikâyeleri (29 Ekim ve 10 Kasım) 2026'da geçti; sıradan atlanır.
+# Gelecek yıl yayınlamak için bu kümeyi boşaltıp ilgili günden önce elle çalıştırın.
+SKIP_SEASONAL = {33, 34, 45, 46}
 STAGING = Path("staging")
 
 
@@ -32,6 +36,9 @@ def choose(ledger):
         )
 
     for number in range(17, len(KONULAR) + 1):
+        if number in SKIP_SEASONAL:
+            continue
+
         record = stories.get(str(number))
 
         if record is None:
@@ -61,7 +68,15 @@ def choose(ledger):
 
 async def main():
     ledger = read(LEDGER)
-    number = choose(ledger)
+
+    # Yalnızca önizleme: belirli bir numarayı üretir, defter ve yayın akışına dokunmaz.
+    force = os.environ.get("MINOMASAL_FORCE_NUMBER", "").strip()
+    if force:
+        number = int(force)
+        if not 1 <= number <= len(KONULAR):
+            raise RuntimeError(f"Geçersiz konu numarası: {number}")
+    else:
+        number = choose(ledger)
 
     if number is None:
         return
@@ -142,7 +157,10 @@ async def main():
         "a",
         encoding="utf-8",
     ) as out:
-        out.write(f"number={number}\n")
+        if force:
+            out.write("preview_only=true\n")
+        else:
+            out.write(f"number={number}\n")
 
 
 if __name__ == "__main__":
