@@ -366,14 +366,22 @@ def character_anchor(cid, c, folder):
     return best[1]
 
 
-def scene_prompt(scene, chars, extra_ref=False):
-    refs = [f"reference image {i} shows {c['name']}" for i, c in enumerate(chars)]
-    if extra_ref: refs.append(f"reference image {len(chars)} shows the established art style and setting")
-    keep = 'Keep every character exactly as in its reference image: same species, body shape, colors and accessories.'
+def scene_prompt(scene, chars, correction=None):
+    refs = [f"reference image {i} shows ONLY {c['name']}" for i, c in enumerate(chars)]
     who = ' '.join(f"{c['name']}: {c['appearance_en']}" for c in chars)
-    p = f"{'; '.join(refs)}. {keep} Characters: {who} Scene: {scene['visual']}. {STYLE_LOCK}"
-    if len(p) > 1900: p = f"{'; '.join(refs)}. {keep} Scene: {scene['visual']}. {STYLE_LOCK}"
-    return p
+    names = ', '.join(c['name'] for c in chars)
+    keep = (
+        f"Include exactly these {len(chars)} character(s), and no others: {names}. "
+        "Do not add background vehicles, people, animals, duplicate characters or decorative character-like objects. "
+        "Each character must remain separate, fully visible and faithful to its own reference image: "
+        "same species or vehicle type, body shape, colors and accessories."
+    )
+    action = f"Show this exact action clearly and literally: {scene['visual']}."
+    fix = ""
+    if correction:
+        fix = " Correct these specific problems from the previous rejected image: " + "; ".join(correction[:5]) + ". "
+        fix += "Do not repeat any of these errors. Keep the scene simple and make the requested action unmistakable."
+    return f"{'; '.join(refs)}. {keep} Character designs: {who} {action}{fix} {STYLE_LOCK}"
 
 
 def make_images(story, folder, key=None, model=None, local=''):
@@ -386,7 +394,6 @@ def make_images(story, folder, key=None, model=None, local=''):
         for cid in ids:
             anchors[cid] = character_anchor(cid, bible[cid], cache)
             print(f'Karakter kartı hazır: {bible[cid]["name"]}')
-    first_ok = None
     for i, s in enumerate(story['scenes']):
         path = folder / f'{i+1:02}.jpg'
         if not path.exists():
@@ -395,37 +402,41 @@ def make_images(story, folder, key=None, model=None, local=''):
                 present = [x for x in (s.get('present') or ids) if x in anchors] or list(anchors)
                 chars = [bible[x] for x in present][:4]
                 refs = [_png_bytes(anchors[x]) for x in present][:4]
-                extra = first_ok is not None and len(refs) < 4
-                if extra: refs.append(_png_bytes(first_ok))
-                prompt = scene_prompt(s, chars, extra)
-                best = (-1, None, []); flagged = 0; judged = 0
-                for k in range(SCENE_ATTEMPTS + 2):
-                    use_refs = refs[:len(chars)] if flagged else refs        # işaretlenince stil referansını çıkar
-                    pr = (SAFE_PREFIX + prompt) if flagged else prompt
+                expected_refs = [anchors[x] for x in present][:4]
+                best = (-1, None, [])
+                flagged = 0
+                prompt_corrections = []
+                for k in range(5):
+                    prompt = scene_prompt(s, chars, prompt_corrections if k >= 3 else None)
+                    use_prompt = (SAFE_PREFIX + prompt) if flagged else prompt
                     try:
-                        cand = cf_generate(pr, use_refs, SEED + i + k * 1000, IMG_W, IMG_H)
+                        cand = cf_generate(use_prompt, refs, SEED + i + k * 1000, IMG_W, IMG_H)
                     except CFFlagged as e:
                         flagged += 1
-                        print(f'Sahne {i+1} deneme {k+1}: içerik filtresi görseli işaretledi (yanlış alarm olabilir), farklı seed ve yumuşatılmış istemle devam: {str(e)[:80]}')
+                        print(f'Sahne {i+1} deneme {k+1}: içerik filtresi işaretledi; farklı seed ile yeniden deneniyor: {str(e)[:80]}')
                         continue
-                    judged += 1
-                    score, problems = judge(cand, chars, [anchors[x] for x in present][:4], s.get('visual', ''))
+                    score, problems = judge(cand, chars, expected_refs, s.get('visual', ''))
                     print(f'Sahne {i+1} deneme {k+1}: puan={score} {problems}')
-                    if score is None: best = (None, cand, problems); break
-                    if score > (best[0] if best[0] is not None else -1): best = (score, cand, problems)
-                    if score >= QC_MIN_ACCEPT or judged >= SCENE_ATTEMPTS: break
+                    if score is None:
+                        best = (None, cand, problems)
+                        break
+                    if score > best[0]:
+                        best = (score, cand, problems)
+                    if score >= QC_MIN_ACCEPT:
+                        best = (score, cand, problems)
+                        break
+                    prompt_corrections = problems or ["match the requested scene and show only the expected characters"]
                 if best[1] is None:
                     raise RuntimeError(f'Sahne {i+1}: Cloudflare içerik filtresi {flagged} denemede de görseli engelledi. Sahne açıklaması: {s.get("visual", "")[:160]}')
                 if best[0] is not None and best[0] < QC_MIN_FLOOR:
-                    raise RuntimeError(f'Sahne {i+1} kalite kontrolünden geçemedi (en iyi puan {best[0]}): {best[2]}. Video üretimi durduruldu.')
-                im = best[1]; report.append({'scene': i + 1, 'score': best[0], 'problems': best[2]})
-                if i == 0: first_ok = im
+                    raise RuntimeError(f'Sahne {i+1} kalite kontrolünden geçemedi (5 denemede en iyi puan {best[0]}): {best[2]}. Video üretimi durduruldu.')
+                im = best[1]
+                report.append({'scene': i + 1, 'score': best[0], 'problems': best[2], 'attempts': k + 1})
             ImageOps.fit(im.convert('RGB'), (1080, 1920), method=Image.Resampling.LANCZOS).save(path, quality=95)
         with Image.open(path) as im2: im2.verify()
         out.append(path); print(f'Görsel {i+1}/{len(story["scenes"])} hazır')
     if report: save_json(folder.parent / 'gorsel_kontrol.json', report)
     return out
-
 
 # -------------------------------- ses --------------------------------------
 
