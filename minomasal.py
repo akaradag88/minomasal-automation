@@ -7,7 +7,8 @@ SES = "Leda"
 SES_HIZI = "Promote"
 FPS = 24
 HIKAYE_MODELI = "gemini"
-GORSEL_MODELI = "cloudflare-flux2-klein-4b"
+GORSEL_MODELI = os.environ.get("MINOMASAL_IMAGE_MODEL", "gemini-nano-banana-2.1")
+IMAGE_PROVIDER = os.environ.get("MINOMASAL_IMAGE_PROVIDER", "gemini").strip().lower()
 SEED = 1234
 GORSel_KLASORU = ""
 MUZIK_KLASORU = Path("music")
@@ -141,7 +142,7 @@ def validate(story):
     return story
 
 # ---------------------------------------------------------------------------
-# MinoMasal v5: Gemini (hikâye, ses, görsel kontrolü) + Cloudflare FLUX.2 (görsel)
+# MinoMasal v6: Gemini (hikâye, ses, görsel üretimi ve kontrolü); Cloudflare isteğe bağlı alternatif
 # Karakter adları ve görünüşleri minomasal_karakterler.json dosyasından gelir.
 # ---------------------------------------------------------------------------
 import base64, io, zlib
@@ -155,7 +156,7 @@ CF_MODEL = '@cf/black-forest-labs/flux-2-klein-4b'
 IMG_W, IMG_H = 864, 1536          # 9:16; 1080x1920'ye montaj sırasında büyütülür
 QC_MIN_ACCEPT = 7                 # bu puan ve üstü: hemen kabul
 QC_MIN_FLOOR = 5                  # en iyi deneme bunun altındaysa üretim DURUR
-SCENE_ATTEMPTS = 3
+SCENE_ATTEMPTS = 2  # Gemini görsel maliyetini sınırlamak için en fazla iki kalite denemesi
 STYLE_LOCK = ("Colorful children's animated storybook illustration, soft 3D-rendered look, vibrant but balanced pastel colors, "
               "richly detailed environment filling every edge, no white canvas, no blank white background, no washed-out colors, "
               "consistent character design, vertical 9:16 composition, full bleed, main subjects inside the central 70 percent, "
@@ -323,6 +324,78 @@ def cf_generate(prompt, refs, seed, width, height):
         raise RuntimeError(f'Cloudflare görsel hatası (HTTP {r.status_code}): {msg}')
 
 
+
+def gemini_image_generate(prompt, refs, width, height, model=None):
+    """Gemini Nano Banana ile tek görsel üretir; referans karakter görsellerini aynı isteğe ekler."""
+    key = os.environ.get('GEMINI_API_KEY', '')
+    if not key:
+        raise RuntimeError('GEMINI_API_KEY GitHub Secret eksik.')
+    model = model or GORSEL_MODELI
+    ratio = '9:16' if height > width else '1:1'
+    inputs = [{'type': 'text', 'text': prompt}]
+    for png in refs[:4]:
+        inputs.append({
+            'type': 'image',
+            'mime_type': 'image/png',
+            'data': base64.b64encode(png).decode('ascii')
+        })
+    payload = {
+        'model': model,
+        'input': inputs,
+        'response_format': {
+            'type': 'image',
+            'mime_type': 'image/jpeg',
+            'aspect_ratio': ratio,
+            'image_size': '1K'
+        }
+    }
+    last = ''
+    for attempt in range(2):
+        try:
+            response = requests.post(
+                f'{GEMINI_BASE}/interactions',
+                headers={
+                    'x-goog-api-key': key,
+                    'Content-Type': 'application/json',
+                    'Api-Revision': '2026-05-20'
+                },
+                json=payload,
+                timeout=300
+            )
+        except requests.exceptions.RequestException as e:
+            last = f'ağ hatası ({type(e).__name__})'
+            if attempt == 0:
+                time.sleep(4)
+                continue
+            raise RuntimeError(f'Gemini görsel bağlantı hatası: {last}')
+        if response.status_code == 200:
+            data = response.json()
+            image_data = (data.get('output_image') or {}).get('data')
+            if not image_data:
+                for step in data.get('steps', []):
+                    if step.get('type') == 'model_output':
+                        for block in step.get('content', []):
+                            if block.get('type') == 'image' and block.get('data'):
+                                image_data = block['data']
+                                break
+                    if image_data:
+                        break
+            if not image_data:
+                raise RuntimeError('Gemini görsel yanıtı başarılı görünüyor ancak görsel verisi içermiyor.')
+            try:
+                raw = base64.b64decode(image_data)
+                im = Image.open(io.BytesIO(raw))
+                im.load()
+                return im.convert('RGB')
+            except Exception as e:
+                raise RuntimeError(f'Gemini görsel çıktısı okunamadı: {type(e).__name__}')
+        last = f'HTTP {response.status_code}: {_clean_err(response)}'
+        if response.status_code in (429, 500, 502, 503, 504) and attempt == 0:
+            time.sleep(6)
+            continue
+        raise RuntimeError(f'Gemini görsel üretimi başarısız: {last}')
+    raise RuntimeError(f'Gemini görsel üretimi başarısız: {last}')
+
 def judge(image, expected, anchors, visual=''):
     """Gemini görü modeli kalite kontrolü. Dönüş: (puan, sorunlar) ya da (None, [neden]) — kontrol yapılamadıysa."""
     names = ', '.join(f"{c['name']} ({c['type_tr']})" for c in expected)
@@ -350,8 +423,12 @@ def character_anchor(cid, c, folder):
               f"friendly neutral pose, plain soft pastel background. {STYLE_LOCK}")
     base = zlib.crc32(cid.encode()) % 900000
     best = (-1, None); flagged = 0; judged = 0
-    for k in range(5):
-        try: im = cf_generate((SAFE_PREFIX + prompt) if flagged else prompt, [], base + k * 7919, 768, 768)
+    anchor_attempts = 2 if IMAGE_PROVIDER == 'gemini' else 5
+    for k in range(anchor_attempts):
+        try:
+            anchor_prompt = (SAFE_PREFIX + prompt) if flagged else prompt
+            im = (gemini_image_generate(anchor_prompt, [], 768, 768) if IMAGE_PROVIDER == 'gemini'
+                  else cf_generate(anchor_prompt, [], base + k * 7919, 768, 768))
         except CFFlagged:
             flagged += 1; print(f'Karakter kartı {c["name"]} deneme {k+1}: içerik filtresi işaretledi, yeniden deneniyor.'); continue
         judged += 1
@@ -360,7 +437,7 @@ def character_anchor(cid, c, folder):
         if score is None: best = (None, im); break       # kontrol yapılamadı: ilk görseli kullan
         if score > best[0]: best = (score, im)
         if score >= QC_MIN_ACCEPT or judged >= 3: break
-    if best[1] is None: raise RuntimeError(f'{c["name"]} karakter kartı: Cloudflare içerik filtresi tüm denemelerde engelledi.')
+    if best[1] is None: raise RuntimeError(f'{c["name"]} karakter kartı: görsel üretimi tüm denemelerde başarısız oldu.')
     if best[0] is not None and best[0] < QC_MIN_FLOOR: raise RuntimeError(f'{c["name"]} karakter kartı kalite kontrolünden geçemedi (puan {best[0]}).')
     path.parent.mkdir(parents=True, exist_ok=True); best[1].save(path)
     return best[1]
@@ -400,10 +477,15 @@ def make_images(story, folder, key=None, model=None, local=''):
                 prompt = scene_prompt(s, chars, extra)
                 best = (-1, None, []); flagged = 0; judged = 0
                 for k in range(SCENE_ATTEMPTS + 2):
-                    use_refs = refs[:len(chars)] if flagged else refs        # işaretlenince stil referansını çıkar
+                    use_refs = refs[:len(chars)] if flagged else refs
                     pr = (SAFE_PREFIX + prompt) if flagged else prompt
                     try:
-                        cand = cf_generate(pr, use_refs, SEED + i + k * 1000, IMG_W, IMG_H)
+                        if IMAGE_PROVIDER == 'gemini':
+                            cand = gemini_image_generate(pr, use_refs, IMG_W, IMG_H, model)
+                        elif IMAGE_PROVIDER == 'cloudflare':
+                            cand = cf_generate(pr, use_refs, SEED + i + k * 1000, IMG_W, IMG_H)
+                        else:
+                            raise ValueError(f'Bilinmeyen MINOMASAL_IMAGE_PROVIDER: {IMAGE_PROVIDER}')
                     except CFFlagged as e:
                         flagged += 1
                         print(f'Sahne {i+1} deneme {k+1}: içerik filtresi görseli işaretledi (yanlış alarm olabilir), farklı seed ve yumuşatılmış istemle devam: {str(e)[:80]}')
@@ -415,7 +497,7 @@ def make_images(story, folder, key=None, model=None, local=''):
                     if score > (best[0] if best[0] is not None else -1): best = (score, cand, problems)
                     if score >= QC_MIN_ACCEPT or judged >= SCENE_ATTEMPTS: break
                 if best[1] is None:
-                    raise RuntimeError(f'Sahne {i+1}: Cloudflare içerik filtresi {flagged} denemede de görseli engelledi. Sahne açıklaması: {s.get("visual", "")[:160]}')
+                    raise RuntimeError(f'Sahne {i+1}: görsel üretimi tamamlanamadı. Sahne açıklaması: {s.get("visual", "")[:160]}')
                 if best[0] is not None and best[0] < QC_MIN_FLOOR:
                     raise RuntimeError(f'Sahne {i+1} kalite kontrolünden geçemedi (en iyi puan {best[0]}): {best[2]}. Video üretimi durduruldu.')
                 im = best[1]; report.append({'scene': i + 1, 'score': best[0], 'problems': best[2]})
@@ -662,7 +744,7 @@ async def produce(topic, supplied_story=None):
     )
     story.setdefault('char_ids', ids_for_topic(topic))
 
-    identity={'story':story,'voice':SES,'rate':SES_HIZI,'image_model':GORSEL_MODELI,'seed':SEED,'local':GORSel_KLASORU,'music_files':{k:hashlib.sha256((MUZIK_KLASORU / v).read_bytes()).hexdigest()[:12] if (MUZIK_KLASORU / v).is_file() else 'missing' for k,v in MUZIK_DOSYALARI.items()},'music_level':MUZIK_SEVIYESI,'sfx':SFX_KLASORU,'fps':FPS,'channel':KANAL_ADI,'engine':5}
+    identity={'story':story,'voice':SES,'rate':SES_HIZI,'image_provider':IMAGE_PROVIDER,'image_model':GORSEL_MODELI,'seed':SEED,'local':GORSel_KLASORU,'music_files':{k:hashlib.sha256((MUZIK_KLASORU / v).read_bytes()).hexdigest()[:12] if (MUZIK_KLASORU / v).is_file() else 'missing' for k,v in MUZIK_DOSYALARI.items()},'music_level':MUZIK_SEVIYESI,'sfx':SFX_KLASORU,'fps':FPS,'channel':KANAL_ADI,'engine':5}
     fingerprint=hashlib.sha256(json.dumps(identity,ensure_ascii=False,sort_keys=True).encode()).hexdigest()[:12]
     folder=(ROOT/fingerprint).resolve(); folder.mkdir(parents=True,exist_ok=True)
     save_json(folder/'hikaye.json',story)
@@ -670,6 +752,7 @@ async def produce(topic, supplied_story=None):
     if complete.exists() and final.exists() and duration(final)>1:
         print('Önceden tamamlandı:',final); return final
     audios=await voices(story,folder)
+    print(f'Görsel sağlayıcı: {IMAGE_PROVIDER} | model: {GORSEL_MODELI}')
     images=make_images(story,folder/'gorseller',API_KEY,GORSEL_MODELI,GORSel_KLASORU)
     final=render(story,images,audios,folder)
     save_json(complete,{'title':story['title'],'duration':duration(final),'video':str(final)})
