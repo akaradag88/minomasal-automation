@@ -142,7 +142,7 @@ def validate(story):
     return story
 
 # ---------------------------------------------------------------------------
-# MinoMasal v6: Gemini (hikâye, ses, görsel üretimi ve kontrolü); Cloudflare isteğe bağlı alternatif
+# MinoMasal v6: Gemini hikâye, ses, görsel üretimi ve kontrolü; Cloudflare isteğe bağlı alternatif
 # Karakter adları ve görünüşleri minomasal_karakterler.json dosyasından gelir.
 # ---------------------------------------------------------------------------
 import base64, io, zlib
@@ -156,11 +156,11 @@ CF_MODEL = '@cf/black-forest-labs/flux-2-klein-4b'
 IMG_W, IMG_H = 864, 1536          # 9:16; 1080x1920'ye montaj sırasında büyütülür
 QC_MIN_ACCEPT = 7                 # bu puan ve üstü: hemen kabul
 QC_MIN_FLOOR = 5                  # en iyi deneme bunun altındaysa üretim DURUR
-SCENE_ATTEMPTS = 2  # Gemini görsel maliyetini sınırlamak için en fazla iki kalite denemesi
-STYLE_LOCK = ("Colorful children's animated storybook illustration, soft 3D-rendered look, vibrant but balanced pastel colors, "
-              "richly detailed environment filling every edge, no white canvas, no blank white background, no washed-out colors, "
-              "consistent character design, vertical 9:16 composition, full bleed, main subjects inside the central 70 percent, "
-              "no text, no letters, no watermark, no border")
+SCENE_ATTEMPTS = 2  # Görsel maliyetini sınırlamak için sahne başına en fazla iki üretim
+STYLE_LOCK = ("Soft 3D animated children's storybook, warm gentle pastel palette, balanced muted colors, matte materials, "
+              "soft diffused daylight, gentle shadows, low visual glare, calm contrast, clean cinematic composition, "
+              "detailed but uncluttered story environment, consistent character design, vertical 9:16 composition, full bleed, "
+              "main subjects inside the central 70 percent, no text, no letters, no watermark, no border")
 CHAR_FILE = Path(__file__).with_name('minomasal_karakterler.json')
 CHAR_SHEET_DIR = Path(__file__).with_name('karakter_gorselleri')   # isteğe bağlı: onaylı kalıcı karakter kartları
 
@@ -238,12 +238,19 @@ def create_story(topic, key=None, model=None):
     cast = '\n'.join(f"- id={i} | ad={chars[i]['name']} | tür={chars[i]['type_tr']} | kişilik={chars[i]['personality_tr']}" for i in ids)
     prompt = f"""4–8 yaş çocuklarına Türkçe öğretici bir masal yaz. Konu: {topic}.
 Toplam 75–110 kelime, tam 10 sahne, her sahnede 1–2 kısa cümle. İlk cümle merak uyandırsın. Olaylar sebep-sonuç sırasıyla ilerlesin.
+GÖRSEL HİKÂYE ANLATIMI ZORUNLU:
+- On sahne, aynı karakterin farklı pozlarda durduğu portreler değil; başı, gelişmesi ve sonucu olan 10 karelik resimli bir macera gibi ilerlesin.
+- Her sahnede karakterin yaptığı tek, somut ve kamerada açıkça görülebilen bir eylem olsun. "Mutlu oldu", "cesur hissetti", "gülümsedi" gibi soyut duygular tek başına sahne eylemi olamaz.
+- Her sahnede farklı bir fiziksel eylem ve o eylemle ilişkili nesne/ortam ayrıntısı kullan. Örneğin yaprakların arasından ilerlemek, kayanın arkasına saklanmak, dere üzerindeki kütüğe yaklaşmak, bir dala tutunmak veya bir arkadaşına yardım etmek.
+- Karakterin beden duruşu ve yüz ifadesi eylemi yansıtsın; her sahnede kameraya dönük ayakta durup gülümsemesin.
+- Görsel olaylar anlatım cümlesiyle birebir örtüşsün; mekân ve olay devamlılığı korunsun. Yakın plan, geniş plan ve farklı bakış açılarını dönüşümlü kullan.
+- Hikâyede olmayan karakter/olay uydurma; ancak eylemi görünür kılacak doğal çevre ve nesneleri mutlaka göster.
 Tek somut ders, korkutucu içerik yok, tehlikeli davranışa özendirme yok, satın alma/abone ol çağrısı yok.
 Son cümlede çocukla ilgili kısa bir düşünme sorusu sor.
 KARAKTERLER (yalnız bunlar olsun, adlarını aynen kullan, yeni karakter ekleme):
 {cast}
 Yalnız JSON döndür: {{"title":"kısa Türkçe başlık","moral":"ders","scenes":[{{"narration":"Türkçe 1–2 kısa cümle","visual":"bu anlatımdaki olayın İngilizce görsel açıklaması: yalnız eylem, ortam ve kadraj; karakterlerin görünüşünü yazma, yalnız adlarını kullan","present":["bu sahnede görünen karakter id'leri"],"sfx":"none"}}]}}.
-Her sahnede anlatımda adı geçen karakter "present" listesinde olsun. Sahneler birbirini görsel olarak takip etsin.
+Her sahnede anlatımda adı geçen karakter "present" listesinde olsun. Her sahnenin fiziksel eylemi önceki sahneden farklı olsun; art arda aynı ayakta durma/gülümseme pozunu kullanma. Her sahne, hikâyedeki olayın resimden anlaşılmasını sağlamalıdır.
 """
     # Özel gün kuralları yalnızca ilgili dört hikâyeye uygulanır.
     ozel_gunler = {
@@ -381,7 +388,7 @@ def gemini_image_generate(prompt, refs, width, height, model=None):
                     if image_data:
                         break
             if not image_data:
-                raise RuntimeError('Gemini görsel yanıtı başarılı görünüyor ancak görsel verisi içermiyor.')
+                raise RuntimeError('Gemini başarılı yanıt verdi ancak görsel verisi döndürmedi.')
             try:
                 raw = base64.b64decode(image_data)
                 im = Image.open(io.BytesIO(raw))
@@ -403,7 +410,9 @@ def judge(image, expected, anchors, visual=''):
               f"The following images are reference pictures of the expected characters, in this order: {names}. "
               f"Check: (1) every expected character is visible and clearly the same species/vehicle with the same colors and accessories as its reference; "
               f"(2) no unexpected extra characters; (3) no text, letters or watermark; (4) no anatomy errors such as extra or missing limbs or merged bodies; "
-              f"(5) the picture matches this scene: {visual or 'n/a'}. "
+              f"(5) the picture clearly depicts this exact physical action: {visual or 'n/a'}; "
+              f"(6) reject a static portrait, idle standing pose, or a character merely smiling when the scene requires an event; "
+              f"(7) show interaction with a relevant object or the environment whenever the action calls for it. "
               f'Return only JSON: {{"score": integer 0-10, "problems": ["short English strings"]}}.')
     try:
         text, _ = gemini_text(prompt, QC_MODELS, images=[_png_bytes(image, 768)] + [_png_bytes(a, 384) for a in anchors], as_json=True, timeout=60, rounds=1)
@@ -437,20 +446,33 @@ def character_anchor(cid, c, folder):
         if score is None: best = (None, im); break       # kontrol yapılamadı: ilk görseli kullan
         if score > best[0]: best = (score, im)
         if score >= QC_MIN_ACCEPT or judged >= 3: break
-    if best[1] is None: raise RuntimeError(f'{c["name"]} karakter kartı: görsel üretimi tüm denemelerde başarısız oldu.')
+    if best[1] is None: raise RuntimeError(f'{c["name"]} karakter kartı: görsel üretimi tamamlanamadı.')
     if best[0] is not None and best[0] < QC_MIN_FLOOR: raise RuntimeError(f'{c["name"]} karakter kartı kalite kontrolünden geçemedi (puan {best[0]}).')
     path.parent.mkdir(parents=True, exist_ok=True); best[1].save(path)
     return best[1]
 
 
-def scene_prompt(scene, chars, extra_ref=False):
-    refs = [f"reference image {i} shows {c['name']}" for i, c in enumerate(chars)]
-    if extra_ref: refs.append(f"reference image {len(chars)} shows the established art style and setting")
-    keep = 'Keep every character exactly as in its reference image: same species, body shape, colors and accessories.'
+def scene_prompt(scene, chars, correction=None):
+    refs = [f"reference image {i} shows ONLY {c['name']}" for i, c in enumerate(chars)]
     who = ' '.join(f"{c['name']}: {c['appearance_en']}" for c in chars)
-    p = f"{'; '.join(refs)}. {keep} Characters: {who} Scene: {scene['visual']}. {STYLE_LOCK}"
-    if len(p) > 1900: p = f"{'; '.join(refs)}. {keep} Scene: {scene['visual']}. {STYLE_LOCK}"
-    return p
+    names = ', '.join(c['name'] for c in chars)
+    keep = (
+        f"Include exactly these {len(chars)} character(s), and no others: {names}. "
+        "Do not add background vehicles, people, animals, duplicate characters or decorative character-like objects. "
+        "Each character must remain separate, fully visible and faithful to its own reference image: "
+        "same species or vehicle type, body shape, colors and accessories."
+    )
+    action = (f"Create one expressive storyboard frame for this exact story moment: {scene['visual']}. "
+              "Show the action at its clearest instant, with a visibly purposeful body pose, movement or interaction. "
+              "Include relevant story props and a specific, richly illustrated setting. "
+              "Vary camera framing naturally across scenes. "
+              "Never create a character reference sheet, static portrait, idle standing pose, or repeated smiling pose. "
+              "The character must be doing something, not merely posing.")
+    fix = ""
+    if correction:
+        fix = " Correct these specific problems from the previous rejected image: " + "; ".join(correction[:5]) + ". "
+        fix += "Do not repeat any of these errors. Make the physical action unmistakable, show interaction with the correct prop or environment, and do not fall back to a static smiling portrait."
+    return f"{'; '.join(refs)}. {keep} Character designs: {who} {action}{fix} {STYLE_LOCK}"
 
 
 def make_images(story, folder, key=None, model=None, local=''):
@@ -463,7 +485,6 @@ def make_images(story, folder, key=None, model=None, local=''):
         for cid in ids:
             anchors[cid] = character_anchor(cid, bible[cid], cache)
             print(f'Karakter kartı hazır: {bible[cid]["name"]}')
-    first_ok = None
     for i, s in enumerate(story['scenes']):
         path = folder / f'{i+1:02}.jpg'
         if not path.exists():
@@ -472,42 +493,46 @@ def make_images(story, folder, key=None, model=None, local=''):
                 present = [x for x in (s.get('present') or ids) if x in anchors] or list(anchors)
                 chars = [bible[x] for x in present][:4]
                 refs = [_png_bytes(anchors[x]) for x in present][:4]
-                extra = first_ok is not None and len(refs) < 4
-                if extra: refs.append(_png_bytes(first_ok))
-                prompt = scene_prompt(s, chars, extra)
-                best = (-1, None, []); flagged = 0; judged = 0
-                for k in range(SCENE_ATTEMPTS + 2):
-                    use_refs = refs[:len(chars)] if flagged else refs
-                    pr = (SAFE_PREFIX + prompt) if flagged else prompt
+                expected_refs = [anchors[x] for x in present][:4]
+                best = (-1, None, [])
+                flagged = 0
+                prompt_corrections = []
+                for k in range(SCENE_ATTEMPTS):
+                    prompt = scene_prompt(s, chars, prompt_corrections if k >= 1 else None)
+                    use_prompt = (SAFE_PREFIX + prompt) if flagged else prompt
                     try:
                         if IMAGE_PROVIDER == 'gemini':
-                            cand = gemini_image_generate(pr, use_refs, IMG_W, IMG_H, model)
+                            cand = gemini_image_generate(use_prompt, refs, IMG_W, IMG_H, model)
                         elif IMAGE_PROVIDER == 'cloudflare':
-                            cand = cf_generate(pr, use_refs, SEED + i + k * 1000, IMG_W, IMG_H)
+                            cand = cf_generate(use_prompt, refs, SEED + i + k * 1000, IMG_W, IMG_H)
                         else:
                             raise ValueError(f'Bilinmeyen MINOMASAL_IMAGE_PROVIDER: {IMAGE_PROVIDER}')
                     except CFFlagged as e:
                         flagged += 1
-                        print(f'Sahne {i+1} deneme {k+1}: içerik filtresi görseli işaretledi (yanlış alarm olabilir), farklı seed ve yumuşatılmış istemle devam: {str(e)[:80]}')
+                        print(f'Sahne {i+1} deneme {k+1}: içerik filtresi işaretledi; farklı seed ile yeniden deneniyor: {str(e)[:80]}')
                         continue
-                    judged += 1
-                    score, problems = judge(cand, chars, [anchors[x] for x in present][:4], s.get('visual', ''))
+                    score, problems = judge(cand, chars, expected_refs, s.get('visual', ''))
                     print(f'Sahne {i+1} deneme {k+1}: puan={score} {problems}')
-                    if score is None: best = (None, cand, problems); break
-                    if score > (best[0] if best[0] is not None else -1): best = (score, cand, problems)
-                    if score >= QC_MIN_ACCEPT or judged >= SCENE_ATTEMPTS: break
+                    if score is None:
+                        best = (None, cand, problems)
+                        break
+                    if score > best[0]:
+                        best = (score, cand, problems)
+                    if score >= QC_MIN_ACCEPT:
+                        best = (score, cand, problems)
+                        break
+                    prompt_corrections = problems or ["match the requested scene and show only the expected characters"]
                 if best[1] is None:
                     raise RuntimeError(f'Sahne {i+1}: görsel üretimi tamamlanamadı. Sahne açıklaması: {s.get("visual", "")[:160]}')
                 if best[0] is not None and best[0] < QC_MIN_FLOOR:
-                    raise RuntimeError(f'Sahne {i+1} kalite kontrolünden geçemedi (en iyi puan {best[0]}): {best[2]}. Video üretimi durduruldu.')
-                im = best[1]; report.append({'scene': i + 1, 'score': best[0], 'problems': best[2]})
-                if i == 0: first_ok = im
+                    raise RuntimeError(f'Sahne {i+1} kalite kontrolünden geçemedi (en fazla {SCENE_ATTEMPTS} deneme; en iyi puan {best[0]}): {best[2]}. Video üretimi durduruldu.')
+                im = best[1]
+                report.append({'scene': i + 1, 'score': best[0], 'problems': best[2], 'attempts': k + 1, 'provider': IMAGE_PROVIDER, 'model': GORSEL_MODELI})
             ImageOps.fit(im.convert('RGB'), (1080, 1920), method=Image.Resampling.LANCZOS).save(path, quality=95)
         with Image.open(path) as im2: im2.verify()
         out.append(path); print(f'Görsel {i+1}/{len(story["scenes"])} hazır')
     if report: save_json(folder.parent / 'gorsel_kontrol.json', report)
     return out
-
 
 # -------------------------------- ses --------------------------------------
 
