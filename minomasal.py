@@ -255,10 +255,16 @@ Her sahnede anlatımda adı geçen karakter "present" listesinde olsun. Sahneler
         ozel = metin.split(baslik, 1)[1].split(bitis, 1)[0]
         ortak = metin.split(ortak_baslik, 1)[1]
         prompt += "\n\nBU HİKÂYEYE ÖZEL ZORUNLU KURALLAR:\n" + ozel.strip() + "\n\nORTAK KURALLAR:\n" + ortak.strip()
-    text, used = gemini_text(prompt, STORY_MODELS, as_json=True)
-    print('Hikâye modeli:', used)
-    text = re.sub(r'^```(?:json)?\s*|\s*```$', '', text.strip())
-    story = json.loads(text)
+    story = None
+    for att in range(3):
+        extra_hint = '' if att == 0 else '\n\nÖNEMLİ: "scenes" dizisinde TAM 10 sahne olmalı, ne eksik ne fazla.'
+        text, used = gemini_text(prompt + extra_hint, STORY_MODELS, as_json=True)
+        print('Hikâye modeli:', used)
+        try: cand = json.loads(re.sub(r'^```(?:json)?\s*|\s*```$', '', text.strip()))
+        except ValueError: print('Hikâye JSON okunamadı, tekrar deneniyor.'); continue
+        if isinstance(cand, dict) and len(cand.get('scenes', [])) == 10: story = cand; break
+        print(f'Hikâye {len(cand.get("scenes", [])) if isinstance(cand, dict) else 0} sahne üretti (10 gerekli), tekrar deneniyor.')
+    if story is None: raise RuntimeError('Gemini 3 denemede tam 10 sahnelik geçerli hikâye üretemedi.')
     # Görünüş bilgisi modele bırakılmaz: defterden eklenir.
     story['characters'] = ' '.join(f"{chars[i]['name']}: {chars[i]['appearance_en']}" for i in ids)
     story['char_ids'] = ids
@@ -273,6 +279,13 @@ Her sahnede anlatımda adı geçen karakter "present" listesinde olsun. Sahneler
 def _png_bytes(im, box=480):
     im = im.convert('RGB').copy(); im.thumbnail((box, box), Image.Resampling.LANCZOS)
     b = io.BytesIO(); im.save(b, 'PNG'); return b.getvalue()
+
+
+class CFFlagged(RuntimeError):
+    """Cloudflare içerik filtresi çıktıyı işaretledi (çoğu zaman yanlış alarm; farklı seed/istemle geçilir)."""
+
+
+SAFE_PREFIX = 'Wholesome, family-friendly, gentle and cheerful scene for preschool children. '
 
 
 def cf_generate(prompt, refs, seed, width, height):
@@ -291,6 +304,7 @@ def cf_generate(prompt, refs, seed, width, height):
                 raw = base64.b64decode(j['result']['image'])
             im = Image.open(io.BytesIO(raw)); im.load(); return im.convert('RGB')
         msg = _clean_err(r)
+        if r.status_code == 400 and 'flagged' in msg.lower(): raise CFFlagged(f'Cloudflare içerik filtresi: {msg}')
         if r.status_code in (401, 403): raise RuntimeError(f'Cloudflare yetki hatası (HTTP {r.status_code}): token izni veya hesap kimliği yanlış olabilir. {msg}')
         if r.status_code == 429 or 'neuron' in msg.lower() or '4006' in msg:
             raise RuntimeError(f'Cloudflare günlük ücretsiz kota dolmuş olabilir (HTTP {r.status_code}): {msg}')
@@ -324,14 +338,18 @@ def character_anchor(cid, c, folder):
     prompt = (f"Character reference picture of {c['name']}. {c['appearance_en']} Single character only, full body, centered, "
               f"friendly neutral pose, plain soft pastel background. {STYLE_LOCK}")
     base = zlib.crc32(cid.encode()) % 900000
-    best = (-1, None)
-    for k in range(3):
-        im = cf_generate(prompt, [], base + k * 7919, 768, 768)
+    best = (-1, None); flagged = 0; judged = 0
+    for k in range(5):
+        try: im = cf_generate((SAFE_PREFIX + prompt) if flagged else prompt, [], base + k * 7919, 768, 768)
+        except CFFlagged:
+            flagged += 1; print(f'Karakter kartı {c["name"]} deneme {k+1}: içerik filtresi işaretledi, yeniden deneniyor.'); continue
+        judged += 1
         score, problems = judge(im, [c], [], 'single character reference picture')
         print(f'Karakter kartı {c["name"]} deneme {k+1}: puan={score} {problems}')
         if score is None: best = (None, im); break       # kontrol yapılamadı: ilk görseli kullan
         if score > best[0]: best = (score, im)
-        if score >= QC_MIN_ACCEPT: break
+        if score >= QC_MIN_ACCEPT or judged >= 3: break
+    if best[1] is None: raise RuntimeError(f'{c["name"]} karakter kartı: Cloudflare içerik filtresi tüm denemelerde engelledi.')
     if best[0] is not None and best[0] < QC_MIN_FLOOR: raise RuntimeError(f'{c["name"]} karakter kartı kalite kontrolünden geçemedi (puan {best[0]}).')
     path.parent.mkdir(parents=True, exist_ok=True); best[1].save(path)
     return best[1]
@@ -369,14 +387,24 @@ def make_images(story, folder, key=None, model=None, local=''):
                 extra = first_ok is not None and len(refs) < 4
                 if extra: refs.append(_png_bytes(first_ok))
                 prompt = scene_prompt(s, chars, extra)
-                best = (-1, None, [])
-                for k in range(SCENE_ATTEMPTS):
-                    cand = cf_generate(prompt, refs, SEED + i + k * 1000, IMG_W, IMG_H)
+                best = (-1, None, []); flagged = 0; judged = 0
+                for k in range(SCENE_ATTEMPTS + 2):
+                    use_refs = refs[:len(chars)] if flagged else refs        # işaretlenince stil referansını çıkar
+                    pr = (SAFE_PREFIX + prompt) if flagged else prompt
+                    try:
+                        cand = cf_generate(pr, use_refs, SEED + i + k * 1000, IMG_W, IMG_H)
+                    except CFFlagged as e:
+                        flagged += 1
+                        print(f'Sahne {i+1} deneme {k+1}: içerik filtresi görseli işaretledi (yanlış alarm olabilir), farklı seed ve yumuşatılmış istemle devam: {str(e)[:80]}')
+                        continue
+                    judged += 1
                     score, problems = judge(cand, chars, [anchors[x] for x in present][:4], s.get('visual', ''))
                     print(f'Sahne {i+1} deneme {k+1}: puan={score} {problems}')
                     if score is None: best = (None, cand, problems); break
                     if score > (best[0] if best[0] is not None else -1): best = (score, cand, problems)
-                    if score >= QC_MIN_ACCEPT: break
+                    if score >= QC_MIN_ACCEPT or judged >= SCENE_ATTEMPTS: break
+                if best[1] is None:
+                    raise RuntimeError(f'Sahne {i+1}: Cloudflare içerik filtresi {flagged} denemede de görseli engelledi. Sahne açıklaması: {s.get("visual", "")[:160]}')
                 if best[0] is not None and best[0] < QC_MIN_FLOOR:
                     raise RuntimeError(f'Sahne {i+1} kalite kontrolünden geçemedi (en iyi puan {best[0]}): {best[2]}. Video üretimi durduruldu.')
                 im = best[1]; report.append({'scene': i + 1, 'score': best[0], 'problems': best[2]})
