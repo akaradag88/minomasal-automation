@@ -237,12 +237,19 @@ def create_story(topic, key=None, model=None):
     cast = '\n'.join(f"- id={i} | ad={chars[i]['name']} | tür={chars[i]['type_tr']} | kişilik={chars[i]['personality_tr']}" for i in ids)
     prompt = f"""4–8 yaş çocuklarına Türkçe öğretici bir masal yaz. Konu: {topic}.
 Toplam 75–110 kelime, tam 10 sahne, her sahnede 1–2 kısa cümle. İlk cümle merak uyandırsın. Olaylar sebep-sonuç sırasıyla ilerlesin.
+GÖRSEL HİKÂYE ANLATIMI ZORUNLU:
+- On sahne, aynı karakterin farklı pozlarda durduğu portreler değil; başı, gelişmesi ve sonucu olan 10 karelik resimli bir macera gibi ilerlesin.
+- Her sahnede karakterin yaptığı tek, somut ve kamerada açıkça görülebilen bir eylem olsun. "Mutlu oldu", "cesur hissetti", "gülümsedi" gibi soyut duygular tek başına sahne eylemi olamaz.
+- Her sahnede farklı bir fiziksel eylem ve o eylemle ilişkili nesne/ortam ayrıntısı kullan. Örneğin yaprakların arasından ilerlemek, kayanın arkasına saklanmak, dere üzerindeki kütüğe yaklaşmak, bir dala tutunmak veya bir arkadaşına yardım etmek.
+- Karakterin beden duruşu ve yüz ifadesi eylemi yansıtsın; her sahnede kameraya dönük ayakta durup gülümsemesin.
+- Görsel olaylar anlatım cümlesiyle birebir örtüşsün; mekân ve olay devamlılığı korunsun. Yakın plan, geniş plan ve farklı bakış açılarını dönüşümlü kullan.
+- Hikâyede olmayan karakter/olay uydurma; ancak eylemi görünür kılacak doğal çevre ve nesneleri mutlaka göster.
 Tek somut ders, korkutucu içerik yok, tehlikeli davranışa özendirme yok, satın alma/abone ol çağrısı yok.
 Son cümlede çocukla ilgili kısa bir düşünme sorusu sor.
 KARAKTERLER (yalnız bunlar olsun, adlarını aynen kullan, yeni karakter ekleme):
 {cast}
 Yalnız JSON döndür: {{"title":"kısa Türkçe başlık","moral":"ders","scenes":[{{"narration":"Türkçe 1–2 kısa cümle","visual":"bu anlatımdaki olayın İngilizce görsel açıklaması: yalnız eylem, ortam ve kadraj; karakterlerin görünüşünü yazma, yalnız adlarını kullan","present":["bu sahnede görünen karakter id'leri"],"sfx":"none"}}]}}.
-Her sahnede anlatımda adı geçen karakter "present" listesinde olsun. Sahneler birbirini görsel olarak takip etsin.
+Her sahnede anlatımda adı geçen karakter "present" listesinde olsun. Her sahnenin fiziksel eylemi önceki sahneden farklı olsun; art arda aynı ayakta durma/gülümseme pozunu kullanma. Her sahne, hikâyedeki olayın resimden anlaşılmasını sağlamalıdır.
 """
     # Özel gün kuralları yalnızca ilgili dört hikâyeye uygulanır.
     ozel_gunler = {
@@ -330,7 +337,9 @@ def judge(image, expected, anchors, visual=''):
               f"The following images are reference pictures of the expected characters, in this order: {names}. "
               f"Check: (1) every expected character is visible and clearly the same species/vehicle with the same colors and accessories as its reference; "
               f"(2) no unexpected extra characters; (3) no text, letters or watermark; (4) no anatomy errors such as extra or missing limbs or merged bodies; "
-              f"(5) the picture matches this scene: {visual or 'n/a'}. "
+              f"(5) the picture clearly depicts this exact physical action: {visual or 'n/a'}; "
+              f"(6) reject a static portrait, idle standing pose, or a character merely smiling when the scene requires an event; "
+              f"(7) show interaction with a relevant object or the environment whenever the action calls for it. "
               f'Return only JSON: {{"score": integer 0-10, "problems": ["short English strings"]}}.')
     try:
         text, _ = gemini_text(prompt, QC_MODELS, images=[_png_bytes(image, 768)] + [_png_bytes(a, 384) for a in anchors], as_json=True, timeout=60, rounds=1)
@@ -376,11 +385,16 @@ def scene_prompt(scene, chars, correction=None):
         "Each character must remain separate, fully visible and faithful to its own reference image: "
         "same species or vehicle type, body shape, colors and accessories."
     )
-    action = f"Show this exact action clearly and literally: {scene['visual']}."
+    action = (f"Create one expressive storyboard frame for this exact story moment: {scene['visual']}. "
+              "Show the action at its clearest instant, with a visibly purposeful body pose, movement or interaction. "
+              "Include relevant story props and a specific, richly illustrated setting. "
+              "Vary camera framing naturally across scenes. "
+              "Never create a character reference sheet, static portrait, idle standing pose, or repeated smiling pose. "
+              "The character must be doing something, not merely posing.")
     fix = ""
     if correction:
         fix = " Correct these specific problems from the previous rejected image: " + "; ".join(correction[:5]) + ". "
-        fix += "Do not repeat any of these errors. Keep the scene simple and make the requested action unmistakable."
+        fix += "Do not repeat any of these errors. Make the physical action unmistakable, show interaction with the correct prop or environment, and do not fall back to a static smiling portrait."
     return f"{'; '.join(refs)}. {keep} Character designs: {who} {action}{fix} {STYLE_LOCK}"
 
 
