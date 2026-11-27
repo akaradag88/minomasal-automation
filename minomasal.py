@@ -185,12 +185,18 @@ def _clean_err(r):
         return r.text[:300]
 
 
-def gemini_post(path, payload, tries=4, timeout=180):
+def gemini_post(path, payload, tries=4, timeout=120):
     key = os.environ.get('GEMINI_API_KEY', '')
     if not key: raise RuntimeError('GEMINI_API_KEY GitHub Secret eksik.')
     last = ''
     for k in range(tries):
-        r = requests.post(f'{GEMINI_BASE}/{path}', headers={'x-goog-api-key': key, 'Content-Type': 'application/json'}, json=payload, timeout=timeout)
+        try:
+            r = requests.post(f'{GEMINI_BASE}/{path}', headers={'x-goog-api-key': key, 'Content-Type': 'application/json'}, json=payload, timeout=timeout)
+        except requests.exceptions.RequestException as e:
+            last = f'ağ hatası ({type(e).__name__}, {timeout} sn)'
+            print(f'Gemini {path.split(":")[0]} {last}; deneme {k+1}/{tries}')
+            if k < tries - 1: time.sleep(5 * (k + 1)); continue
+            break
         if r.status_code == 200: return r.json()
         last = f'HTTP {r.status_code}: {_clean_err(r)}'
         if r.status_code == 429 and ('per day' in last.lower() or 'daily' in last.lower()):
@@ -201,16 +207,16 @@ def gemini_post(path, payload, tries=4, timeout=180):
     raise RuntimeError(f'Gemini isteği başarısız ({path.split(":")[0]}): {last}')
 
 
-def gemini_text(prompt, models, images=(), as_json=False):
+def gemini_text(prompt, models, images=(), as_json=False, timeout=90, rounds=2):
     """Modelleri sırayla dener: 503/429/404/403 gibi hatalarda sıradaki modele geçer; iki tur sonra durur."""
     parts = [{'text': prompt}] + [{'inlineData': {'mimeType': 'image/png', 'data': base64.b64encode(b).decode()}} for b in images]
     payload = {'contents': [{'role': 'user', 'parts': parts}]}
     if as_json: payload['generationConfig'] = {'responseMimeType': 'application/json'}
     errors = []
-    for rnd in range(2):
+    for rnd in range(rounds):
         for m in models:
             try:
-                data = gemini_post(f'models/{m}:generateContent', payload, tries=2)
+                data = gemini_post(f'models/{m}:generateContent', payload, tries=2, timeout=timeout)
                 cand = (data.get('candidates') or [{}])[0]
                 text = ''.join(p.get('text', '') for p in cand.get('content', {}).get('parts', []))
                 if not text.strip(): raise RuntimeError('boş yanıt')
@@ -219,7 +225,7 @@ def gemini_text(prompt, models, images=(), as_json=False):
                 if 'Secret eksik' in str(e): raise
                 errors.append(f'{m}: {str(e)[:120]}')
                 print(f'Gemini modeli atlandı -> {errors[-1]}')
-        if rnd == 0: time.sleep(30)          # yoğunluk geçsin diye kısa bekleme, sonra ikinci tur
+        if rnd < rounds - 1: time.sleep(30)          # yoğunluk geçsin diye kısa bekleme, sonra ikinci tur
     raise RuntimeError('Gemini metin modeli kullanılamadı -> ' + ' | '.join(errors[-4:]))
 
 
@@ -295,7 +301,12 @@ def cf_generate(prompt, refs, seed, width, height):
     for attempt in range(3):
         fields = {'prompt': (None, prompt), 'width': (None, str(width)), 'height': (None, str(height)), 'seed': (None, str(int(seed)))}
         for i, png in enumerate(refs[:4]): fields[f'input_image_{i}'] = (f'ref{i}.png', png, 'image/png')
-        r = requests.post(url, headers={'Authorization': 'Bearer ' + tok}, files=fields, timeout=240)
+        try:
+            r = requests.post(url, headers={'Authorization': 'Bearer ' + tok}, files=fields, timeout=240)
+        except requests.exceptions.RequestException as e:
+            print(f'Cloudflare ağ hatası ({type(e).__name__}); deneme {attempt+1}/3')
+            if attempt < 2: time.sleep(5 * (attempt + 1)); continue
+            raise RuntimeError(f'Cloudflare bağlantı hatası: {type(e).__name__}')
         if r.status_code == 200:
             if r.headers.get('content-type', '').startswith('image/'): raw = r.content
             else:
@@ -322,7 +333,7 @@ def judge(image, expected, anchors, visual=''):
               f"(5) the picture matches this scene: {visual or 'n/a'}. "
               f'Return only JSON: {{"score": integer 0-10, "problems": ["short English strings"]}}.')
     try:
-        text, _ = gemini_text(prompt, QC_MODELS, images=[_png_bytes(image, 768)] + [_png_bytes(a, 384) for a in anchors], as_json=True)
+        text, _ = gemini_text(prompt, QC_MODELS, images=[_png_bytes(image, 768)] + [_png_bytes(a, 384) for a in anchors], as_json=True, timeout=60, rounds=1)
         d = json.loads(re.sub(r'^```(?:json)?\s*|\s*```$', '', text.strip()))
         return float(d.get('score')), [str(x) for x in d.get('problems', [])][:5]
     except Exception as e:
